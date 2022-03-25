@@ -1,0 +1,10 @@
+
+.devcontainer/
+
+build/
+
+sdkconfig.defaults
+
+sdkconfig.old
+
+components/

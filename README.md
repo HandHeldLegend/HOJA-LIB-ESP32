@@ -1,1 +1,4 @@
-RetroBlue-ESP32
+| Supported Targets | ESP32 |
+| ----------------- | ----- |
+
+# ESP-IDF RetroBlue Bluetooth Gamepad API
