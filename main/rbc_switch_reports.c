@@ -106,9 +106,9 @@ void ns_report_sub_setdevinfo(void)
 {
     ns_input_report[15] = ns_controller_data.fw_primary;
     ns_input_report[16] = ns_controller_data.fw_secondary;
-    ns_input_report[17] = ns_controller_data.controller_type;
-    ns_input_report[18] = 0x02; // Experiment with this later :)
-    ns_report_bulkset(19, ns_controller_data.client_mac_address, 6); // Send client bt address Big Endian
+    ns_input_report[17] = 0x0C;//ns_controller_data.controller_type;
+    ns_input_report[18] = 0x11; // Experiment with this later :) (0x02 default)
+    ns_report_bulkset(19, loaded_settings.ns_client_bt_address, 6); // Send client bt address Big Endian
     ns_input_report[25] = 0x01;
     ns_input_report[26] = ns_controller_data.color_set;
 

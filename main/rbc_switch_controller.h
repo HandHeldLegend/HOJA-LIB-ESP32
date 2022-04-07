@@ -34,12 +34,6 @@ typedef struct
         uint16_t fw_full;
     };
 
-    // Controller Bluetooth Mac Address
-    uint8_t client_mac_address[6];
-
-    // Paired device Bluetooth Mac Address
-    uint8_t host_mac_address[6];
-
     uint8_t player_number;
 
     union 

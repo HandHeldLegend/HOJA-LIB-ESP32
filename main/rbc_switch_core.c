@@ -143,6 +143,8 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                     ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
                     esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
 
+                    rbc_core_savepairing(param->open.bd_addr);
+
                     ESP_LOGI(TAG, "Starting task 0xFF Empty responses mode...");
                     ns_controller_setinputreportmode(0xFF);
 
@@ -228,16 +230,15 @@ rb_err_t rbc_core_ns_start(void)
     ns_controller_data.fw_primary = 0x03;
     ns_controller_data.fw_secondary = 0x80;
 
-    // Load BT MAC address of controller
-    memcpy(ns_controller_data.client_mac_address, loaded_settings.client_bt_address, 6);
+    // Load Controller data
     ns_controller_data.battery_level_full = 0x04;
     ns_controller_data.connection_info = 0x00;
-    ns_controller_data.controller_type = 0x03;
+    ns_controller_data.controller_type = 0x02;
     ns_controller_data.color_set = false;
     ns_controller_data.sticks_calibrated = false;
     ns_controller_data.input_report_mode = 0xFF;
 
-    esp_base_mac_addr_set(ns_controller_data.client_mac_address);
+    esp_base_mac_addr_set(loaded_settings.ns_client_bt_address);
 
     // Set up NS app parameters
     ns_core_param.app_param.name = "Wireless Gamepad";
@@ -317,5 +318,25 @@ rb_err_t rbc_core_ns_start(void)
 
     esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
 
+    if (loaded_settings.ns_controller_paired)
+    {
+        // Connect to paired host device
+        esp_bt_hid_device_connect(loaded_settings.ns_host_bt_address);
+    }
+
     return RB_OK;
+}
+
+void rbc_core_savepairing(uint8_t* host_addr)
+{
+    const char* TAG = "rbc_core_savepairing";
+    esp_err_t err;
+    ESP_LOGI(TAG, "Pairing to Nintendo Switch tablet.");
+
+    // Copy host address into settings memory.
+    memcpy(loaded_settings.ns_host_bt_address, host_addr, sizeof(loaded_settings.ns_host_bt_address));
+    loaded_settings.ns_controller_paired = true;
+    
+    // Save all settings
+    rb_settings_saveall();
 }

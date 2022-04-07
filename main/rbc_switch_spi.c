@@ -71,7 +71,7 @@ uint8_t ns_spi_getaddressdata(uint8_t offset_address, uint8_t address)
 
                 // Host BT address (Big-endian)
                 case 0x04 ... 0x09:
-                    return ns_controller_data.host_mac_address[address-4];
+                    return loaded_settings.ns_host_bt_address[address-4];
                     break;
 
                 // Bluetooth LTK (Little-endian) NOT IMPLEMENTED YET
@@ -126,7 +126,7 @@ uint8_t ns_spi_getaddressdata(uint8_t offset_address, uint8_t address)
 
                 // Returns a bool indicating if color is set.
                 case 0x1B:
-                    return ns_controller_data.color_set;
+                    return 0x02; //ns_controller_data.color_set;
                     break;
 
                 // TO-DO - Implement factory 6-Axis calibration.
@@ -145,7 +145,10 @@ uint8_t ns_spi_getaddressdata(uint8_t offset_address, uint8_t address)
                     break;
 
                 // TO-DO - Implement factory body color.
-                case 0x50 ... 0x52:
+                case 0x50:
+                    return 0xFF;
+                    break;
+                case 0x51 ... 0x52:
                     return 0x00;
                     break;
 
