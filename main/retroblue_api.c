@@ -1,5 +1,7 @@
 #include "retroblue_api.h"
 
+SemaphoreHandle_t xSemaphore;
+
 rb_err_t rb_api_init()
 {
     const char* TAG = "rb_api_init";

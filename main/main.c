@@ -7,13 +7,9 @@
 
 #define BTN_DEBOUNCE_COUNT 6
 
-button_s btn_a = {};
-button_s btn_b = {};
-
 bool buttons_changed = false;
 uint32_t regread = 0;
 uint32_t counter = 0;
-GamepadButtonData gp_buttondata = {};
 
 TaskHandle_t ButtonTaskHandle = NULL;
 
@@ -24,30 +20,21 @@ bool getbit(uint32_t bytes, uint8_t bit)
     return (bytes >> bit) & 0x1;
 }
 
-static void button_task(void* arg)
+// Set up function to update inputs
+// This will scan the sticks/buttons once
+// at a refresh rate determined by the core.
+void button_task()
 {
     const char* TAG = "button_task";
 
-    for(;;)
-    {
-        // Read the GPIO register once to save time :)
-        // We mask it with our pin select to erase any unwanted data.
-        uint32_t regtmp = REG_READ(GPIO_IN_REG) & GPIO_INPUT_PIN_SEL;
-        gp_buttondata.button_right = !getbit(regread, GPIO_BTN_A);
-        gp_buttondata.button_down = !getbit(regread, GPIO_BTN_B);
+    // Read the GPIO register once to save time :)
+    // We mask it with our pin select to erase any unwanted data.
+    regread = REG_READ(GPIO_IN_REG) & GPIO_INPUT_PIN_SEL;
+    g_button_data.button_right = !getbit(regread, GPIO_BTN_A);
+    g_button_data.button_down = !getbit(regread, GPIO_BTN_B);
 
-        if (regread != regtmp)
-        {
-            counter ++;
-            ESP_LOGI(TAG, "Buttons changed: %d", counter);
-        }
-
-        regread = regtmp;
-
-        vTaskDelay( 16 / portTICK_PERIOD_MS );
-    }
-
-    
+    // read stick 1
+    g_stick_data.lsx = (uint16_t) adc1_get_raw(ADC1_CHANNEL_0);
 }
 
 void app_main()
@@ -66,19 +53,18 @@ void app_main()
     // Set up GPIO
     gpio_config_t io_conf = {};
 
-    btn_a.gpio_num = GPIO_BTN_A;
-    btn_b.gpio_num = GPIO_BTN_B;
-
     io_conf.intr_type = GPIO_INTR_DISABLE;
     io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = 1;
     gpio_config(&io_conf);
 
-    xTaskCreate(button_task, "button_task", 2048, NULL, 1, ButtonTaskHandle);
+    //xTaskCreatePinnedToCore(button_task, "button_task", 2048, NULL, 2, &ButtonTaskHandle, 1);
+    // Register input callback
+    rb_register_input_callback(button_task);
 
     err = rb_api_init();
     err = rb_api_setCore(CORE_NINTENDOSWITCH);
-    //err = rb_api_startController();
+    err = rb_api_startController();
 
 }

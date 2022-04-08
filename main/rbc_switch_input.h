@@ -39,6 +39,11 @@ typedef struct
         uint8_t buttons_second;
     };
     uint8_t stick_hat;
+
+    // Stick analog values
+    uint8_t l_stick[4];
+    uint8_t r_stick[4];
+
 } ns_input_short_s;
 
 typedef struct
@@ -47,14 +52,14 @@ typedef struct
     {
         struct
         {
-            uint8_t zr_btn      : 1;
-            uint8_t r_btn       : 1;
-            uint8_t sl_r_btn    : 1;
-            uint8_t sr_r_btn    : 1;
-            uint8_t a_btn       : 1;
-            uint8_t b_btn       : 1;
-            uint8_t x_btn       : 1;
             uint8_t y_btn       : 1;
+            uint8_t x_btn       : 1;
+            uint8_t b_btn       : 1;
+            uint8_t a_btn       : 1;
+            uint8_t sr_r_btn    : 1;
+            uint8_t sl_r_btn    : 1;
+            uint8_t r_btn       : 1;
+            uint8_t zr_btn      : 1;
         };
         uint8_t right_buttons;
     };
@@ -88,9 +93,24 @@ typedef struct
         };
         uint8_t left_buttons;
     };
+
+    uint8_t l_stick[3];
+    uint8_t r_stick[3];
+
 } ns_input_long_s;
+
+typedef struct
+{
+    uint8_t l_stick_cal[11];
+    uint8_t r_stick_cal[11];
+}ns_input_stickcaldata_s;
 
 ns_input_short_s ns_input_short;
 ns_input_long_s ns_input_long;
+ns_input_stickcaldata_s ns_input_stickcaldata;
+
+void ns_input_grabinput(uint8_t button_mode);
+
+void ns_input_stickcalibration();
 
 #endif

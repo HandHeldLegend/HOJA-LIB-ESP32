@@ -104,6 +104,16 @@ void rb_settings_default(void)
     memset(loaded_settings.ns_host_bt_address, 0, 6);
     loaded_settings.ns_controller_paired = false;
 
+    loaded_settings.sx_min = 0xFA;
+    loaded_settings.sx_center = 0x740;
+    loaded_settings.sx_max = 0xF47;
+
+    loaded_settings.sy_min = 0xFA;
+    loaded_settings.sy_center = 0x740;
+    loaded_settings.sy_max = 0xF47;
+
+    // Set default stick settings
+
     // Set blob
     nvs_set_blob(my_handle, "rb_settings", &loaded_settings, sizeof(loaded_settings));
 

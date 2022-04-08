@@ -178,18 +178,16 @@ uint8_t ns_spi_getaddressdata(uint8_t offset_address, uint8_t address)
             switch (address)
             {
                 // Stick calibration check (magic)
-                case 0x10: // Left stick magic part A
                 case 0x1B: // Right stick magic part A
                     if (ns_controller_data.sticks_calibrated) return 0xB2;
                     break;
-                case 0x11: // Left stick magic part B
                 case 0x1C: // Right stick magic part B
                     if (ns_controller_data.sticks_calibrated) return 0xA1;
                     break;
 
                 // TO-DO - User left stick calibration data
-                case 0x12 ... 0x1A:
-                    return 0x00;
+                case 0x10 ... 0x1A:
+                    return ns_input_stickcaldata.l_stick_cal[address-0x10];
                     break;
 
                 // TO-DO - User right stick calibration data

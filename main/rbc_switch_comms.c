@@ -135,14 +135,18 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
             break;
 
         case SUBC_ENABLE_VIBRATION:
-            ESP_LOGI(TAG, "SUBC - Enable vibration.");
             ns_report_setack(0x80);
 
             if(p_data[11])
             {
+                ESP_LOGI(TAG, "SUBC - Enable fast frequency");
                 ns_input_frequency = INPUT_FREQUENCY_FAST;
             }
-            else ns_input_frequency = INPUT_FREQUENCY_SLOW;
+            else 
+            {
+                ESP_LOGI(TAG, "SUBC - Enable slow frequency");
+                ns_input_frequency = INPUT_FREQUENCY_SLOW;
+            }
 
             // TO-DO - Enable vibration
             break;

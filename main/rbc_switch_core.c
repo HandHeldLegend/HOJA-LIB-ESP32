@@ -191,8 +191,8 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
             ESP_LOGI(TAG, "ESP_HIDD_SET_PROTOCOL_EVT");
             break;
         case ESP_HIDD_INTR_DATA_EVT:
-            ESP_LOGI(TAG, "ESP_HIDD_INTR_DATA_EVT");
-            ESP_LOGI(TAG, "Event code: %d", param->intr_data.data[0]);
+            //ESP_LOGI(TAG, "ESP_HIDD_INTR_DATA_EVT");
+            //ESP_LOGI(TAG, "Event code: %d", param->intr_data.data[0]);
 
             // Reset timeout for power saving mode
             ns_timeout_counter = 0;
@@ -323,6 +323,9 @@ rb_err_t rbc_core_ns_start(void)
         // Connect to paired host device
         esp_bt_hid_device_connect(loaded_settings.ns_host_bt_address);
     }
+
+    // Convert calibration data
+    ns_input_stickcalibration();
 
     return RB_OK;
 }

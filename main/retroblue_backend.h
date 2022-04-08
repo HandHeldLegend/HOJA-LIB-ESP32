@@ -24,6 +24,8 @@
 #include <math.h>
 #include "esp_timer.h"
 #include <byteswap.h>
+#include "driver/gpio.h"
+#include "driver/adc.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -151,5 +153,9 @@ typedef struct
 } rb_param_s;
 
 rb_param_s rb_params;
+
+typedef void (*input_update_callback) (void);
+input_update_callback rb_input_cb;
+void rb_register_input_callback(input_update_callback func);
 
 #endif

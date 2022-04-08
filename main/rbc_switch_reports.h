@@ -16,7 +16,7 @@
  * @param NS_BM_SHORT Short input report - Simple report
  * @param NS_BM_LONG Long input report - Standard report
  */
-typedef uint8_t ns_report_buttonmode_t;
+// BUTTON MODES
 #define NS_BM_SHORT 0
 #define NS_BM_LONG  1
 
@@ -28,7 +28,7 @@ uint8_t ns_input_report[362];
 uint16_t ns_input_report_size;
 uint16_t ns_report_timer;
 
-#define INPUT_FREQUENCY_FAST    9
+#define INPUT_FREQUENCY_FAST    16
 #define INPUT_FREQUENCY_SLOW    68
 
 uint8_t ns_input_frequency;
@@ -47,7 +47,7 @@ void ns_report_settimer(void);
 
 void ns_report_setbattconn(void);
 
-void ns_report_setbuttons(ns_report_buttonmode_t button_mode);
+void ns_report_setbuttons(uint8_t button_mode);
 
 void ns_report_bulkset(uint8_t start_idx, uint8_t* data, uint8_t len);
 
@@ -56,8 +56,6 @@ void ns_report_sub_setdevinfo(void);
 void ns_report_sub_triggertime(uint16_t time_10_ms);
 
 void ns_report_sub_setspidata(uint8_t* data, uint8_t len);
-
-void ns_report_task_intrrtimeout(void * parameters);
 
 // Input Report Send Tasks
 void ns_report_task_sendshort();

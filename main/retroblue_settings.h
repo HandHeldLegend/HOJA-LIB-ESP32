@@ -30,6 +30,13 @@ typedef struct
     uint8_t ns_host_bt_address[6];
     bool ns_controller_paired;
 
+    uint16_t sx_min;
+    uint16_t sx_center;
+    uint16_t sx_max;
+
+    uint16_t sy_min;
+    uint16_t sy_center;
+    uint16_t sy_max;
 
 } RetroBlueSettings;
 

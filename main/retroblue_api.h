@@ -6,6 +6,8 @@
 #include "rbc_switch_core.h"
 #include "rbc_err.h"
 
+SemaphoreHandle_t xSemaphore;
+
 /* Functions relating to the API itself */
 
 // Initialize the API.
