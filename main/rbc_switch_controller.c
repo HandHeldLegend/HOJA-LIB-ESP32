@@ -20,7 +20,7 @@ void ns_controller_setinputreportmode(uint8_t report_mode)
             }
             xTaskCreatePinnedToCore(ns_report_task_sendshort, 
                                     "Short (0x3F) Send Task", 2048,
-                                    NULL, 1, &ns_ReportModeHandle, 0);
+                                    NULL, 1, &ns_ReportModeHandle, 1);
             break;
 
         // Standard
@@ -39,7 +39,7 @@ void ns_controller_setinputreportmode(uint8_t report_mode)
                 // ns_report_task_sendstandard
                 xTaskCreatePinnedToCore(ns_report_task_sendstandard, 
                                     "Standard Send Task", 2048,
-                                    NULL, 1, &ns_ReportModeHandle, 0);
+                                    NULL, 1, &ns_ReportModeHandle, 1);
             }
 
             break;

@@ -196,9 +196,7 @@ void ns_report_task_sendstandard(void * parameters)
 
     while(1)
     {
-        // Update inputs
-        rb_input_cb();
-
+        //xSemaphoreTake(xSemaphore, portMAX_DELAY);
         ns_report_clear();
         ns_report_settimer();
         ns_report_setid(0x30);
@@ -206,9 +204,13 @@ void ns_report_task_sendstandard(void * parameters)
         ns_report_setbattconn();
         ns_input_report_size = 13;
         ns_input_report[12] = 0x70;
+        //xSemaphoreGive(xSemaphore);
         esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0x30, ns_input_report_size, ns_input_report);
 
         vTaskDelay(ns_input_frequency / portTICK_PERIOD_MS);
+
+        // Update inputs
+        rb_input_cb();
     }
     
     

@@ -28,8 +28,8 @@ uint8_t ns_input_report[362];
 uint16_t ns_input_report_size;
 uint16_t ns_report_timer;
 
-#define INPUT_FREQUENCY_FAST    20
-#define INPUT_FREQUENCY_SLOW    67
+#define INPUT_FREQUENCY_FAST    68 //9
+#define INPUT_FREQUENCY_SLOW    68
 
 uint8_t ns_input_frequency;
 uint8_t ns_timeout_counter;

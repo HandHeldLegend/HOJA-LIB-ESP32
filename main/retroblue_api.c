@@ -7,6 +7,8 @@ rb_err_t rb_api_init()
     const char* TAG = "rb_api_init";
 	esp_err_t ret;
 
+    xSemaphore = xSemaphoreCreateMutex();
+
     if (rb_params.api_initialized)
     {
         return RB_ERR_RUNNING;

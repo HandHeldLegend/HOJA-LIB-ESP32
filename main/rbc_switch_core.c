@@ -63,6 +63,7 @@ uint8_t hid_descriptor_ns_core_len = sizeof(hid_descriptor_ns_core);
 
 TaskHandle_t ns_ReportModeHandle = NULL;
 TaskHandle_t ns_BlankReportsHandle = NULL;
+bool ns_connected = false;
 
 void ns_bt_shutdown()
 {
@@ -154,6 +155,7 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                 if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTING) {
                     ESP_LOGI(TAG, "connecting...");
                 } else if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTED) {
+                    ns_connected = true;
                     ESP_LOGI(TAG, "connected to %02x:%02x:%02x:%02x:%02x:%02x", param->open.bd_addr[0],
                             param->open.bd_addr[1], param->open.bd_addr[2], param->open.bd_addr[3], param->open.bd_addr[4],
                             param->open.bd_addr[5]);
@@ -183,8 +185,9 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                 if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTING) {
                     ESP_LOGI(TAG, "disconnecting...");
                 } else if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
+                    ns_connected = false;
                     ESP_LOGI(TAG, "disconnected!");
-                    ns_bt_shutdown();
+                    //ns_bt_shutdown();
 
                 } else {
                     ESP_LOGI(TAG, "unknown connection status");
@@ -225,6 +228,7 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
             ESP_LOGI(TAG, "ESP_HIDD_VC_UNPLUG_EVT");
             if (param->vc_unplug.status == ESP_HIDD_SUCCESS) {
                 if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
+                    ns_connected = false;
                     ESP_LOGI(TAG, "disconnected!");
                     ns_bt_shutdown();
                 } else {
@@ -343,9 +347,11 @@ rb_err_t rbc_core_ns_start(void)
 
     esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
 
-    if (loaded_settings.ns_controller_paired)
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+    if (loaded_settings.ns_controller_paired & !ns_connected)
     {
-        // Connect to paired host device
+        // Connect to paired host device if we haven't connected already
         if (esp_bt_hid_device_connect(loaded_settings.ns_host_bt_address) != ESP_OK)
         {
             ESP_LOGI(TAG, "Failed to connect to paired switch. Setting scannable and discoverable.");
@@ -354,8 +360,7 @@ rb_err_t rbc_core_ns_start(void)
     }
     else
     {
-        ESP_LOGI(TAG, "Controller not yet paired. Setting discoverable.");
-        esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+        ESP_LOGI(TAG, "Controller already connected");
     }
 
     return RB_OK;
