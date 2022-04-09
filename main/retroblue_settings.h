@@ -7,7 +7,7 @@ the onboard flash storage for later loading. */
 
 // Magic byte for determining if settings are up to date.
 // "rb01" -> 0x72623031
-#define SETTINGS_MAGIC 0x72623032
+#define SETTINGS_MAGIC 0x72623031
 #define SETTINGS_NAMESPACE "storage"
 
 /**

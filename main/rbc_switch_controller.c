@@ -6,31 +6,42 @@ void ns_controller_setinputreportmode(uint8_t report_mode)
 {
     char* TAG = "ns_controller_setinputreportmode";
 
-    ESP_LOGI(TAG, "Switching to input mode: %d", report_mode);
+    ESP_LOGI(TAG, "Switching to input mode: %04x", report_mode);
 
     switch(report_mode)
     {
         // Blank report mode
         case 0xFF:
-            ESP_LOGI(TAG, "Starting blank report mode.");
+            ESP_LOGI(TAG, "Starting short report mode.");
             if (ns_ReportModeHandle != NULL)
             {
                 vTaskDelete(ns_ReportModeHandle);
+                ns_ReportModeHandle = NULL;
             }
-            xTaskCreatePinnedToCore(ns_report_task_sendempty, 
-                                    "Empty Send Task", 2048,
+            xTaskCreatePinnedToCore(ns_report_task_sendshort, 
+                                    "Short (0x3F) Send Task", 2048,
                                     NULL, 1, &ns_ReportModeHandle, 0);
             break;
+
         // Standard
         case 0x30:
             ESP_LOGI(TAG, "Starting standard report mode.");
             if (ns_ReportModeHandle != NULL)
             {
                 vTaskDelete(ns_ReportModeHandle);
+                ns_ReportModeHandle = NULL;
             }
-            xTaskCreatePinnedToCore(ns_report_task_sendstandard, 
+
+            // if we're simulating pro controller, start a task to
+            // continually send button/stick updates.
+            if (ns_controller_data.controller_type == NS_CONTROLLER_TYPE_PROCON)
+            {   
+                // ns_report_task_sendstandard
+                xTaskCreatePinnedToCore(ns_report_task_sendstandard, 
                                     "Standard Send Task", 2048,
                                     NULL, 1, &ns_ReportModeHandle, 0);
+            }
+
             break;
         // NFC/IR
         case 0x31:  

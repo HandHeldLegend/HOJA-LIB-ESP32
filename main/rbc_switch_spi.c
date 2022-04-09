@@ -116,7 +116,16 @@ uint8_t ns_spi_getaddressdata(uint8_t offset_address, uint8_t address)
 
                 // Return factory controller type
                 case 0x12:
-                    return ns_controller_data.controller_type;
+                    switch(ns_controller_data.controller_type)
+                    {
+                        case NS_CONTROLLER_TYPE_PROCON:
+                        default:
+                            return 0x03;
+                            break;
+                        case NS_CONTROLLER_TYPE_N64CLASSIC:
+                            return 0x0C;
+                            break;
+                    }
                     break;
 
                 // Unknown constant
@@ -136,12 +145,12 @@ uint8_t ns_spi_getaddressdata(uint8_t offset_address, uint8_t address)
 
                 // TO-DO - Implement factory left stick calibration.
                 case 0x3D ... 0x45:
-                    return 0x00;
+                    return ns_input_stickcaldata.l_stick_cal[address-0x3B];
                     break;
 
                 // TO-DO - Implement factory right stick calibration.
                 case 0x46 ... 0x4E:
-                    return 0x00;
+                    return ns_input_stickcaldata.l_stick_cal[address-0x44];
                     break;
 
                 // TO-DO - Implement factory body color.
@@ -177,22 +186,15 @@ uint8_t ns_spi_getaddressdata(uint8_t offset_address, uint8_t address)
         case 0x80:
             switch (address)
             {
-                // Stick calibration check (magic)
-                case 0x1B: // Right stick magic part A
-                    if (ns_controller_data.sticks_calibrated) return 0xB2;
-                    break;
-                case 0x1C: // Right stick magic part B
-                    if (ns_controller_data.sticks_calibrated) return 0xA1;
-                    break;
 
-                // TO-DO - User left stick calibration data
+                // User left stick calibration data
                 case 0x10 ... 0x1A:
                     return ns_input_stickcaldata.l_stick_cal[address-0x10];
                     break;
 
                 // TO-DO - User right stick calibration data
-                case 0x1D ... 0x25:
-                    return 0x00;
+                case 0x1B ... 0x25:
+                    return ns_input_stickcaldata.l_stick_cal[address-0x1B];
                     break;
 
                 // TO-DO - User 6-axis calibration data Magic bytes

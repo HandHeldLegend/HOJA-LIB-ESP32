@@ -46,7 +46,7 @@ uint8_t hid_descriptor_ns_core_len;
 // Handler for vTask for report mode changes.
 TaskHandle_t ns_ReportModeHandle;
 // Hander for the vTask for keeping a pulse.
-TaskHandle_t ns_BlankReports;
+TaskHandle_t ns_BlankReportsHandle;
 
 // Start the Nintendo Switch core and enter pairing mode.
 rb_err_t rbc_core_ns_start(void);

@@ -5,13 +5,13 @@
 
 
 /* Define controller types supported */
-#define CONTROLLER_TYPE_JOYCON_L    0x01
-#define CONTROLLER_TYPE_JOYCON_R    0x02
-#define CONTROLLER_TYPE_PROCON      0x03
-#define CONTROLLER_TYPE_NESCLASSIC  0x04
-#define CONTROLLER_TYPE_SNESCLASSIC 0x05
-#define CONTROLLER_TYPE_GENESIS     0x06
-#define CONTROLLER_TYPE_N64CLASSIC  0x07
+#define NS_CONTROLLER_TYPE_JOYCON_L    0x01
+#define NS_CONTROLLER_TYPE_JOYCON_R    0x02
+#define NS_CONTROLLER_TYPE_PROCON      0x03
+#define NS_CONTROLLER_TYPE_NESCLASSIC  0x04
+#define NS_CONTROLLER_TYPE_SNESCLASSIC 0x05
+#define NS_CONTROLLER_TYPE_GENESIS     0x06
+#define NS_CONTROLLER_TYPE_N64CLASSIC  0x07
 
 /**
  * @brief A struct containing all of the controller information 'loaded'.

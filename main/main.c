@@ -25,8 +25,6 @@ bool getbit(uint32_t bytes, uint8_t bit)
 // at a refresh rate determined by the core.
 void button_task()
 {
-    const char* TAG = "button_task";
-
     // Read the GPIO register once to save time :)
     // We mask it with our pin select to erase any unwanted data.
     regread = REG_READ(GPIO_IN_REG) & GPIO_INPUT_PIN_SEL;
@@ -35,6 +33,7 @@ void button_task()
 
     // read stick 1
     g_stick_data.lsx = (uint16_t) adc1_get_raw(ADC1_CHANNEL_0);
+    g_stick_data.lsy = loaded_settings.sx_center;
 }
 
 void app_main()
@@ -58,8 +57,7 @@ void app_main()
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = 1;
     gpio_config(&io_conf);
-
-    //xTaskCreatePinnedToCore(button_task, "button_task", 2048, NULL, 2, &ButtonTaskHandle, 1);
+ 
     // Register input callback
     rb_register_input_callback(button_task);
 

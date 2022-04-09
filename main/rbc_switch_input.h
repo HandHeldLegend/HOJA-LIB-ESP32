@@ -14,27 +14,28 @@ typedef struct
     {
         struct
         {
-            uint8_t none    : 2;
-            uint8_t sr      : 1;
-            uint8_t sl      : 1;
-            uint8_t up      : 1;
-            uint8_t left    : 1;
+            uint8_t down    : 1;
             uint8_t right   : 1;
-            uint8_t down    : 1;  
+            uint8_t left    : 1;
+            uint8_t up      : 1;
+            uint8_t sl      : 1;
+            uint8_t sr      : 1;
+            uint8_t none    : 2;   
         };
         uint8_t buttons_first;
     };
     union
     {
-        struct{
-            uint8_t zl_zr   : 1;
-            uint8_t l_r     : 1;
-            uint8_t capture : 1;
-            uint8_t home    : 1;
-            uint8_t rs_btn : 1;
-            uint8_t ls_btn : 1;
-            uint8_t plus    : 1;
+        struct
+        {
             uint8_t minus   : 1;
+            uint8_t plus    : 1;
+            uint8_t ls_btn : 1;
+            uint8_t rs_btn : 1;
+            uint8_t home    : 1;
+            uint8_t capture : 1;
+            uint8_t l_r     : 1;
+            uint8_t zl_zr   : 1;
         };
         uint8_t buttons_second;
     };
@@ -67,14 +68,14 @@ typedef struct
     {
         struct
         {
-            uint8_t charge_grip_active : 1;
-            uint8_t none        : 1;
-            uint8_t cap_btn     : 1;
-            uint8_t home_btn    : 1;
-            uint8_t ls_btn      : 1;
-            uint8_t rs_btn      : 1;
-            uint8_t plus_btn    : 1;
             uint8_t minus_btn   : 1;
+            uint8_t plus_btn    : 1;
+            uint8_t rs_btn      : 1;
+            uint8_t ls_btn      : 1;
+            uint8_t home_btn    : 1;
+            uint8_t cap_btn     : 1;
+            uint8_t none        : 1;
+            uint8_t charge_grip_active : 1;
         };
         uint8_t shared_buttons;
     };
@@ -82,14 +83,14 @@ typedef struct
     {
         struct
         {
-            uint8_t zl_btn      : 1;
-            uint8_t l_btn       : 1;
-            uint8_t sl_l_btn    : 1;
-            uint8_t sr_l_btn    : 1;
-            uint8_t left_btn    : 1;
-            uint8_t right_btn   : 1;
-            uint8_t up_btn      : 1;
             uint8_t down_btn    : 1;
+            uint8_t up_btn      : 1;
+            uint8_t right_btn   : 1;
+            uint8_t left_btn    : 1;
+            uint8_t sr_l_btn    : 1;
+            uint8_t sl_l_btn    : 1;
+            uint8_t l_btn       : 1;
+            uint8_t zl_btn      : 1;
         };
         uint8_t left_buttons;
     };

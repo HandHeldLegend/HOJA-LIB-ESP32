@@ -5,7 +5,6 @@ uint16_t ns_input_report_size = 50;
 uint16_t ns_report_timer;
 
 uint8_t ns_input_frequency = INPUT_FREQUENCY_SLOW;
-uint8_t ns_timeout_counter = 0;
 
 // Clear the outgoing report data
 void ns_report_clear(void)
@@ -62,7 +61,7 @@ void ns_report_setbuttons(uint8_t button_mode)
         case NS_BM_SHORT:
             ns_input_report[1] = ns_input_short.buttons_first;
             ns_input_report[2] = ns_input_short.buttons_second;
-            ns_input_report[3] = ns_input_short.stick_hat;
+            ns_input_report[3] = 0x8; //ns_input_short.stick_hat;
 
             // To-do: Sticks
             ns_input_report[4] = ns_input_short.l_stick[0];
@@ -83,9 +82,10 @@ void ns_report_setbuttons(uint8_t button_mode)
             ns_input_report[5] = ns_input_long.left_buttons;
 
             // To-do: Sticks
-            ns_input_report[6] = ns_input_long.l_stick[0];
-            ns_input_report[7] = ns_input_long.l_stick[1];
-            ns_input_report[8] = ns_input_long.l_stick[2];
+            ns_input_report[6] = (g_stick_data.lsx & 0xFF);
+            ns_input_report[7] = (g_stick_data.lsx & 0xF00) >> 8;
+            //ns_input_report[7] |= (g_stick_data.lsy & 0xF) << 4;
+            ns_input_report[8] = (g_stick_data.lsy & 0xFF0) >> 4;
             ns_input_report[9] = 0;
             ns_input_report[10] = 0;
             ns_input_report[11] = 0;
@@ -111,12 +111,22 @@ void ns_report_sub_setdevinfo(void)
     ns_input_report[16] = ns_controller_data.fw_secondary;
 
     // 0x0C is N64 Classic Controller
-    ns_input_report[17] = 0x0C;//ns_controller_data.controller_type;
-    // 0x11 is N64 Classic Controller
-    ns_input_report[18] = 0x11; // Experiment with this later :) (0x02 default)
+    switch (ns_controller_data.controller_type)
+    {
+        case NS_CONTROLLER_TYPE_PROCON:
+        default:
+            ns_input_report[17] = 0x03;
+            ns_input_report[18] = 0x02;
+            break;
+        case NS_CONTROLLER_TYPE_N64CLASSIC:
+            ns_input_report[17] = 0x0C;
+            ns_input_report[18] = 0x11;
+            break;
+    }
+    
     ns_report_bulkset(19, loaded_settings.ns_client_bt_address, 6); // Send client bt address Big Endian
-    ns_input_report[25] = 0x01;
-    ns_input_report[26] = ns_controller_data.color_set;
+    ns_input_report[25] = 0x30; // Default 0x01
+    ns_input_report[26] = false; //ns_controller_data.color_set;
 
     ns_input_report_size += 12;
 }
@@ -159,17 +169,24 @@ void ns_report_sub_setshipmode(uint8_t ship_mode)
 }
 
 // Set a 0x3F or short input report
-void ns_report_task_sendshort()
+void ns_report_task_sendshort(void * parameters)
 {
-    rb_input_cb();
     const char* TAG = "ns_report_task_sendshort";
-    ESP_LOGI(TAG, "Sending short (0x3F) report");
+    ESP_LOGI(TAG, "Sending short (0x3F) reports on core %d\n", xPortGetCoreID());
 
-    ns_report_clear();
-    ns_report_settimer();
-    ns_report_setid(0x3F);
-    ns_report_setbuttons(NS_BM_SHORT);
-    esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0x3F, ns_input_report_size, ns_input_report);
+    while(1)
+    {
+        // Update inputs
+        rb_input_cb();
+
+        ns_report_clear();
+        ns_report_setid(0x3F);
+        ns_input_report_size = 12;
+        ns_report_setbuttons(NS_BM_SHORT);
+        esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0x3F, ns_input_report_size, ns_input_report);
+        
+        vTaskDelay(ns_input_frequency / portTICK_PERIOD_MS);
+    }
 }
 
 void ns_report_task_sendstandard(void * parameters)
@@ -179,17 +196,18 @@ void ns_report_task_sendstandard(void * parameters)
 
     while(1)
     {
+        // Update inputs
+        rb_input_cb();
 
         ns_report_clear();
         ns_report_settimer();
         ns_report_setid(0x30);
         ns_report_setbuttons(NS_BM_LONG);
         ns_report_setbattconn();
-        ns_input_report_size = 12;
-        esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0x3F, ns_input_report_size, ns_input_report);
+        ns_input_report_size = 13;
+        ns_input_report[12] = 0x70;
+        esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0x30, ns_input_report_size, ns_input_report);
 
-        // Update inputs
-        rb_input_cb();
         vTaskDelay(ns_input_frequency / portTICK_PERIOD_MS);
     }
     
@@ -203,15 +221,10 @@ void ns_report_task_sendempty(void * parameters)
 
     while(1)
     {
-        ns_report_clear();
-        ns_input_report[0] = 0x00;
-        ns_input_report[1] = 0x00;
-        ns_input_report_size = 2;
-        esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0xA1, ns_input_report_size, ns_input_report);
-        
-        // Update inputs
-        rb_input_cb();
+        uint8_t tmp[2] = {0x00, 0x00};
+        esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0xA1, 2, tmp);
 
-        vTaskDelay(INPUT_FREQUENCY_SLOW / portTICK_PERIOD_MS);
+        //ESP_LOGI(TAG, "Retroblue: Empty Report Sending...");
+        vTaskDelay(ns_input_frequency / portTICK_PERIOD_MS);
     }
 }

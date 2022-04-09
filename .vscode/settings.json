@@ -17,7 +17,9 @@
         "rbc_switch_core.h": "c",
         "*.inc": "c",
         "gpio.h": "c",
-        "complex": "c"
+        "complex": "c",
+        "retroblue_backend.h": "c",
+        "btm_api.h": "c"
     },
     "idf.flashType": "UART"
 }

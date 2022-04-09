@@ -45,16 +45,20 @@ void ns_input_grabinput(uint8_t button_mode)
 // to values for Nintendo Switch
 void ns_input_stickcalibration()
 {
+    const char* TAG = "ns_input_stickcalibration";
+
     uint16_t tmp_max_x;
     uint16_t tmp_min_x;
     uint16_t tmp_max_y;
     uint16_t tmp_min_y;
 
-    tmp_max_x = loaded_settings.sx_min + loaded_settings.sx_center;
-    tmp_min_x = loaded_settings.sx_max - loaded_settings.sx_center;
+    tmp_max_x = loaded_settings.sx_max - loaded_settings.sx_center;
+    tmp_min_x = loaded_settings.sx_center - loaded_settings.sx_min;
 
-    tmp_max_y = loaded_settings.sy_min + loaded_settings.sy_center;
-    tmp_min_y = loaded_settings.sy_max + loaded_settings.sy_center;
+    tmp_max_y = loaded_settings.sy_max - loaded_settings.sy_center;
+    tmp_min_y = loaded_settings.sy_center + loaded_settings.sy_min;
+
+    ESP_LOGI(TAG, "L Stick Settings: \nMin:%d\nCenter%d:\nMax:%d", loaded_settings.sx_min, loaded_settings.sx_center, loaded_settings.sx_max);
 
     ns_input_stickcaldata.l_stick_cal[0] = 0xB2;
     ns_input_stickcaldata.l_stick_cal[1] = 0xA1;

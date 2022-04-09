@@ -1,5 +1,21 @@
 #include "rbc_switch_comms.h"
 
+// Handle stick/button updates for controllers
+// that receive vibrate only update streams. N64 classic controller is like this.
+void ns_comms_n64update()
+{
+    // Update inputs
+    rb_input_cb();
+    vTaskDelay(16 / portTICK_PERIOD_MS);
+    ns_report_clear();
+    ns_report_settimer();
+    ns_report_setid(0x30);
+    ns_report_setbattconn();
+    ns_report_setbuttons(NS_BM_LONG);
+    ns_input_report_size = 14;
+    esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0x30, ns_input_report_size, ns_input_report);
+}
+
 /**
  * @brief Handles incoming commands and sends the data through
  * to the appropriate function handlers.
@@ -14,8 +30,12 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
     ns_report_settimer();
     // Set battery/connection byte
     ns_report_setbattconn();
+
     // Set full report response buttons
-    ns_report_setbuttons(NS_BM_LONG); 
+    // Update inputs
+    //rb_input_cb();
+    ns_report_setbuttons(NS_BM_LONG);
+    ns_input_report_size = 14;
 
     switch(p_data[0])
     {
@@ -41,15 +61,12 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
 
         // Just Rumble data
         case COMM_RUMBLE_ONLY:
-            //ESP_LOGI(TAG, "Only rumble data received.");
-
-            // Set input report ID
-            ns_report_setid(COMM_RID_STANDARDFULL);
-            // Extract rumble data
-            //vibration_data_s vibration_data = rbc_vibration_parse(p_data);
-
-            // Handle rumble data
-            //rbc_vibration_handle(vibration_data);
+            
+            if (ns_controller_data.controller_type == NS_CONTROLLER_TYPE_N64CLASSIC)
+            {
+                ns_comms_n64update();
+            }
+            
 
             break;
 
@@ -137,16 +154,16 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
         case SUBC_ENABLE_VIBRATION:
             ns_report_setack(0x80);
 
-            if(p_data[11])
+            //p_data[11] tells whether vib is on/off
+            ESP_LOGI(TAG, "SUBC - Disable Low Power Mode: %d", p_data[11]);
+            // When emulating pro controller, the 'enable vibration' command
+            // is likely enabling/disabling a 'power saving' state.
+            // a value of 1 means we should update FAST :)
+            if (p_data[11])
             {
-                ESP_LOGI(TAG, "SUBC - Enable fast frequency");
                 ns_input_frequency = INPUT_FREQUENCY_FAST;
             }
-            else 
-            {
-                ESP_LOGI(TAG, "SUBC - Enable slow frequency");
-                ns_input_frequency = INPUT_FREQUENCY_SLOW;
-            }
+            else ns_input_frequency = INPUT_FREQUENCY_SLOW;
 
             // TO-DO - Enable vibration
             break;
@@ -154,7 +171,6 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
         case SUBC_SET_PLAYER:
             ESP_LOGI(TAG, "SUBC - Set player number/lights.");
             ns_report_setack(0x80);
-            // TO-DO - Set player number
             break;
 
         case SUBC_SET_MCUCONFIG:
@@ -163,7 +179,7 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
             break;
         
         default:
-            ESP_LOGI(TAG, "SUBC - Unrecognized subcommand.");
+            ESP_LOGI(TAG, "SUBC - Unrecognized subcommand: %d", command);
             ns_report_setack(0x80);
             break;
 
