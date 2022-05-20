@@ -21,8 +21,12 @@ void ns_input_grabinput(uint8_t button_mode)
             ns_input_short.l_stick[3] = (g_stick_data.lsy & 0xF00) >> 8;
 
 
-            ns_input_short.right = g_button_data.button_right;
-            ns_input_short.down = g_button_data.button_down;
+
+            ns_input_short.down = g_button_data.dpad_down;
+            ns_input_short.up = g_button_data.dpad_up;
+            ns_input_short.right = g_button_data.dpad_right;
+            ns_input_short.left = g_button_data.dpad_left;
+
             break;
 
         case NS_BM_LONG:
@@ -36,6 +40,12 @@ void ns_input_grabinput(uint8_t button_mode)
 
             ns_input_long.a_btn = g_button_data.button_right;
             ns_input_long.b_btn = g_button_data.button_down;
+            ns_input_long.x_btn = g_button_data.button_up;
+            ns_input_long.y_btn = g_button_data.button_left;
+            ns_input_long.down_btn = g_button_data.dpad_down;
+            ns_input_long.up_btn = g_button_data.dpad_up;
+            ns_input_long.right_btn = g_button_data.dpad_right;
+            ns_input_long.left_btn = g_button_data.dpad_left;
 
             break;
     }
