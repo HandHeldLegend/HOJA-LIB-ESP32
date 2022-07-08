@@ -8,3 +8,8 @@ sdkconfig.defaults
 sdkconfig.old
 
 components/
+.vscode/configurationCache.log
+.gitignore
+.vscode/settings.json
+.vscode/dryrun.log
+.vscode/targets.log
