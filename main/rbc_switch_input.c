@@ -46,6 +46,10 @@ void ns_input_grabinput(uint8_t button_mode)
             ns_input_long.up_btn = g_button_data.dpad_up;
             ns_input_long.right_btn = g_button_data.dpad_right;
             ns_input_long.left_btn = g_button_data.dpad_left;
+            ns_input_long.minus_btn = g_button_data.special_select;
+            ns_input_long.plus_btn = g_button_data.special_start;
+            ns_input_long.l_btn = g_button_data.trigger_lu;
+            ns_input_long.r_btn = g_button_data.trigger_ru;
 
             break;
     }

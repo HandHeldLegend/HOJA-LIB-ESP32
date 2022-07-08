@@ -1,15 +1,19 @@
 #include "main.h"
 
-#define GPIO_BTN_A  13
-#define GPIO_BTN_B  14
-#define GPIO_BTN_X  15
-#define GPIO_BTN_Y  16
-#define GPIO_BTN_DU  17
-#define GPIO_BTN_DL  18
-#define GPIO_BTN_DR  19
-#define GPIO_BTN_DD  21
+#define GPIO_BTN_A  14
+#define GPIO_BTN_B  12
+#define GPIO_BTN_X  19
+#define GPIO_BTN_Y  17
+#define GPIO_BTN_DU  25
+#define GPIO_BTN_DL  26
+#define GPIO_BTN_DR  22
+#define GPIO_BTN_DD  27
+#define GPIO_BTN_START  21
+#define GPIO_BTN_SELECT  13
+#define GPIO_BTN_L 18
+#define GPIO_BTN_R 23
 // Input pin mask creation
-#define GPIO_INPUT_PIN_SEL ((1ULL<<GPIO_BTN_A) | (1ULL<<GPIO_BTN_B) | (1ULL<<GPIO_BTN_X) | (1ULL<<GPIO_BTN_Y) | (1ULL<<GPIO_BTN_DU) | (1ULL<<GPIO_BTN_DL) | (1ULL<<GPIO_BTN_DR) | (1ULL<<GPIO_BTN_DD))
+#define GPIO_INPUT_PIN_SEL ((1ULL<<GPIO_BTN_A) | (1ULL<<GPIO_BTN_B) | (1ULL<<GPIO_BTN_X) | (1ULL<<GPIO_BTN_Y) | (1ULL<<GPIO_BTN_DU) | (1ULL<<GPIO_BTN_DL) | (1ULL<<GPIO_BTN_DR) | (1ULL<<GPIO_BTN_DD) | (1ULL<<GPIO_BTN_START) | (1ULL<<GPIO_BTN_SELECT) | (1ULL<<GPIO_BTN_L) | (1ULL<<GPIO_BTN_R))
 
 #define BTN_DEBOUNCE_COUNT 6
 
@@ -42,6 +46,10 @@ void button_task()
     g_button_data.dpad_left = !getbit(regread, GPIO_BTN_DL);
     g_button_data.dpad_right = !getbit(regread, GPIO_BTN_DR);
     g_button_data.dpad_down = !getbit(regread, GPIO_BTN_DD);
+    g_button_data.special_select = !getbit(regread, GPIO_BTN_SELECT);
+    g_button_data.special_start = !getbit(regread, GPIO_BTN_START);
+    g_button_data.trigger_lu = !getbit(regread, GPIO_BTN_L);
+    g_button_data.trigger_ru = !getbit(regread, GPIO_BTN_R);
 
     // read stick 1
     g_stick_data.lsx = (uint16_t) adc1_get_raw(ADC1_CHANNEL_0);
