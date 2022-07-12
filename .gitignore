@@ -7,6 +7,4 @@ sdkconfig.defaults
 
 sdkconfig.old
 
-components/
-
 debug.log
