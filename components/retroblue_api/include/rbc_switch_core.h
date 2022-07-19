@@ -33,9 +33,10 @@
 #define NS_CONTROLLER_TYPE_JOYCON_R    0x02
 #define NS_CONTROLLER_TYPE_PROCON      0x03
 #define NS_CONTROLLER_TYPE_NESCLASSIC  0x04
-#define NS_CONTROLLER_TYPE_SNESCLASSIC 0x05
-#define NS_CONTROLLER_TYPE_GENESIS     0x06
-#define NS_CONTROLLER_TYPE_N64CLASSIC  0x07
+#define NS_CONTROLLER_TYPE_FCCLASSIC   0x05
+#define NS_CONTROLLER_TYPE_SNESCLASSIC 0x06
+#define NS_CONTROLLER_TYPE_GENESIS     0x07
+#define NS_CONTROLLER_TYPE_N64CLASSIC  0x08
 
 /* Define controller global elements */
 #define NS_FW_PRIMARY       0x03
@@ -58,17 +59,19 @@ struct nscore_param_s
 struct nscore_param_s ns_core_param;
 
 // HID descriptor instances
-uint8_t hid_descriptor_ns_core[102];
-uint8_t hid_descriptor_ns_core_len;
+static uint8_t hid_descriptor_ns_core[213];
 
 // Handler for vTask for report mode changes.
 TaskHandle_t ns_ReportModeHandle;
 // Hander for the vTask for keeping a pulse.
 TaskHandle_t ns_BlankReportsHandle;
 
-// Start the Nintendo Switch core and enter pairing mode.
+// Start the Nintendo Switch controller core
 rb_err_t rbc_core_ns_start(void);
 
-rb_err_t rbc_core_savepairing(uint8_t* host_addr);
+// Stop the Nintendo Switch controller core
+rb_err_t rbc_core_ns_stop(void);
+
+rb_err_t rbc_core_ns_savepairing(uint8_t* host_addr);
 
 #endif

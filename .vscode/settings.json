@@ -6,7 +6,21 @@
   "files.associations": {
     "*.inc": "c",
     "btm_api.h": "c",
-    "complex": "c"
+    "complex": "c",
+    "array": "c",
+    "string": "c",
+    "string_view": "c",
+    "deque": "cpp",
+    "list": "cpp",
+    "unordered_map": "cpp",
+    "unordered_set": "cpp",
+    "vector": "cpp",
+    "initializer_list": "cpp",
+    "regex": "cpp",
+    "rbc_snes_core.h": "c",
+    "rbc_util_joybus_rmt.h": "c",
+    "retroblue_backend.h": "c",
+    "rmt.h": "c"
   },
   "idf.openOcdConfigs": [
     "interface/ftdi/esp32_devkitj_v1.cfg",

@@ -6,7 +6,7 @@
 typedef uint8_t ns_core_subcmd_t;
 
 // Sub-command repsponse start index
-#define SUB_C_DATA_IDX 11
+#define SUB_C_DATA_IDX 10
 
 // Sub-command response minimum full input report length
 #define SUB_C_RESPONSE_LENGTH_DEFAULT 15

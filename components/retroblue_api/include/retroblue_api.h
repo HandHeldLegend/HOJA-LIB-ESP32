@@ -5,6 +5,7 @@
 #include "retroblue_settings.h"
 #include "rbc_switch_core.h"
 #include "rbc_snes_core.h"
+#include "rbc_gamecube_core.h"
 
 /* CORE TYPES */
 #define CORE_NINTENDOSWITCH 0
@@ -37,6 +38,36 @@ rb_err_t rb_api_setCore(uint8_t core_type);
 
 // Starts the controller. You MUST set the core before running this.
 rb_err_t rb_api_startController(void);
+
+// Stops the controller. 
+rb_err_t rb_api_stopController(void);
+
+// Controller configuration options.
+// Set the controller color
+rb_err_t rb_api_setColor(uint8_t red, uint8_t green, uint8_t blue);
+
+// Sets the analog stick values for calibration purposes
+rb_err_t rb_api_setStickCalibration(uint16_t sx_min, uint16_t sx_center, uint16_t sx_max,
+                                    uint16_t sy_min, uint16_t sy_center, uint16_t sy_max);
+
+// Resets the current pairing for the current core
+rb_err_t rb_api_resetPairing();
+
+// Core-specific options.
+
+// NINTENDO SWITCH
+// ----------------
+// Set the Nintendo Switch controller type
+rb_err_t rb_api_setNSControllerType(uint8_t ns_controller_type);
+
+// ----------------
+
+// NES/SNES
+// ----------------
+// Enable analog stick as D-Pad input
+rb_err_t rb_api_setSNESStickPad(uint8_t enable);
+
+// ----------------
 
 // Vars for callbacks
 typedef void (*input_update_callback) (void);

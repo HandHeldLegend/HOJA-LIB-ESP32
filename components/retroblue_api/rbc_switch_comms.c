@@ -35,7 +35,7 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
     ns_report_setbuttons(NS_BM_LONG);
     ns_input_report_size = 14;
 
-    switch(p_data[0])
+    switch(report_id)
     {
         // Rumble and a sub-command.
         case COMM_RUMBLE_SUB:
@@ -51,7 +51,7 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
             //rbc_vibration_handle(vibration_data);
 
             // Pass off to the sub-command handler.
-            ns_comms_handle_subcommand(p_data[10], len, p_data);
+            ns_comms_handle_subcommand(p_data[9], len, p_data);
 
             
             // Send input report
@@ -63,7 +63,7 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
             
             if (loaded_settings.ns_controller_type == NS_CONTROLLER_TYPE_N64CLASSIC)
             {
-                ns_comms_n64update();
+                //ns_comms_n64update();
             }
             
 
@@ -78,7 +78,13 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
             ESP_LOGI(TAG, "NFC/IR Data request received.");
         // Unrecognized command
         default:
-            ESP_LOGI(TAG, "Unrecognized request received.");
+            ESP_LOGI(TAG, "Unrecognized request received: %X, %X", report_id, p_data[9]);
+
+            ESP_LOGI(TAG, "FULL DUMP:\n");
+                for(uint8_t i = 0; i < len; i++)
+                {
+                    ESP_LOGI("%d: ", "%X", p_data[i]);
+                }
             // Set input report ID
             ns_report_setid(COMM_RID_STANDARDFULL);
 
@@ -102,6 +108,15 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
 
         case SUBC_GET_CONTROLLERSTATE:
             ESP_LOGI(TAG, "SUBC - Get controller state.");
+
+            if (1)
+            {
+                ESP_LOGI(TAG, "FULL DUMP:\n");
+                for(uint8_t i = 0; i < len; i++)
+                {
+                    ESP_LOGI("%d: ", "%X", p_data[i]);
+                }
+            }
             ns_report_setack(0x80);
             
             break;
@@ -110,8 +125,13 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
             ESP_LOGI(TAG, "SUBC - Get device info.");
 
             ns_report_setack(0x82);
-            // Set battery data
-            // Set connection info
+            
+            ESP_LOGI(TAG, "FULL DUMP:\n");
+                for(uint8_t i = 0; i < len; i++)
+                {
+                    ESP_LOGI("%d: ", "%X", p_data[i]);
+                }
+
             ns_report_sub_setdevinfo();
             break;
 
@@ -138,10 +158,12 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
             break;
 
         case SUBC_READ_SPI:
-            ESP_LOGI(TAG, "SUBC - SPI read command: %d, %d", p_data[12], p_data[11]);
+            ESP_LOGI(TAG, "SUBC - SPI read command: %X, %X. Len: %X / %d", p_data[11], p_data[10], p_data[14], p_data[14]);
+            uint8_t tmp_addr = p_data[10] + p_data[14] - 1;
+            ESP_LOGI(TAG, "Final address: %X", tmp_addr);
             ns_report_setack(0x90);
 
-            ns_spi_readfromaddress(p_data[12], p_data[11], p_data[15]);
+            ns_spi_readfromaddress(p_data[11], p_data[10], p_data[14]);
             break;
 
         case SUBC_ENABLE_IMU:
@@ -154,7 +176,7 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
             ns_report_setack(0x80);
 
             //p_data[11] tells whether vib is on/off
-            ESP_LOGI(TAG, "SUBC - Vibration Enable: %d", p_data[11]);
+            ESP_LOGI(TAG, "SUBC - Vibration Enable: %d", p_data[10]);
 
             // TO-DO - Enable vibration
             break;
@@ -170,7 +192,12 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
             break;
         
         default:
-            ESP_LOGI(TAG, "SUBC - Unrecognized subcommand: %d", command);
+            ESP_LOGI(TAG, "SUBC - Unrecognized subcommand: %X", command);
+            ESP_LOGI(TAG, "FULL DUMP:\n");
+                for(uint8_t i = 0; i < len; i++)
+                {
+                    ESP_LOGI("%d: ", "%X", p_data[i]);
+                }
             ns_report_setack(0x80);
             break;
 

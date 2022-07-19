@@ -32,15 +32,10 @@ void ns_controller_setinputreportmode(uint8_t report_mode)
                 ns_ReportModeHandle = NULL;
             }
 
-            // if we're simulating pro controller, start a task to
-            // continually send button/stick updates.
-            if (loaded_settings.ns_controller_type == NS_CONTROLLER_TYPE_PROCON)
-            {   
-                // ns_report_task_sendstandard
-                xTaskCreatePinnedToCore(ns_report_task_sendstandard, 
-                                    "Standard Send Task", 2048,
-                                    NULL, 0, &ns_ReportModeHandle, 1);
-            }
+            // ns_report_task_sendstandard
+            xTaskCreatePinnedToCore(ns_report_task_sendstandard, 
+                                "Standard Send Task", 2048,
+                                NULL, 0, &ns_ReportModeHandle, 1);
 
             break;
         // NFC/IR

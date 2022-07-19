@@ -122,7 +122,7 @@ rb_err_t rb_settings_default(void)
     }
     memset(loaded_settings.ns_host_bt_address, 0, 6);
     loaded_settings.ns_controller_paired = false;
-    loaded_settings.ns_controller_type = NS_CONTROLLER_TYPE_PROCON;
+    loaded_settings.ns_controller_type = NS_CONTROLLER_TYPE_SNESCLASSIC;
 
     // Default color greenish
     loaded_settings.color_r = 0x38;

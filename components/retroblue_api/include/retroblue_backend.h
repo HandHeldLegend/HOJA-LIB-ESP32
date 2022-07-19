@@ -24,6 +24,7 @@
 #include <stddef.h>
 #include "driver/spi_slave.h"
 #include "driver/gpio.h"
+#include "driver/rmt.h"
 
 #include "esp_timer.h"
 
@@ -34,6 +35,7 @@
 #include "retroblue_settings.h"
 #include "retroblue_api.h"
 #include "rbc_err.h"
+#include "rbc_util_joybus_rmt.h"
 
 
 

@@ -29,6 +29,8 @@ typedef struct
     uint8_t controller_type_primary;    // Primary byte for controller type
     uint8_t controller_type_secondary;  // Secondary byte for controller type
 
+    
+
     uint8_t sticks_calibrated; //default false;
 
     /**

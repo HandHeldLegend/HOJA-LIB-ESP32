@@ -36,7 +36,7 @@ rb_err_t rbc_core_snes_start()
 
     //Configuration for the SPI slave interface
     spi_slave_interface_config_t slvcfg={
-        .mode           = 0,
+        .mode           = 2,
         .spics_io_num   = (int) RB_PIN_LATCH,
         .queue_size     = 1,
         .flags          = 0,
@@ -62,13 +62,30 @@ rb_err_t rbc_core_snes_start()
     xTaskCreatePinnedToCore(snes_task, "SNES/NES Task Loop", 2024,
                             NULL, 0, &snes_TaskHandle, 1);
     
-    ESP_LOGI(TAG, "SNES Core Started OK.");
+    ESP_LOGI(TAG, "SNES Core started OK.");
 
     return RB_OK;
 }
 
 rb_err_t rbc_core_snes_stop()
 {
+    const char* TAG = "rbc_core_snes_stop";
+
+    // Stop SNES task
+    // Check if task is running, delete if so.
+    if (snes_TaskHandle != NULL)
+    {
+        vTaskDelete(snes_TaskHandle);
+    }
+    snes_TaskHandle = NULL;
+    
+    // Deinitialize SPI slave interface
+    esp_err_t err;
+    err = spi_slave_free(HSPI_HOST);
+    assert(err==ESP_OK);
+
+    ESP_LOGI(TAG, "SNES Core stopped OK.");
+
     return RB_OK;
 }
 
@@ -90,11 +107,24 @@ void snes_task(void * parameters)
 
         // Reset button output to all HIGH bits.
         snes_button_buffer = 0xFFFF;
+
+        // Simultaneous dpad direction erasure
+        if (g_button_data.d_down && g_button_data.d_up)
+        {
+            g_button_data.d_down = 0;
+            g_button_data.d_up = 0;
+        }
+        if (g_button_data.d_left && g_button_data.d_right)
+        {
+            g_button_data.d_left = 0;
+            g_button_data.d_right = 0;
+        }
+
         // Go through each bit and set accordingly.
         snes_button_buffer -= (g_button_data.b_down    << 15U);
         snes_button_buffer -= (g_button_data.b_left    << 14U);
-        snes_button_buffer -= (g_button_data.b_start   << 13U);
-        snes_button_buffer -= (g_button_data.b_select  << 12U);
+        snes_button_buffer -= (g_button_data.b_select   << 13U);
+        snes_button_buffer -= (g_button_data.b_start  << 12U);
         snes_button_buffer -= (g_button_data.d_up      << 11U);
         snes_button_buffer -= (g_button_data.d_down    << 10U);
         snes_button_buffer -= (g_button_data.d_left    << 9U);

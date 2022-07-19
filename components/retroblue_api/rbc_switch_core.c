@@ -1,83 +1,117 @@
 #include "rbc_switch_core.h"
 #include "rbc_switch_comms.h"
 
-uint8_t hid_descriptor_ns_core[102] = {
+static uint8_t hid_descriptor_ns_core[213] = {
     0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
     0x09, 0x05,        // Usage (Game Pad)
     0xA1, 0x01,        // Collection (Application)
-    //Padding
-    0x95, 0x03,        //     REPORT_COUNT = 3
-    0x75, 0x08,        //     REPORT_SIZE = 8
-    0x81, 0x03,        //     INPUT = Cnst,Var,Abs
-    //Sticks
-    0x09, 0x30,        //   Usage (X)
-    0x09, 0x31,        //   Usage (Y)
-    0x09, 0x32,        //   Usage (Z)
-    0x09, 0x35,        //   Usage (Rz)
+
+    0x85, 0x21,        //   Report ID (33)
+    0x06, 0x01, 0xFF,  //   Usage Page (Vendor Defined 0xFF01)
+    0x09, 0x21,        //   Usage (0x21)
     0x15, 0x00,        //   Logical Minimum (0)
-    0x26, 0xFF, 0x00,  //   Logical Maximum (255)
+    0x25, 0x00,        //   Logical Maximum (0)
     0x75, 0x08,        //   Report Size (8)
-    0x95, 0x04,        //   Report Count (4)
+    0x95, 0x30,        //   Report Count (48)
     0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    //DPAD
-    0x09, 0x39,        //   Usage (Hat switch)
+
+    0x85, 0x30,        //   Report ID (48)
+    0x09, 0x30,        //   Usage (0x30)
     0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x07,        //   Logical Maximum (7)
-    0x35, 0x00,        //   Physical Minimum (0)
-    0x46, 0x3B, 0x01,  //   Physical Maximum (315)
-    0x65, 0x14,        //   Unit (System: English Rotation, Length: Centimeter)
-    0x75, 0x04,        //   Report Size (4)
-    0x95, 0x01,        //   Report Count (1)
-    0x81, 0x42,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,Null State)
-    //Buttons
-    0x65, 0x00,        //   Unit (None)
+    0x25, 0x00,        //   Logical Maximum (0)
+    0x75, 0x08,        //   Report Size (8)
+    0x95, 0x30,        //   Report Count (48)
+    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+
+    0x85, 0x31,        //   Report ID (49)
+    0x09, 0x31,        //   Usage (0x31)
+    0x15, 0x00,        //   Logical Minimum (0)
+    0x25, 0x00,        //   Logical Maximum (0)
+    0x75, 0x08,        //   Report Size (8)
+    0x96, 0x69, 0x01,  //   Report Count (361) -- 50
+    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+
+    0x85, 0x32,        //   Report ID (50)
+    0x09, 0x32,        //   Usage (0x32)
+    0x15, 0x00,        //   Logical Minimum (0)
+    0x25, 0x00,        //   Logical Maximum (0)
+    0x75, 0x08,        //   Report Size (8)
+    0x96, 0x69, 0x01,  //   Report Count (361)
+    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+
+    0x85, 0x33,        //   Report ID (51)
+    0x09, 0x33,        //   Usage (0x33)
+    0x15, 0x00,        //   Logical Minimum (0)
+    0x25, 0x00,        //   Logical Maximum (0)
+    0x75, 0x08,        //   Report Size (8)
+    0x96, 0x69, 0x01,  //   Report Count (361)
+    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+
+    0x85, 0x3F,        //   Report ID (63)
     0x05, 0x09,        //   Usage Page (Button)
     0x19, 0x01,        //   Usage Minimum (0x01)
-    0x29, 0x0E,        //   Usage Maximum (0x0E)
+    0x29, 0x10,        //   Usage Maximum (0x10)
     0x15, 0x00,        //   Logical Minimum (0)
     0x25, 0x01,        //   Logical Maximum (1)
     0x75, 0x01,        //   Report Size (1)
-    0x95, 0x0E,        //   Report Count (14)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    //Padding
-    0x06, 0x00, 0xFF,  //   Usage Page (Vendor Defined 0xFF00)
-    0x09, 0x20,        //   Usage (0x20)
-    0x75, 0x06,        //   Report Size (6)
-    0x95, 0x01,        //   Report Count (1)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x7F,        //   Logical Maximum (127)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    //Triggers
+    0x95, 0x10,        //   Report Count (16)
+    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position) --100
     0x05, 0x01,        //   Usage Page (Generic Desktop Ctrls)
+    0x09, 0x39,        //   Usage (Hat switch)
+    0x15, 0x00,        //   Logical Minimum (0)
+    0x25, 0x07,        //   Logical Maximum (7)
+    0x75, 0x04,        //   Report Size (4)
+    0x95, 0x01,        //   Report Count (1)
+    0x81, 0x42,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,Null State)
+    0x75, 0x04,        //   Report Size (4)
+    0x95, 0x01,        //   Report Count (1)
+    0x81, 0x03,        //   Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x09, 0x30,        //   Usage (X)
+    0x09, 0x31,        //   Usage (Y)
     0x09, 0x33,        //   Usage (Rx)
     0x09, 0x34,        //   Usage (Ry)
     0x15, 0x00,        //   Logical Minimum (0)
-    0x26, 0xFF, 0x00,  //   Logical Maximum (255)
+    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   Logical Maximum (65534)
+    0x75, 0x10,        //   Report Size (16)
+    0x95, 0x04,        //   Report Count (4)
+    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x01,        //   Report ID (1)
+    0x06, 0x01, 0xFF,  //   Usage Page (Vendor Defined 0xFF01)
+    0x09, 0x01,        //   Usage (0x01)
+    0x15, 0x00,        //   Logical Minimum (0)
+    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   Logical Maximum (65534) - 154
     0x75, 0x08,        //   Report Size (8)
-    0x95, 0x02,        //   Report Count (2)
-    0x81, 0x02,
-    0xc0
+    0x95, 0x30,        //   Report Count (48)
+    0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x10,        //   Report ID (16)
+    0x09, 0x10,        //   Usage (0x10)
+    0x15, 0x00,        //   Logical Minimum (0)
+    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   Logical Maximum (65534)
+    0x75, 0x08,        //   Report Size (8)
+    0x95, 0x30,        //   Report Count (48)
+    0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+
+    0x85, 0x11,        //   Report ID (17)
+    0x09, 0x11,        //   Usage (0x11)
+    0x15, 0x00,        //   Logical Minimum (0)
+    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   Logical Maximum (65534)
+    0x75, 0x08,        //   Report Size (8)
+    0x95, 0x30,        //   Report Count (48)
+    0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x12,        //   Report ID (18)
+    0x09, 0x12,        //   Usage (0x12)
+    0x15, 0x00,        //   Logical Minimum (0) --200
+    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   Logical Maximum (65534)
+    0x75, 0x08,        //   Report Size (8)
+    0x95, 0x30,        //   Report Count (48)
+    0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0xC0
 };
 
-uint8_t hid_descriptor_ns_core_len = sizeof(hid_descriptor_ns_core);
+//uint8_t hid_descriptor_ns_core_len = 213;
 
 TaskHandle_t ns_ReportModeHandle = NULL;
 bool ns_connected = false;
-
-void ns_bt_shutdown()
-{
-    const char* TAG = "ns_bt_shutdown";
-
-    ns_input_frequency = INPUT_FREQUENCY_SLOW;
-    if (ns_ReportModeHandle != NULL)
-    {
-        vTaskDelete(ns_ReportModeHandle);
-        ns_ReportModeHandle = NULL;
-    }
-                    
-    ESP_LOGI(TAG, "making self discoverable and connectable again.");
-    esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-}
 
 // Callbacks for GAP bt events
 void ns_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
@@ -105,7 +139,8 @@ void ns_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
                 esp_log_buffer_hex(TAG, param->auth_cmpl.bda, ESP_BD_ADDR_LEN);
             } else {
                 ESP_LOGI(TAG, "authentication failed, status:%d", param->auth_cmpl.stat);
-                ns_bt_shutdown();
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                if (!ns_connected) rbc_core_ns_stop();
             }
             break;
         }
@@ -113,9 +148,9 @@ void ns_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
             ESP_LOGI(TAG, "power mode change: %d", param->mode_chg.mode);
             if (param->mode_chg.mode == 0)
             {
-                ns_input_frequency = INPUT_FREQUENCY_SLOW;
+                ns_input_pause = 1;
             }
-            else ns_input_frequency = INPUT_FREQUENCY_FAST;
+            else ns_input_pause = 0;
             break;
         }
         
@@ -136,7 +171,8 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                 ESP_LOGI(TAG, "init hidd success!");
             } else {
                 ESP_LOGI(TAG, "init hidd failed!");
-                ns_bt_shutdown();
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                    if (!ns_connected) rbc_core_ns_stop();
             }
             break;
         case ESP_HIDD_DEINIT_EVT:
@@ -172,7 +208,7 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                     esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
 
                     if (!loaded_settings.ns_controller_paired)
-                        rbc_core_savepairing(param->open.bd_addr);
+                        rbc_core_ns_savepairing(param->open.bd_addr);
 
                     ESP_LOGI(TAG, "Starting task short input mode...");
                     ns_controller_setinputreportmode(0xFF);
@@ -195,6 +231,8 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                     ESP_LOGI(TAG, "disconnecting...");
                 } else if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
                     ns_connected = false;
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
+                    if (!ns_connected) rbc_core_ns_stop();
                     ESP_LOGI(TAG, "disconnected!");
                     //ns_bt_shutdown();
 
@@ -230,7 +268,7 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
             //ESP_LOGI(TAG, "Event code: %d", param->intr_data.data[0]);
 
             // Send interrupt data to command handler
-            ns_comms_handle_command(param->intr_data.data[0], param->intr_data.len, param->intr_data.data);
+            ns_comms_handle_command(param->intr_data.report_id, param->intr_data.len, param->intr_data.data);
             
             break;
         case ESP_HIDD_VC_UNPLUG_EVT:
@@ -239,7 +277,8 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                 if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
                     ns_connected = false;
                     ESP_LOGI(TAG, "disconnected!");
-                    ns_bt_shutdown();
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
+                    if (!ns_connected) rbc_core_ns_stop();
                 } else {
                     ESP_LOGI(TAG, "unknown connection status");
                 }
@@ -265,6 +304,8 @@ rb_err_t rbc_core_ns_start(void)
     ns_controller_data.battery_level_full = 0x04;
     ns_controller_data.connection_info = 0x00;
 
+    loaded_settings.ns_controller_type = NS_CONTROLLER_TYPE_SNESCLASSIC;
+
     // SET UP CONTROLLER TYPE VARS
     switch(loaded_settings.ns_controller_type)
     {
@@ -276,6 +317,22 @@ rb_err_t rbc_core_ns_start(void)
         case NS_CONTROLLER_TYPE_N64CLASSIC:
             ns_controller_data.controller_type_primary = 0x0C;
             ns_controller_data.controller_type_secondary = 0x11;
+            break;
+        case NS_CONTROLLER_TYPE_SNESCLASSIC:
+            ns_controller_data.controller_type_primary = 0x0B; //11
+            ns_controller_data.controller_type_secondary = 0x2; //2
+            break;
+        case NS_CONTROLLER_TYPE_FCCLASSIC:
+            ns_controller_data.controller_type_primary = 0x07;
+            ns_controller_data.controller_type_secondary = 0x02;
+            break;
+        case NS_CONTROLLER_TYPE_NESCLASSIC:
+            ns_controller_data.controller_type_primary = 0x09;
+            ns_controller_data.controller_type_secondary = 0x02;
+            break;
+        case NS_CONTROLLER_TYPE_GENESIS:
+            ns_controller_data.controller_type_primary = 0x0D;
+            ns_controller_data.controller_type_secondary = 0x02;
             break;
     }
 
@@ -298,7 +355,8 @@ rb_err_t rbc_core_ns_start(void)
     ns_core_param.app_param.provider = "Nintendo";
     ns_core_param.app_param.subclass = 0x08;
     ns_core_param.app_param.desc_list = hid_descriptor_ns_core;
-    ns_core_param.app_param.desc_list_len = hid_descriptor_ns_core_len;
+    ns_core_param.app_param.desc_list_len = sizeof(hid_descriptor_ns_core);
+    ESP_LOGI(TAG, "Length of desc: %d", sizeof(hid_descriptor_ns_core));
     memset(&ns_core_param.both_qos, 0, sizeof(esp_hidd_qos_param_t));
 
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
@@ -375,7 +433,9 @@ rb_err_t rbc_core_ns_start(void)
 
     vTaskDelay(5000 / portTICK_PERIOD_MS);
 
-    /*
+    //rbc_core_ns_stop();
+    //return RB_OK;
+
     if (loaded_settings.ns_controller_paired & !ns_connected)
     {
         // Connect to paired host device if we haven't connected already
@@ -389,12 +449,33 @@ rb_err_t rbc_core_ns_start(void)
     {
         ESP_LOGI(TAG, "Controller already connected");
     }
-    */
 
     return RB_OK;
 }
 
-rb_err_t rbc_core_savepairing(uint8_t* host_addr)
+rb_err_t rbc_core_ns_stop()
+{
+    const char* TAG = "rbc_core_ns_stop";
+
+    ns_input_frequency = INPUT_FREQUENCY_SLOW;
+    if (ns_ReportModeHandle != NULL)
+    {
+        vTaskDelete(ns_ReportModeHandle);
+    }
+    ns_ReportModeHandle = NULL;
+
+    esp_bt_hid_device_disconnect();
+    esp_bt_hid_device_unregister_app();
+    esp_bt_hid_device_deinit();
+    esp_bluedroid_disable();
+                    
+    ESP_LOGI(TAG, "Nintendo Switch Core stopped OK.");
+    esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+
+    return RB_OK;
+}
+
+rb_err_t rbc_core_ns_savepairing(uint8_t* host_addr)
 {
     const char* TAG = "rbc_core_savepairing";
 
@@ -404,7 +485,7 @@ rb_err_t rbc_core_savepairing(uint8_t* host_addr)
         return RB_FAIL;
     }
 
-    ESP_LOGI(TAG, "Pairing to Nintendo Switch tablet.");
+    ESP_LOGI(TAG, "Pairing to Nintendo Switch.");
 
     // Copy host address into settings memory.
     memcpy(loaded_settings.ns_host_bt_address, host_addr, sizeof(loaded_settings.ns_host_bt_address));

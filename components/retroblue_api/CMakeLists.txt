@@ -4,6 +4,9 @@ idf_component_register(SRCS
                     "rbc_switch_reports.c" "rbc_switch_input.c" 
                     "rbc_switch_core.c" "rbc_switch_controller.c" 
                     "rbc_switch_comms.c" "rbc_snes_core.c"
+                    "rbc_gamecube_core.c" "rbc_util_joybus_rmt.c"
+                   
+                    EMBED_TXTFILES "web/index.html"
                     INCLUDE_DIRS "include"
                     REQUIRES esp32 bt )
 

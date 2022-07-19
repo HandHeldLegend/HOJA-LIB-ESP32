@@ -45,6 +45,9 @@ typedef struct
     bool    ns_controller_paired;
     uint8_t ns_controller_type;
 
+    // SNES Core Settings
+    uint8_t snes_stick_dpad;
+
 } RetroBlueSettings;
 
 RetroBlueSettings loaded_settings;

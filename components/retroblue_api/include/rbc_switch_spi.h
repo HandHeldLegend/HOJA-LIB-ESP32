@@ -6,10 +6,10 @@
 
 
 // Byte index for start read address on output report
-#define SPI_STARTREAD_IDX   11
+#define SPI_STARTREAD_IDX   10
 
 // Byte index for where to place SPI read data for input report
-#define SPI_READ_OUTPUT_IDX 20
+#define SPI_READ_OUTPUT_IDX 19
 
 /**
  * These are the memory addresses we can use

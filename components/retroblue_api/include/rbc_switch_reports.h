@@ -33,6 +33,7 @@ uint16_t ns_report_timer;
 #define INPUT_FREQUENCY_FAST    12
 
 uint8_t ns_input_frequency;
+uint8_t ns_input_pause;
 uint8_t ns_timeout_counter;
 
 
