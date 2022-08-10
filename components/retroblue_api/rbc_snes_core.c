@@ -121,18 +121,18 @@ void snes_task(void * parameters)
         }
 
         // Go through each bit and set accordingly.
-        snes_button_buffer -= (g_button_data.b_down    << 15U);
-        snes_button_buffer -= (g_button_data.b_left    << 14U);
-        snes_button_buffer -= (g_button_data.b_select   << 13U);
-        snes_button_buffer -= (g_button_data.b_start  << 12U);
-        snes_button_buffer -= (g_button_data.d_up      << 11U);
-        snes_button_buffer -= (g_button_data.d_down    << 10U);
-        snes_button_buffer -= (g_button_data.d_left    << 9U);
-        snes_button_buffer -= (g_button_data.d_right   << 8U);
-        snes_button_buffer -= (g_button_data.b_right   << 7U);
-        snes_button_buffer -= (g_button_data.b_up      << 6U);
-        snes_button_buffer -= (g_button_data.t_l       << 5U);
-        snes_button_buffer -= (g_button_data.t_r       << 4U);
+        snes_button_buffer -= (g_button_data.b_down     << 15U  );
+        snes_button_buffer -= (g_button_data.b_left     << 14U  );
+        snes_button_buffer -= (g_button_data.b_select   << 13U  );
+        snes_button_buffer -= (g_button_data.b_start    << 12U  );
+        snes_button_buffer -= (g_button_data.d_up       << 11U  );
+        snes_button_buffer -= (g_button_data.d_down     << 10U  );
+        snes_button_buffer -= (g_button_data.d_left     << 9U   );
+        snes_button_buffer -= (g_button_data.d_right    << 8U   );
+        snes_button_buffer -= (g_button_data.b_right    << 7U   );
+        snes_button_buffer -= (g_button_data.b_up       << 6U   );
+        snes_button_buffer -= (g_button_data.t_l        << 5U   );
+        snes_button_buffer -= (g_button_data.t_r        << 4U   );
 
         // Reset RetroBlue buttons for next scan sequence.
         rb_button_reset();
