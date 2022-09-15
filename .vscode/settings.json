@@ -20,10 +20,18 @@
     "rbc_snes_core.h": "c",
     "rbc_util_joybus_rmt.h": "c",
     "retroblue_backend.h": "c",
-    "rmt.h": "c"
+    "rmt.h": "c",
+    "rbc_usb_core.h": "c",
+    "retroblue_api.h": "c",
+    "i2c.h": "c",
+    "i2c_types.h": "c",
+    "gpio.h": "c",
+    "gpio_periph.h": "c",
+    "gpio_reg.h": "c",
+    "*.tcc": "c",
+    "*.ipp": "c"
   },
   "idf.openOcdConfigs": [
-    "interface/ftdi/esp32_devkitj_v1.cfg",
-    "target/esp32.cfg"
+    "board/esp32-wrover-kit-3.3v.cfg"
   ]
 }

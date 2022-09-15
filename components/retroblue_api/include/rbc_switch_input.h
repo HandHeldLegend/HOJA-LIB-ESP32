@@ -104,7 +104,7 @@ typedef struct
 {
     uint8_t l_stick_cal[11];
     uint8_t r_stick_cal[11];
-}ns_input_stickcaldata_s;
+} ns_input_stickcaldata_s;
 
 ns_input_short_s ns_input_short;
 ns_input_long_s ns_input_long;

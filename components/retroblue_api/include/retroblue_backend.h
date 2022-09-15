@@ -36,7 +36,7 @@
 #include "retroblue_api.h"
 #include "rbc_err.h"
 #include "rbc_util_joybus_rmt.h"
-
+#include "sdkconfig.h"
 
 
 /** @brief This is a struct for containing all of the 

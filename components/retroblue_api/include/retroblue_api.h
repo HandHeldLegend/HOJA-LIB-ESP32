@@ -6,6 +6,7 @@
 #include "rbc_switch_core.h"
 #include "rbc_snes_core.h"
 #include "rbc_gamecube_core.h"
+#include "rbc_usb_core.h"
 
 /* CORE TYPES */
 #define CORE_NINTENDOSWITCH 0
@@ -24,6 +25,10 @@ uint8_t RB_PIN_LATCH;
 uint8_t RB_PIN_CLOCK;
 // Pin needs to be defined to set the GPIO pin for SNES/NES/GameCube function.
 uint8_t RB_PIN_SERIAL;
+
+uint8_t RB_PIN_I2C_SDA;
+
+uint8_t RB_PIN_I2C_SCL;
 
 SemaphoreHandle_t xSemaphore;
 

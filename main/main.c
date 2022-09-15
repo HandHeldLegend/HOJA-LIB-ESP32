@@ -292,12 +292,17 @@ void app_main()
     RB_PIN_CLOCK    = PAD_PIN_CLOCK;
     RB_PIN_LATCH    = PAD_PIN_LATCH;
 
+    RB_PIN_I2C_SCL  = GPIO_NUM_22;
+    RB_PIN_I2C_SDA  = GPIO_NUM_21;
+
     rb_register_button_callback(button_task);
     rb_register_stick_callback(stick_task);
 
     rb_api_init();
 
-    gamecube_core_start();
+    rbc_core_usb_start();
+
+    //gamecube_core_start();
 
     //rb_api_setCore(CORE_SNES);
     //rb_api_startController();
