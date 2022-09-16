@@ -1,4 +1,4 @@
 | Supported Targets | ESP32 |
 | ----------------- | ----- |
 
-# ESP-IDF RetroBlue Bluetooth Gamepad API
+# ESP-IDF HOJA Library (HandHeldLegend Open Joypad API)
