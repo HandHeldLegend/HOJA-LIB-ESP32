@@ -3,6 +3,6 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := retroblue_api
+PROJECT_NAME := hoja_lib
 
 include $(IDF_PATH)/make/project.mk

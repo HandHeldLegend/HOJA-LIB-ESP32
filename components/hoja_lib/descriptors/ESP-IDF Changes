@@ -1,0 +1,38 @@
+// The SDP_PAD_LEN define must be altered to be much higher in bt_target.h. 
+// Default is 300 which is too low for Nintendo Switch.
+
+// Example of new define
+#define SDP_MAX_PAD_LEN             500
+
+
+// Custom function must be added to rmt.c file and rmt.h file
+
+// RETROBLUE CUSTOM FUNCTION STUPID ESP-IDF >:(
+esp_err_t rmt_write_items_buffer(rmt_channel_t channel, const rmt_item32_t *rmt_item, int item_num)
+{
+    rmt_obj_t *p_rmt = p_rmt_obj[channel];
+    int block_num = rmt_ll_tx_get_mem_blocks(rmt_contex.hal.regs, channel);
+    int item_block_len = block_num * RMT_MEM_ITEM_NUM;
+    int item_sub_len = block_num * RMT_MEM_ITEM_NUM / 2;
+    int len_rem = item_num;
+    xSemaphoreTake(p_rmt->tx_sem, portMAX_DELAY);
+    // fill the memory block first
+    if (item_num >= item_block_len) {
+        rmt_fill_memory(channel, rmt_item, item_block_len, 0);
+        len_rem -= item_block_len;
+        rmt_set_tx_loop_mode(channel, false);
+        rmt_set_tx_thr_intr_en(channel, 1, item_sub_len);
+        p_rmt->tx_data = rmt_item + item_block_len;
+        p_rmt->tx_len_rem = len_rem;
+        p_rmt->tx_offset = 0;
+        p_rmt->tx_sub_len = item_sub_len;
+    } else {
+        rmt_fill_memory(channel, rmt_item, len_rem, 0);
+        rmt_item32_t stop_data = {0};
+        rmt_ll_write_memory(rmt_contex.hal.mem, channel, &stop_data, 1, len_rem);
+        p_rmt->tx_len_rem = 0;
+    }
+
+    return ESP_OK;
+}
+// END RETROBLUE CUSTOM FUNCTION

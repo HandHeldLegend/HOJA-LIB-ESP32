@@ -151,12 +151,11 @@ void stick_task()
     return;
 }
 
-
 void app_main()
 {
     const char* TAG = "app_main";
 
-    rb_err_t err;
+    hoja_err_t err;
 
     // Set up ADC
     ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_DEFAULT));
@@ -186,15 +185,18 @@ void app_main()
     GPIO.out1_w1ts.val = (uint32_t) 0x1;
 
     // Set up IO pins for Nintendo Pad Wired
-    RB_PIN_SERIAL   = PAD_PIN_SERIAL;
-    RB_PIN_CLOCK    = PAD_PIN_CLOCK;
-    RB_PIN_LATCH    = PAD_PIN_LATCH;
+    HOJA_PIN_SERIAL   = PAD_PIN_SERIAL;
+    HOJA_PIN_CLOCK    = PAD_PIN_CLOCK;
+    HOJA_PIN_LATCH    = PAD_PIN_LATCH;
 
-    rb_register_button_callback(button_task);
-    rb_register_stick_callback(stick_task);
+    HOJA_PIN_I2C_SCL  = GPIO_NUM_22;
+    HOJA_PIN_I2C_SDA  = GPIO_NUM_21;
 
-    rb_api_init();
-    rb_api_setCore(CORE_SNES);
-    rb_api_startController();
+    hoja_api_regbuttoncallback(button_task);
+    hoja_api_regstickcallback(stick_task);
+
+    hoja_api_init();
+
+    core_usb_start();
 
 }
