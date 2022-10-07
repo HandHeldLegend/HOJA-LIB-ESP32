@@ -55,7 +55,7 @@ hoja_err_t hoja_settings_init(void)
         if (hoja_settings_default()) return HOJA_OK;
     }
 
-    ESP_LOGI(TAG, "RB Settings initialized OK.");
+    ESP_LOGI(TAG, "HOJA Settings initialized OK.");
     return HOJA_OK;
 }
 
@@ -93,7 +93,7 @@ hoja_err_t hoja_settings_default(void)
     err = nvs_open(SETTINGS_NAMESPACE, NVS_READWRITE, &my_handle);
     if (err != ESP_OK) 
     {
-        ESP_LOGE(TAG, "Error when opening NVS storage for RB Settings.");
+        ESP_LOGE(TAG, "Error when opening NVS storage for HOJA Settings.");
         return HOJA_FAIL;
     }
 

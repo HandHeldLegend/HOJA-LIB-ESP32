@@ -1,34 +1,46 @@
 #include "main.h"
 
+// Common macros
+
+// Clear a value from high GPIO register (GPIO 32 and higher)
+// GPIO.out1_w1tc.val = (uint32_t) (GPIO_NUM-32);
+// Set a value from high GPIO register (GPIO 32 and higher)
+// GPIO.out1_w1ts.val = (uint32_t) (GPIO_NUM-32);
+
+// Clear a value from low GPIO register (GPIO 0-31)
+// GPIO.out_w1tc = (uint32_t) (1ULL<< GPIO_NUM);
+// Set a value from low GPIO register (GPIO 0-31)
+// GPIO.out_w1ts = (uint32_t) (1ULL<< GPIO_NUM);
+
 // Scanning pins for keypad config
-#define GPIO_BTN_SCANA      GPIO_NUM_26
-#define GPIO_BTN_SCANB      GPIO_NUM_33
-#define GPIO_BTN_SCANC      GPIO_NUM_23
-#define GPIO_BTN_SCAND      GPIO_NUM_17
+#define GPIO_BTN_SCANA      GPIO_NUM_5
+#define GPIO_BTN_SCANB      GPIO_NUM_18
+#define GPIO_BTN_SCANC      GPIO_NUM_19
+#define GPIO_BTN_SCAND      GPIO_NUM_32
 
 // Port pins for keypad config
-#define GPIO_BTN_PORTA      GPIO_NUM_27  
-#define GPIO_BTN_PORTB      GPIO_NUM_25
-#define GPIO_BTN_PORTC      GPIO_NUM_32
-#define GPIO_BTN_PORTD      GPIO_NUM_18
+#define GPIO_BTN_PULLA      GPIO_NUM_33  
+#define GPIO_BTN_PULLB      GPIO_NUM_25
+#define GPIO_BTN_PULLC      GPIO_NUM_26
+#define GPIO_BTN_PULLD      GPIO_NUM_27
 
 // Button pins (mostly uneeded but looks nicer in code)
-#define GPIO_BTN_A          GPIO_NUM_26
-#define GPIO_BTN_B          GPIO_NUM_33
-#define GPIO_BTN_X          GPIO_NUM_23
-#define GPIO_BTN_Y          GPIO_NUM_17
-#define GPIO_BTN_DU         GPIO_NUM_23 
-#define GPIO_BTN_DL         GPIO_NUM_26
-#define GPIO_BTN_DD         GPIO_NUM_17
-#define GPIO_BTN_DR         GPIO_NUM_33
-#define GPIO_BTN_L          GPIO_NUM_33    
-#define GPIO_BTN_ZL         GPIO_NUM_26
-#define GPIO_BTN_R          GPIO_NUM_23
-#define GPIO_BTN_ZR         GPIO_NUM_17
-#define GPIO_BTN_START      GPIO_NUM_33
-#define GPIO_BTN_SELECT     GPIO_NUM_23
-#define GPIO_BTN_HOME       GPIO_NUM_26
-#define GPIO_BTN_CAPTURE    GPIO_NUM_17
+#define GPIO_BTN_A          GPIO_BTN_SCANA
+#define GPIO_BTN_B          GPIO_BTN_SCANA
+#define GPIO_BTN_X          GPIO_BTN_SCANA
+#define GPIO_BTN_Y          GPIO_BTN_SCANA
+#define GPIO_BTN_DU         GPIO_BTN_SCAND 
+#define GPIO_BTN_DL         GPIO_BTN_SCAND
+#define GPIO_BTN_DD         GPIO_BTN_SCAND
+#define GPIO_BTN_DR         GPIO_BTN_SCAND
+#define GPIO_BTN_L          GPIO_BTN_SCANC    
+#define GPIO_BTN_ZL         GPIO_BTN_SCANC
+#define GPIO_BTN_R          GPIO_BTN_SCANC
+#define GPIO_BTN_ZR         GPIO_BTN_SCANC
+#define GPIO_BTN_START      GPIO_BTN_SCANC
+#define GPIO_BTN_SELECT     GPIO_NUM_2
+#define GPIO_BTN_HOME       GPIO_BTN_SCANC
+#define GPIO_BTN_CAPTURE    GPIO_BTN_SCANC
 
 // Buttons that are outside of the keypad scanning config
 #define GPIO_BTN_STICKL     GPIO_NUM_22
@@ -42,19 +54,19 @@
 #define ADC_STICK_RY        ADC1_CHANNEL_7
 
 // Input pin mask creation for keypad scanning setup
-#define GPIO_INPUT_PIN_MASK     ( (1ULL<<GPIO_BTN_SCANA) | (1ULL<<GPIO_BTN_SCANB) | (1ULL<<GPIO_BTN_SCANC) | (1ULL<<GPIO_BTN_SCAND) )
-#define GPIO_INPUT_PORT_MASK    ( (1ULL<<GPIO_BTN_PORTA) | (1ULL<<GPIO_BTN_PORTB) | (1ULL<<GPIO_BTN_PORTC) | (1ULL<<GPIO_BTN_PORTD) )
+#define GPIO_INPUT_PIN_MASK     ( (1ULL<<GPIO_BTN_SCANA) | (1ULL<<GPIO_BTN_SCANB) | (1ULL<<GPIO_BTN_SCANC) | (1ULL<<GPIO_BTN_SCAND) | (1ULL<<GPIO_BTN_SELECT) )
+#define GPIO_INPUT_PORT_MASK    ( (1ULL<< GPIO_BTN_PULLA) | (1ULL<<GPIO_BTN_PULLB) | (1ULL<<GPIO_BTN_PULLC) | (1ULL<<GPIO_BTN_PULLD) )
 
 // Masks to clear all relevant bits when doing keypad scan
-#define GPIO_INPUT_CLEAR0_MASK  ( (1ULL<<GPIO_BTN_PORTA) | (1ULL<<GPIO_BTN_PORTB) | (1ULL<<GPIO_BTN_PORTD) )
-#define GPIO_INPUT_CLEAR1_MASK  ( (1ULL<<(GPIO_BTN_PORTC-32)) )
+#define GPIO_INPUT_CLEAR0_MASK  ( (1ULL<< GPIO_BTN_PULLA) | (1ULL<<GPIO_BTN_PULLB) | (1ULL<<GPIO_BTN_PULLD) )
+#define GPIO_INPUT_CLEAR1_MASK  ( (1ULL<<(GPIO_BTN_PULLC-32)) )
 
 // Define pins for Nintendo NES/SNES wired pad latch/clock
 #define PAD_PIN_CLOCK   GPIO_NUM_15
 #define PAD_PIN_LATCH   GPIO_NUM_14
 
 // Define pin for Nintendo wired serial line (GameCube and SNES)
-#define PAD_PIN_SERIAL  GPIO_NUM_19
+#define PAD_PIN_SERIAL  GPIO_NUM_17
 
 // Variables used to store register reads
 uint32_t regread_low = 0;
@@ -62,7 +74,12 @@ uint32_t regread_high = 0;
 
 bool getbit(uint32_t bytes, uint8_t bit)
 {
-    return (bytes >> bit) & 0x1;
+    uint8_t tmp = bit;
+    if (bit > 31)
+    {
+        tmp -= 32;
+    }
+    return (bytes >> tmp) & 0x1;
 }
 
 // Set up function to update inputs
@@ -75,64 +92,76 @@ bool getbit(uint32_t bytes, uint8_t bit)
 void button_task()
 {
     // First set port D as low output
-    GPIO.out_w1tc = (uint32_t) (1ULL<<GPIO_BTN_PORTD);
+    GPIO.out_w1tc = (uint32_t) (1ULL<<GPIO_BTN_PULLD);
     ets_delay_us(US_READ);
 
     // Read the GPIO registers and mask the data
     regread_low = REG_READ(GPIO_IN_REG) & GPIO_INPUT_PIN_MASK;
-    regread_high = REG_READ(GPIO_IN1_REG) & 0x2;
+    regread_high = REG_READ(GPIO_IN1_REG);
     
     // Grab the relevant button data
     // We OR-EQUALS because we don't want the possibility
     // of a button input getting dropped.
-    g_button_data.b_right   |= !getbit(regread_low, GPIO_BTN_A);
-    g_button_data.b_down    |= !getbit(regread_high, GPIO_BTN_B-32);
-    g_button_data.b_up      |= !getbit(regread_low, GPIO_BTN_X);
-    g_button_data.b_left    |= !getbit(regread_low, GPIO_BTN_Y);
+
+    // Y button
+    g_button_data.b_left        |= !getbit(regread_low, GPIO_BTN_Y);
+    // Dpad Down
+    g_button_data.d_down        |= !getbit(regread_high, GPIO_BTN_DD);
+    // L trigger
+    g_button_data.t_l           |= !getbit(regread_low, GPIO_BTN_L);
 
     // Release port D Set port C
-    GPIO.out_w1ts = (uint32_t) (1ULL<<GPIO_BTN_PORTD);
-    GPIO.out1_w1tc.val = (uint32_t) 0x1; //GPIO_BTN_PORTC
+    GPIO.out_w1ts = (uint32_t) (1ULL<<GPIO_BTN_PULLD);
+    GPIO.out_w1tc = (uint32_t) (1ULL<<GPIO_BTN_PULLC);
+    //GPIO.out1_w1tc.val = (uint32_t) 0x1; //GPIO_BTN_PULLC
     ets_delay_us(US_READ);
 
     // Read the GPIO registers and mask the data
     regread_low = REG_READ(GPIO_IN_REG) & GPIO_INPUT_PIN_MASK;
-    regread_high = REG_READ(GPIO_IN1_REG) & 0x2;
+    regread_high = REG_READ(GPIO_IN1_REG);
 
-    g_button_data.b_home    |= !getbit(regread_low, GPIO_BTN_HOME);
-    g_button_data.b_start   |= !getbit(regread_high, GPIO_BTN_START-32);
-    g_button_data.t_r       |= !getbit(regread_low, GPIO_BTN_R);
-    g_button_data.t_zr      |= !getbit(regread_low, GPIO_BTN_ZR);
+    // X button
+    g_button_data.b_up          |= !getbit(regread_low, GPIO_BTN_X);
+    // Dpad Down
+    g_button_data.d_left        |= !getbit(regread_high, GPIO_BTN_DL);
 
     // Release port C set port B
-    GPIO.out1_w1ts.val = (uint32_t) 0x01; //GPIO_BTN_PORTC
-    GPIO.out_w1tc = (uint32_t) (1ULL<<GPIO_BTN_PORTB);
+    GPIO.out_w1ts = (uint32_t) (1ULL<<GPIO_BTN_PULLC);
+    GPIO.out_w1tc = (uint32_t) (1ULL<<GPIO_BTN_PULLB);
     ets_delay_us(US_READ);
 
     // Read the GPIO registers and mask the data
     regread_low = REG_READ(GPIO_IN_REG) & GPIO_INPUT_PIN_MASK;
-    regread_high = REG_READ(GPIO_IN1_REG) & 0x2;
+    regread_high = REG_READ(GPIO_IN1_REG);
 
-    g_button_data.d_left        |= !getbit(regread_low, GPIO_BTN_DL);
-    g_button_data.d_right       |= !getbit(regread_high, GPIO_BTN_DR-32);
-    g_button_data.b_select      |= !getbit(regread_low, GPIO_BTN_SELECT);
-    g_button_data.b_capture     |= !getbit(regread_low, GPIO_BTN_CAPTURE);
+    // B button
+    g_button_data.b_down        |= !getbit(regread_low, GPIO_BTN_B);
+    // Dpad Up
+    g_button_data.d_up          |= !getbit(regread_high, GPIO_BTN_DU);
+    // Start button
+    g_button_data.b_start       |= !getbit(regread_low, GPIO_BTN_START);
 
     // Release port B set port A
-    GPIO.out_w1ts = (uint32_t) (1ULL<<GPIO_BTN_PORTB);
-    GPIO.out_w1tc = (uint32_t) (1ULL<<GPIO_BTN_PORTA);
+    GPIO.out_w1ts = (uint32_t) (1ULL<<GPIO_BTN_PULLB);
+    GPIO.out1_w1tc.val = (uint32_t) (1ULL << 1);
     ets_delay_us(US_READ);
 
     // Read the GPIO registers and mask the data
     regread_low = REG_READ(GPIO_IN_REG) & GPIO_INPUT_PIN_MASK;
-    regread_high = REG_READ(GPIO_IN1_REG) & 0x2;
+    regread_high = REG_READ(GPIO_IN1_REG);
+    
     // Release port A
-    GPIO.out_w1ts = (uint32_t) (1ULL<<GPIO_BTN_PORTA);
+    GPIO.out1_w1ts.val = (uint32_t) (1ULL << 1);
 
-    g_button_data.t_zl      |= !getbit(regread_low, GPIO_BTN_ZL);
-    g_button_data.t_l       |= !getbit(regread_high, GPIO_BTN_L-32);
-    g_button_data.d_up      |= !getbit(regread_low, GPIO_BTN_DU);
-    g_button_data.d_down    |= !getbit(regread_low, GPIO_BTN_DD);
+    // A button
+    g_button_data.b_right       |= !getbit(regread_low, GPIO_BTN_A);
+    // Dpad Right
+    g_button_data.d_right       |= !getbit(regread_high, GPIO_BTN_DR);
+    // R trigger
+    g_button_data.t_r           |= !getbit(regread_low, GPIO_BTN_R);
+
+    // Read select button (not tied to matrix)
+    g_button_data.b_select      |= !getbit(regread_low, GPIO_BTN_SELECT);
 }
 
 // Separate task to read sticks.
@@ -143,10 +172,16 @@ void stick_task()
     const char* TAG = "stick_task";
     // read stick 1 and 2
 
+    /*
     g_stick_data.lsx = (uint16_t) adc1_get_raw(ADC_STICK_LX);
-    g_stick_data.lsy = (uint16_t) adc1_get_raw(ADC_STICK_LY);
     g_stick_data.rsx = (uint16_t) adc1_get_raw(ADC_STICK_RX);
     g_stick_data.rsy = (uint16_t) adc1_get_raw(ADC_STICK_RY);
+    */
+
+    g_stick_data.lsx = 2048;
+    g_stick_data.lsy = 2048;
+    g_stick_data.rsx = 2048;
+    g_stick_data.rsy = 2048;
 
     return;
 }
@@ -182,7 +217,7 @@ void app_main()
     gpio_config(&io_conf);
 
     GPIO.out_w1ts = GPIO_INPUT_CLEAR0_MASK;
-    GPIO.out1_w1ts.val = (uint32_t) 0x1;
+    GPIO.out1_w1ts.val = (uint32_t) 0x3;
 
     // Set up IO pins for Nintendo Pad Wired
     HOJA_PIN_SERIAL   = PAD_PIN_SERIAL;
@@ -197,6 +232,7 @@ void app_main()
 
     hoja_api_init();
 
-    core_usb_start();
-
+    //core_usb_start();
+    //core_ns_start();
+    core_gamecube_start();
 }

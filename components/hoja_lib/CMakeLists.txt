@@ -7,5 +7,5 @@ idf_component_register(SRCS
                     "core_gamecube_backend.c" "util_joybus_rmt.c"
                     "core_usb_backend.c"
                     INCLUDE_DIRS "include"
-                    REQUIRES esp32 bt )
+                    REQUIRES bt esp32 freertos)
 

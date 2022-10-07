@@ -1,37 +1,18 @@
 {
-  "C_Cpp.intelliSenseEngine": "Tag Parser",
-  "idf.flashType": "UART",
-  "idf.portWin": "COM3",
-  "idf.adapterTargetName": "esp32",
-  "files.associations": {
-    "*.inc": "c",
-    "btm_api.h": "c",
-    "complex": "c",
-    "array": "c",
-    "string": "c",
-    "string_view": "c",
-    "deque": "cpp",
-    "list": "cpp",
-    "unordered_map": "cpp",
-    "unordered_set": "cpp",
-    "vector": "cpp",
-    "initializer_list": "cpp",
-    "regex": "cpp",
-    "rbc_snes_core.h": "c",
-    "rbc_util_joybus_rmt.h": "c",
-    "retroblue_backend.h": "c",
-    "rmt.h": "c",
-    "rbc_usb_core.h": "c",
-    "retroblue_api.h": "c",
-    "i2c.h": "c",
-    "i2c_types.h": "c",
-    "gpio.h": "c",
-    "gpio_periph.h": "c",
-    "gpio_reg.h": "c",
-    "*.tcc": "c",
-    "*.ipp": "c"
-  },
-  "idf.openOcdConfigs": [
-    "board/esp32-wrover-kit-3.3v.cfg"
-  ]
+    "idf.adapterTargetName": "esp32",
+    "idf.openOcdConfigs": [
+        "board/esp32-wrover-kit-3.3v.cfg"
+    ],
+    "files.associations": {
+        "hoja_includes.h": "c",
+        "main.h": "c",
+        "sdkconfig.h": "c",
+        "rmt.h": "c",
+        "spi_slave.h": "c",
+        "i2c.h": "c",
+        "core_usb_backend.h": "c",
+        "esp_rom_sys.h": "c"
+    },
+    "idf.flashType": "UART",
+    "idf.portWin": "COM10"
 }

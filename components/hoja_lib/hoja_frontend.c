@@ -27,7 +27,7 @@ hoja_err_t hoja_api_init()
     }
     ESP_ERROR_CHECK( ret );
 
-    if (!hoja_settings_init())
+if (hoja_settings_init() != HOJA_OK)
     {
         ESP_LOGE(TAG, "Settings failed to load.");
         return HOJA_FAIL;

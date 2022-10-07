@@ -3,6 +3,6 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := hoja_lib
+PROJECT_NAME := hoja
 
 include $(IDF_PATH)/make/project.mk

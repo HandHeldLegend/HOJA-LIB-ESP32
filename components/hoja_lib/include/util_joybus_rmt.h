@@ -26,6 +26,8 @@
 #define JB_RMT_0X8  JB_HIGH, JB_LOW, JB_LOW, JB_LOW
 #define JB_RMT_0XF  JB_HIGH, JB_HIGH, JB_HIGH, JB_HIGH
 
+#define JB_ZERO     (rmt_item32_t) {{{0,0,0,0}}}
+
 // Define some macros to make code cleaner :)
 #define JB_RX_MEM       RMTMEM.chan[0].data32
 #define JB_RX_CONF0     RMT.conf_ch[0].conf0
@@ -42,6 +44,22 @@
 #define JB_TX_POLL_MEM      RMTMEM.chan[4].data32
 #define JB_TX_POLL_CONF0    RMT.conf_ch[4].conf0
 #define JB_TX_POLL_CONF1    RMT.conf_ch[4].conf1
+
+typedef struct
+{
+    union
+    {
+        struct
+        {
+            uint8_t byte0 : 8;
+            uint8_t byte1 : 8;
+            uint8_t byte2 : 8;
+            uint8_t byte3 : 8;
+        };
+        uint32_t val;
+    };
+    
+} joybus_rx_buffer_s;
 
 #endif
 

@@ -1,9 +1,9 @@
 #include "core_usb_backend.h"
 
-#define I2C_MASTER_SCL_IO           RB_PIN_I2C_SCL            /*!< GPIO number used for I2C master clock */
-#define I2C_MASTER_SDA_IO           RB_PIN_I2C_SDA            /*!< GPIO number used for I2C master data  */
+#define I2C_MASTER_SCL_IO           HOJA_PIN_I2C_SCL            /*!< GPIO number used for I2C master clock */
+#define I2C_MASTER_SDA_IO           HOJA_PIN_I2C_SDA            /*!< GPIO number used for I2C master data  */
 #define I2C_MASTER_NUM              0                          /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
-#define I2C_MASTER_FREQ_HZ          200000                     /*!< I2C master clock frequency */
+#define I2C_MASTER_FREQ_HZ          400000                     /*!< I2C master clock frequency */
 #define I2C_MASTER_TX_BUF_DISABLE   0                          /*!< I2C master doesn't need buffer */
 #define I2C_MASTER_RX_BUF_DISABLE   0                          /*!< I2C master doesn't need buffer */
 #define I2C_MASTER_TIMEOUT_MS       3000
@@ -26,7 +26,7 @@ hoja_err_t core_usb_start(void)
     conf.sda_pullup_en = GPIO_PULLUP_DISABLE;
     conf.scl_pullup_en = GPIO_PULLUP_DISABLE;
     // Max clock speed for ESP32 I2C.
-    conf.master.clk_speed = 4000000;
+    conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
     i2c_param_config(I2C_NUM_0, &conf);
     esp_err_t err = i2c_driver_install(I2C_NUM_0, conf.mode, 0, 0, 0);
 
@@ -130,8 +130,29 @@ void usb_sendinput_task(void * parameters)
     output_buffer[0] = USB_CMD_INPUT;
     esp_err_t err = ESP_OK;
 
+    // Set up and send data over I2C
+    i2c_cmd_handle_t tmpcmd = i2c_cmd_link_create();
+
+    // Build the i2c packet
+    // to send the USB start command
+    i2c_master_start(tmpcmd);
+    i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write(tmpcmd, output_buffer, 8, true);
+    i2c_master_stop(tmpcmd);
+
     while(1)
     {
+        // Start transmission with 1 second timeout
+        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_RATE_MS);
+
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Failed to send I2C Input:");
+            ESP_LOGE(esp_err_to_name(err), "");
+        }
+
+        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_RATE_MS);
+
         // Scan the buttons using the callback defined by user.
         hoja_button_cb();
         hoja_stick_cb();
@@ -174,30 +195,11 @@ void usb_sendinput_task(void * parameters)
         output_buffer[7] = i2c_input.stick_right_y;
 
         hoja_button_reset();
-
-        // Set up and send data over I2C
-        i2c_cmd_handle_t tmpcmd = i2c_cmd_link_create();
-
-        // Build the i2c packet
-        // to send the USB start command
-        i2c_master_start(tmpcmd);
-        i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_write(tmpcmd, output_buffer, 8, true);
-        i2c_master_stop(tmpcmd);
-
-        // Start transmission with 1 second timeout
-        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_RATE_MS);
-        i2c_cmd_link_delete(tmpcmd);
-
-        if (err != ESP_OK)
-        {
-            ESP_LOGE(TAG, "Failed to send I2C Input:");
-            ESP_LOGE(esp_err_to_name(err), "");
-        }
         
         // Delay 1 second for debug
-        vTaskDelay(6/portTICK_RATE_MS);
+        //vTaskDelay(1/portTICK_RATE_MS);
 
     }
     
+    i2c_cmd_link_delete(tmpcmd);
 }

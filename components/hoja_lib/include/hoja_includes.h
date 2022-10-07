@@ -44,7 +44,6 @@
 #include "core_switch_backend.h"
 
 #include "util_joybus_rmt.h"
-#include "util_joybus.h"
 
 
 #endif
