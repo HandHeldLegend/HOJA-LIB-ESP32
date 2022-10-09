@@ -26,3 +26,15 @@ void hoja_button_reset()
     g_button_data.d_up       = 0;
     g_button_data.d_down     = 0;
 }
+
+void hoja_button_task(void * parameters)
+{
+
+    // Buttons update at a 2000hz rate.
+    for(;;)
+    {
+        hoja_button_cb();
+        vTaskDelay(0.5/portTICK_RATE_MS);
+    }
+
+}

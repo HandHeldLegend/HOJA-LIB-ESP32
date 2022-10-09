@@ -22,21 +22,23 @@ void gamecube_input_translate(void)
 
     hoja_stick_cb();
 
-    gcmd_poll_rmt[GC_BUTTON_START] = g_button_data.b_start  ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_Y] = g_button_data.b_left   ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_X] = g_button_data.b_up     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_B] = g_button_data.b_down   ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_A] = g_button_data.b_right  ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_START]  = g_button_data.b_start  ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_Y]      = g_button_data.b_left   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_X]      = g_button_data.b_up     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_B]      = g_button_data.b_down   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_A]      = g_button_data.b_right  ? JB_HIGH : JB_LOW;
 
-    gcmd_poll_rmt[GC_BUTTON_LB] = g_button_data.t_zl     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_RB] = g_button_data.t_zr     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_Z] = (g_button_data.t_l | g_button_data.t_r)    ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_DUP] = g_button_data.d_up     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_DDOWN] = g_button_data.d_down   ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_DLEFT] = g_button_data.d_left   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_LB]     = g_button_data.t_zl     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_RB]     = g_button_data.t_zr     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_Z]      = (g_button_data.t_l | g_button_data.t_r)    ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DUP]    = g_button_data.d_up     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DDOWN]  = g_button_data.d_down   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DLEFT]  = g_button_data.d_left   ? JB_HIGH : JB_LOW;
     gcmd_poll_rmt[GC_BUTTON_DRIGHT] = g_button_data.d_right  ? JB_HIGH : JB_LOW;
 
     memcpy(JB_TX_POLL_MEM, gcmd_poll_rmt, sizeof(rmt_item32_t) * GC_POLL_RMT_LEN);
+
+    hoja_stick_cb();
 
     hoja_button_reset();
 }
@@ -82,7 +84,7 @@ static void gamecube_rmt_isr(void* arg)
             // Probe Command
             case 0x00:
             default:
-                gpio_matrix_out(HOJA_PIN_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_PROBE, 0, 0);
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_PROBE, 0, 0);
                 JB_TX_PROBE_CONF1.mem_owner = 0;
                 JB_TX_PROBE_CONF1.tx_start = 1;
                 break;
@@ -90,7 +92,7 @@ static void gamecube_rmt_isr(void* arg)
             // Origin Command
             case 0x41:
             case 0x42:
-                gpio_matrix_out(HOJA_PIN_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_ORIGIN, 0, 0);
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_ORIGIN, 0, 0);
                 JB_TX_ORIGIN_CONF1.mem_owner = 0;
                 JB_TX_ORIGIN_CONF1.tx_start = 1;
                 gamecube_input_translate();
@@ -98,7 +100,7 @@ static void gamecube_rmt_isr(void* arg)
 
             // Poll Command
             case 0x40:
-                gpio_matrix_out(HOJA_PIN_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_POLL, 0, 0);
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_POLL, 0, 0);
                 JB_TX_POLL_CONF1.mem_owner = 0;
                 JB_TX_POLL_CONF1.tx_start = 1;
                 gamecube_input_translate();
@@ -117,7 +119,7 @@ static void gamecube_rmt_isr(void* arg)
         RMT.int_clr.ch1_tx_end = 1;
 
         // Start RX on ch0
-        gpio_matrix_in(HOJA_PIN_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
+        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
         JB_RX_CONF1.mem_owner = 1;
         JB_RX_CONF1.rx_en = 1;
     }
@@ -131,7 +133,7 @@ static void gamecube_rmt_isr(void* arg)
         RMT.int_clr.ch2_tx_end = 1;
 
         // Start RX on ch0
-        gpio_matrix_in(HOJA_PIN_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
+        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
         JB_RX_CONF1.mem_owner = 1;
         JB_RX_CONF1.rx_en = 1;
     }
@@ -145,7 +147,7 @@ static void gamecube_rmt_isr(void* arg)
         RMT.int_clr.ch4_tx_end = 1;
 
         // Start RX on ch0
-        gpio_matrix_in(HOJA_PIN_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
+        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
         JB_RX_CONF1.mem_owner = 1;
         JB_RX_CONF1.rx_en = 1;
     }
@@ -258,10 +260,10 @@ void gamecube_init(void)
     memcpy(JB_TX_PROBE_MEM, gcmd_probe_rmt, sizeof(rmt_item32_t) * GC_PROBE_RMT_LEN);
     memcpy(JB_TX_ORIGIN_MEM, gcmd_origin_rmt, sizeof(rmt_item32_t) * GC_ORIGIN_RMT_LEN);
 
-    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[HOJA_PIN_SERIAL], PIN_FUNC_GPIO);
-    gpio_set_direction(HOJA_PIN_SERIAL, GPIO_MODE_INPUT_OUTPUT_OD);
-    gpio_matrix_out(HOJA_PIN_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_PROBE, 0, 0);
-    gpio_matrix_in(HOJA_PIN_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
+    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[CONFIG_HOJA_GPIO_NS_SERIAL], PIN_FUNC_GPIO);
+    gpio_set_direction(CONFIG_HOJA_GPIO_NS_SERIAL, GPIO_MODE_INPUT_OUTPUT_OD);
+    gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_PROBE, 0, 0);
+    gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
 
     // Start GameCube task.
     xTaskCreatePinnedToCore(gamecube_task, "Gamecube Task Loop", 2024,

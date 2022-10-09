@@ -4,15 +4,24 @@
 #include "hoja_includes.h"
 
 /* CORE TYPES */
-#define CORE_NINTENDOSWITCH 0
-#define CORE_SNES           1
-#define CORE_GAMECUBE       2
-#define CORE_N64            3
-#define CORE_GENERICHID     4
+#define CORE_CONFIGMODE     0 // To be defined mode for changing settings.
+#define CORE_NINTENDOSWITCH 1
+#define CORE_SNES           2
+#define CORE_GAMECUBE       3
+#define CORE_N64            4
+#define CORE_USBHID         5
+#define CORE_BLUETOOTHHID   6
 
-// This last core type is for the wifi
-// based configuration tool (WIP)
-#define CORE_WIFISETUP      0xFF
+// This struct type is used to
+// set up HOJA API before runtime.
+// This should be passed through with hoja_api_init()
+// Different settings are implemented here which are
+// not meant to change during runtime and should
+// be set before compilation
+typedef struct
+{
+
+} hoja_setup_s;
 
 // Pin needs to be defined to set the GPIO pin for SNES/NES function.
 uint8_t HOJA_PIN_LATCH;
@@ -70,15 +79,20 @@ hoja_err_t rb_api_setSNESStickPad(uint8_t enable);
 // ----------------
 
 // Vars for callbacks
-typedef void (*input_update_callback) (void);
-input_update_callback hoja_button_cb;
-input_update_callback hoja_stick_cb;
+typedef void (*hoja_callback_t) (void);
+hoja_callback_t hoja_button_cb;
+hoja_callback_t hoja_stick_cb;
+hoja_callback_t hoja_rgb_cb;
+
 
 // Function to register callback function for setting buttons
 // This is called by the core at an appropriate rate to help
 // avoid weird timing issues.
-hoja_err_t hoja_api_regbuttoncallback(input_update_callback func);
+hoja_err_t hoja_api_regbuttoncallback(hoja_callback_t func);
 // Function to register callback function for setting sticks
-hoja_err_t hoja_api_regstickcallback(input_update_callback func);
+hoja_err_t hoja_api_regstickcallback(hoja_callback_t func);
+
+// Register callback for rgb updates
+hoja_err_t hoja_api_regrgbcallback(hoja_callback_t func);
 
 #endif

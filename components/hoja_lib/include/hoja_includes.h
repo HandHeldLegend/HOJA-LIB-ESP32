@@ -21,9 +21,11 @@
 #include <inttypes.h>
 #include <stddef.h>
 #include "driver/spi_slave.h"
+#include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "driver/i2c.h"
 #include "driver/adc.h"
+#include "driver/pcnt.h"
 
 #include "esp_timer.h"
 
@@ -44,6 +46,8 @@
 #include "core_switch_backend.h"
 
 #include "util_joybus_rmt.h"
+#include "util_rgb.h"
+#include "util_wired_detect.h"
 
 
 #endif

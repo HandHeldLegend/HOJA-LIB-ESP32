@@ -19,32 +19,26 @@ hoja_err_t core_snes_start()
     // Set up SPI
     esp_err_t ret;
 
-    if ( (HOJA_PIN_SERIAL == 0xFF) | (HOJA_PIN_CLOCK == 0xFF) | (HOJA_PIN_LATCH == 0xFF) )
-    {
-        ESP_LOGE(TAG, "All three GPIO pins must be set for this function (HOJA_PIN_SERIAL, HOJA_PIN_LATCH, HOJA_PIN_CLOCK).");
-        return HOJA_FAIL;
-    }
-
-    //Configuration for the SPI bus
+    // Configuration for the SPI bus
     spi_bus_config_t buscfg={
         .mosi_io_num    = -1,
-        .miso_io_num    = (int) HOJA_PIN_SERIAL,
-        .sclk_io_num    = (int) HOJA_PIN_CLOCK,
+        .miso_io_num    = (int) CONFIG_HOJA_GPIO_NS_SERIAL,
+        .sclk_io_num    = (int) CONFIG_HOJA_GPIO_NS_CLOCK,
         .quadwp_io_num  = -1,
         .quadhd_io_num  = -1,
     };
 
-    //Configuration for the SPI slave interface
+    // Configuration for the SPI slave interface
     spi_slave_interface_config_t slvcfg={
         .mode           = 2,
-        .spics_io_num   = (int) HOJA_PIN_LATCH,
+        .spics_io_num   = (int) CONFIG_HOJA_GPIO_NS_LATCH,
         .queue_size     = 1,
         .flags          = 0,
         .post_setup_cb  = spi_dummy_cb,
         .post_trans_cb  = spi_dummy_cb
     };
 
-    //Initialize SPI slave interface
+    // Initialize SPI slave interface
     ret=spi_slave_initialize(HSPI_HOST, &buscfg, &slvcfg, 0);
     assert(ret==ESP_OK);
 

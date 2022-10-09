@@ -190,6 +190,12 @@ void app_main()
 {
     const char* TAG = "app_main";
 
+    #if CONFIG_USB_COMPANION_SETTINGS
+        ESP_LOGI(TAG, "USB I2C Enabled.");
+    #else
+        ESP_LOGI(TAG, "USB I2C Disabled.");
+    #endif
+
     hoja_err_t err;
 
     // Set up ADC
@@ -219,20 +225,15 @@ void app_main()
     GPIO.out_w1ts = GPIO_INPUT_CLEAR0_MASK;
     GPIO.out1_w1ts.val = (uint32_t) 0x3;
 
-    // Set up IO pins for Nintendo Pad Wired
-    HOJA_PIN_SERIAL   = PAD_PIN_SERIAL;
-    HOJA_PIN_CLOCK    = PAD_PIN_CLOCK;
-    HOJA_PIN_LATCH    = PAD_PIN_LATCH;
-
-    HOJA_PIN_I2C_SCL  = GPIO_NUM_22;
-    HOJA_PIN_I2C_SDA  = GPIO_NUM_21;
-
     hoja_api_regbuttoncallback(button_task);
     hoja_api_regstickcallback(stick_task);
 
     hoja_api_init();
 
+    wired_detect();
+
     //core_usb_start();
     //core_ns_start();
-    core_gamecube_start();
+    //core_gamecube_start();
+    rgb_init();
 }

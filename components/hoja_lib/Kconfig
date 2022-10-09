@@ -1,0 +1,79 @@
+menu "HOJA Optional Items"
+
+    config HOJA_USB_ENABLE
+        bool "Enable EFMUB81 HID Companion Device"
+        default "n"
+
+    config HOJA_RGB_ENABLE
+        bool "Enable RGB (Neo Pixel) Driver"
+        default "n"
+
+    config HOJA_RGB_GPIO
+        int "RGB Driver GPIO Output Pin"
+        range 0 48
+        default 23
+        help
+            Default is 23
+
+    config HOJA_RGB_COUNT
+        int "RGB LED Count"
+        range 0 100
+        default 4
+        help
+            This is used at compile time
+            to determine how many LEDs there
+            will be. 
+
+endmenu
+
+menu "HOJA GPIO Selection"
+
+    config HOJA_GPIO_I2C_SCL
+        int "I2C SCL Pin"
+        range 0 48
+        default 22
+        help
+            Default is 22
+
+    config HOJA_GPIO_I2C_SDA
+        int "I2C SDA Pin"
+        range 0 48
+        default 21
+        help 
+            Default is 21
+
+    config HOJA_GPIO_NS_SERIAL
+        int "Nintendo Serial Pin"
+        range 0 48
+        default 17
+        help
+            Default is 17. Used for JoyBus and Data on SNES and NES.
+
+    config HOJA_GPIO_NS_CLOCK
+        int "Nintendo Clock Pin"
+        range 0 48
+        default 15
+        help
+            Default is 15. Used for NES/SNES Clock Pin.
+
+    config HOJA_GPIO_NS_LATCH
+        int "Nintendo Latch Pin"
+        range 0 48
+        default 14
+        help
+            Default is 14. Used for NES/SNES Latch Pin.
+
+endmenu
+
+
+menu "HOJA Core Include Selection"
+
+    config HOJA_CORE_NINTENDOSWITCH
+        bool "Nintendo Switch Bluetooth Core"
+        default "y"
+
+    config HOJA_CORE_SNES
+        bool "Super Nintendo Wired Core"
+        default "y"
+
+endmenu

@@ -94,11 +94,12 @@ hoja_err_t hoja_api_startcore(void)
 }
 
 // Pointer to hold callback
-input_update_callback hoja_button_cb;
-input_update_callback hoja_stick_cb;
+hoja_callback_t hoja_button_cb;
+hoja_callback_t hoja_stick_cb;
+hoja_callback_t hoja_rgb_cb;
 
 // Function to register callback function for setting buttons
-hoja_err_t hoja_api_regbuttoncallback(input_update_callback func)
+hoja_err_t hoja_api_regbuttoncallback(hoja_callback_t func)
 {
     if (func == NULL) return HOJA_FAIL;
 
@@ -108,11 +109,20 @@ hoja_err_t hoja_api_regbuttoncallback(input_update_callback func)
 }
 
 // Function to register callback function for setting sticks
-hoja_err_t hoja_api_regstickcallback(input_update_callback func)
+hoja_err_t hoja_api_regstickcallback(hoja_callback_t func)
 {
     if (func == NULL) return HOJA_FAIL;
 
     hoja_stick_cb = func;
+
+    return HOJA_OK;
+}
+
+hoja_err_t hoja_api_regrgbcallback(hoja_callback_t func)
+{
+    if (func == NULL) return HOJA_FAIL;
+
+    hoja_rgb_cb = func;
 
     return HOJA_OK;
 }

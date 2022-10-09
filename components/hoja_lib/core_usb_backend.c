@@ -1,7 +1,5 @@
 #include "core_usb_backend.h"
 
-#define I2C_MASTER_SCL_IO           HOJA_PIN_I2C_SCL            /*!< GPIO number used for I2C master clock */
-#define I2C_MASTER_SDA_IO           HOJA_PIN_I2C_SDA            /*!< GPIO number used for I2C master data  */
 #define I2C_MASTER_NUM              0                          /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
 #define I2C_MASTER_FREQ_HZ          400000                     /*!< I2C master clock frequency */
 #define I2C_MASTER_TX_BUF_DISABLE   0                          /*!< I2C master doesn't need buffer */
@@ -20,8 +18,8 @@ hoja_err_t core_usb_start(void)
 
 	i2c_config_t conf = {};
     conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = HOJA_PIN_I2C_SDA;
-    conf.scl_io_num = HOJA_PIN_I2C_SCL;
+    conf.sda_io_num = CONFIG_HOJA_GPIO_I2C_SDA;
+    conf.scl_io_num = CONFIG_HOJA_GPIO_I2C_SCL;
     // Use external pull-up resistors according to I2C specifications.
     conf.sda_pullup_en = GPIO_PULLUP_DISABLE;
     conf.scl_pullup_en = GPIO_PULLUP_DISABLE;
@@ -52,7 +50,7 @@ hoja_err_t core_usb_start(void)
     i2c_master_stop(tmpcmd);
 
     // Start transmission with 1 second timeout
-    err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_RATE_MS);
+    err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
     i2c_cmd_link_delete(tmpcmd);
 
     if (err != ESP_OK)
@@ -79,7 +77,7 @@ hoja_err_t core_usb_start(void)
     i2c_master_stop(tmpcmd);
 
     // Start transmission with 1 second timeout
-    err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_RATE_MS);
+    err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
     i2c_cmd_link_delete(tmpcmd);
 
     if (err != ESP_OK)
@@ -143,7 +141,7 @@ void usb_sendinput_task(void * parameters)
     while(1)
     {
         // Start transmission with 1 second timeout
-        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_RATE_MS);
+        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
 
         if (err != ESP_OK)
         {
@@ -151,10 +149,8 @@ void usb_sendinput_task(void * parameters)
             ESP_LOGE(esp_err_to_name(err), "");
         }
 
-        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_RATE_MS);
-
-        // Scan the buttons using the callback defined by user.
-        hoja_button_cb();
+        // Scan the sticks using the callback defined by user.
+        // hoja_button_cb();
         hoja_stick_cb();
 
         // Convert button presses to appropriate format
@@ -196,8 +192,8 @@ void usb_sendinput_task(void * parameters)
 
         hoja_button_reset();
         
-        // Delay 1 second for debug
-        //vTaskDelay(1/portTICK_RATE_MS);
+        // Delay 1 ms
+        vTaskDelay(1/portTICK_PERIOD_MS);
 
     }
     

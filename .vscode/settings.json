@@ -11,7 +11,16 @@
         "spi_slave.h": "c",
         "i2c.h": "c",
         "core_usb_backend.h": "c",
-        "esp_rom_sys.h": "c"
+        "esp_rom_sys.h": "c",
+        "*.inc": "c",
+        "bitset": "c",
+        "chrono": "c",
+        "algorithm": "c",
+        "iterator": "c",
+        "xhash": "c",
+        "xmemory": "c",
+        "xtree": "c",
+        "xutility": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM10"
