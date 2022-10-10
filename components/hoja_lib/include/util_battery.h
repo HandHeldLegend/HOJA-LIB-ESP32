@@ -5,8 +5,6 @@
 
 #define UTIL_BATTERY_I2C_ADDRESS 0x6A
 
-util_battery_status_t util_battery_status = BATUTIL_STOPPED;
-
 typedef enum
 {
     BATFIELD_VGOOD = 0,
@@ -24,6 +22,6 @@ typedef enum
     BATSTATUS_VGOOD       = 6,
 } util_battery_status_t;
 
-util_battery_monstatus_t util_battery_getchargestatus(void);
+util_battery_status_t util_battery_getstatus(util_battery_field_t field);
 
 #endif

@@ -24,7 +24,6 @@ util_battery_status_t util_battery_getstatus(util_battery_field_t field)
     i2c_master_start(tmpcmd);
     i2c_master_write_byte(tmpcmd, (UTIL_BATTERY_I2C_ADDRESS << 1) | I2C_MASTER_READ, true);
     i2c_master_read_byte(tmpcmd, &response[0], I2C_MASTER_LAST_NACK);
-    //i2c_master_read_byte(tmpcmd, &response[1], I2C_MASTER_LAST_NACK);
     i2c_master_stop(tmpcmd);
 
     // START READ
