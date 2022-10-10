@@ -29,12 +29,13 @@ void hoja_button_reset()
 
 void hoja_button_task(void * parameters)
 {
+    const char* TAG = "hoja_button_task";
 
+    ESP_LOGI(TAG, "Starting task...");
     // Buttons update at a 2000hz rate.
     for(;;)
     {
         hoja_button_cb();
-        vTaskDelay(0.5/portTICK_RATE_MS);
+        vTaskDelay(0.5/portTICK_PERIOD_MS);
     }
-
 }

@@ -4,6 +4,7 @@ uint8_t HOJA_PIN_LATCH = 0xFF;
 uint8_t HOJA_PIN_CLOCK = 0xFF;
 uint8_t HOJA_PIN_SERIAL = 0xFF;
 
+TaskHandle_t hoja_button_taskhandle = NULL;
 SemaphoreHandle_t xSemaphore;
 
 hoja_err_t hoja_api_init()
@@ -33,6 +34,12 @@ if (hoja_settings_init() != HOJA_OK)
         return HOJA_FAIL;
     }
 
+    if (hoja_button_taskhandle != NULL)
+    {
+        vTaskDelete(hoja_button_taskhandle);
+    }
+    // We need to start the button scan task.
+    xTaskCreatePinnedToCore(hoja_button_task, "HOJA Button Task", 2048, NULL, 0, &hoja_button_taskhandle, 1);
     
     hoja_params.api_initialized = true;
 

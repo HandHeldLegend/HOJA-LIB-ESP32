@@ -1,7 +1,7 @@
 #include "core_usb_backend.h"
 
 #define I2C_MASTER_NUM              0                          /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
-#define I2C_MASTER_FREQ_HZ          400000                     /*!< I2C master clock frequency */
+#define I2C_MASTER_FREQ_HZ          200000                     /*!< I2C master clock frequency */
 #define I2C_MASTER_TX_BUF_DISABLE   0                          /*!< I2C master doesn't need buffer */
 #define I2C_MASTER_RX_BUF_DISABLE   0                          /*!< I2C master doesn't need buffer */
 #define I2C_MASTER_TIMEOUT_MS       3000
@@ -14,58 +14,41 @@ hoja_err_t core_usb_start(void)
 {
     const char* TAG = "core_usb_start";
 
-    // Set up I2C peripheral.
+    ESP_LOGI(TAG, "Core Start: USB");
+    esp_err_t err = ESP_OK;
 
-	i2c_config_t conf = {};
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = CONFIG_HOJA_GPIO_I2C_SDA;
-    conf.scl_io_num = CONFIG_HOJA_GPIO_I2C_SCL;
-    // Use external pull-up resistors according to I2C specifications.
-    conf.sda_pullup_en = GPIO_PULLUP_DISABLE;
-    conf.scl_pullup_en = GPIO_PULLUP_DISABLE;
-    // Max clock speed for ESP32 I2C.
-    conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
-    i2c_param_config(I2C_NUM_0, &conf);
-    esp_err_t err = i2c_driver_install(I2C_NUM_0, conf.mode, 0, 0, 0);
-
-    if (err != ESP_OK)
+    if (util_i2c_status != UTIL_I2C_STATUS_AVAILABLE)
     {
-        ESP_LOGE(TAG, "Failed to start I2C Bus. Check configuration and pins.");
+        ESP_LOGE(TAG, "Cannot start USB core. Required I2C utility initialize first.");
         return HOJA_FAIL;
     }
-    ESP_LOGI(TAG, "I2C peripheral set up OK.");
+    ESP_LOGI(TAG, "USB Core okay to start as I2C is set up.");
 
-    // Next we need to send the command to the I2C device
-    // to start USB function. We then wait 2 seconds to see if the device
-    // has read back that it is ready. This does not necessarily mean that
-    // the USB device is connected, but that it is ok to send data. 
+    // BUILD USB START COMMAND
     i2c_cmd_handle_t tmpcmd = i2c_cmd_link_create();
     uint8_t tosend[2] = {USB_CMD_SYSTEMSET, USB_SYSTEM_START};
-
-    // Build the i2c packet
-    // to send the USB start command
     i2c_master_start(tmpcmd);
     i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
     i2c_master_write(tmpcmd, tosend, 2, true);
     i2c_master_stop(tmpcmd);
 
-    // Start transmission with 1 second timeout
+    // TRANSMIT USB START COMMAND
     err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
     i2c_cmd_link_delete(tmpcmd);
 
+    // CHECK IF USB START COMMAND TRANSMITTED OK
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "Failed to send I2C Start Command:");
+        ESP_LOGE(TAG, "USB Core Command: USB Service Start: Transmit Fail.");
         ESP_LOGE(esp_err_to_name(err), "");
         return HOJA_FAIL;
     }
-    ESP_LOGI(TAG, "I2C sent start message OK.");
+    ESP_LOGI(TAG, "USB Core Command: USB Service Start: Transmit OK.");
 
-    // Delay 1.5 seconds and we'll check for status command to see
-    // if we can continue.
-    vTaskDelay(1500/portTICK_RATE_MS);
+    // DELAY 500MS BEFORE CHECKING STATUS
+    vTaskDelay(500/portTICK_PERIOD_MS);
 
-    // Build the next command to verify the status.
+    // READ USB START COMMAND RESPONSE
     tmpcmd = i2c_cmd_link_create();
     uint8_t response[2] = {0};
     response[0] = 0xFF;
@@ -76,38 +59,99 @@ hoja_err_t core_usb_start(void)
     i2c_master_read_byte(tmpcmd, &response[1], I2C_MASTER_LAST_NACK);
     i2c_master_stop(tmpcmd);
 
-    // Start transmission with 1 second timeout
+    // START READ
     err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
     i2c_cmd_link_delete(tmpcmd);
 
+    // CHECK IF USB START READ WENT OK
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "Failed to retrieve I2C command response:");
+        ESP_LOGE(TAG, "USB Core Read: Transmit Fail.");
         ESP_LOGE(esp_err_to_name(err), "");
         return HOJA_FAIL;
     }
-    ESP_LOGI(TAG, "I2C got command response OK.");
+    ESP_LOGI(TAG, "USB Core Read: Transmit OK.");
 
-    // If we get back the correct command data and OK response, we
-    // are good to go to begin sending input data for the joypad.
+    // CHECK USB START RESPONSE STATUS
     if ( (response[0] == USB_CMD_SYSTEMSET) && (response[1] == USB_MSG_OK) )
     {
-        ESP_LOGI(TAG, "I2C confirmation of USB device start OK.");
 
-        // Check if task is running, delete if so.
-        if (usb_TaskHandle != NULL)
+        ESP_LOGI(TAG, "USB Core Status: USB Service Started OK.");
+
+        tosend[0] = USB_CMD_CHECKREADY;
+
+        // BUILD USB STATUS GET COMMAND
+        tmpcmd = i2c_cmd_link_create();
+        i2c_master_start(tmpcmd);
+        i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
+        i2c_master_write(tmpcmd, tosend, 1, true);
+        i2c_master_stop(tmpcmd);    
+
+        // TRANSMIT USB STATUS COMMAND
+        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
+        i2c_cmd_link_delete(tmpcmd);
+
+        // CHECK IF USB STATUS COMMAND WENT OK
+        if (err != ESP_OK)
         {
-            vTaskDelete(usb_TaskHandle);
-            usb_TaskHandle = NULL;
+            ESP_LOGE(TAG, "USB Core Command: Get USB Serivce Status: Transmit Fail.");
+            ESP_LOGE(esp_err_to_name(err), "");
+            return HOJA_FAIL;
+        }
+        ESP_LOGI(TAG, "USB Core Command: Get USB Service Status: Transmit OK.");
+
+        // READ USB STATUS
+        tmpcmd = i2c_cmd_link_create();
+        uint8_t response[2] = {0};
+        response[0] = 0xFF;
+        response[1] = 0xFF;
+        i2c_master_start(tmpcmd);
+        i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_READ, true);
+        i2c_master_read_byte(tmpcmd, &response[0], I2C_MASTER_ACK);
+        i2c_master_read_byte(tmpcmd, &response[1], I2C_MASTER_LAST_NACK);
+        i2c_master_stop(tmpcmd);
+
+        // DELAY 500MS BEFORE CHECKING STATUS
+        vTaskDelay(500/portTICK_PERIOD_MS);
+
+        // Start transmission with 1 second timeout
+        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
+        i2c_cmd_link_delete(tmpcmd);
+
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "USB Core Read: Transmit Fail.");
+            ESP_LOGE(esp_err_to_name(err), "");
+            return HOJA_FAIL;
+        }
+        ESP_LOGI(TAG, "USB Core Read: Transmit OK.");
+
+        if ( (response[0] == USB_CMD_CHECKREADY) && (response[1] == USB_MSG_OK) )
+        {
+            ESP_LOGI(TAG, "USB Core Command: Get Bus Status: Bus OK.");
+
+            // Check if task is running, delete if so.
+            if (usb_TaskHandle != NULL)
+            {
+                vTaskDelete(usb_TaskHandle);
+                usb_TaskHandle = NULL;
+            }
+
+            // Start SNES task.
+            xTaskCreatePinnedToCore(usb_sendinput_task, "USB I2C Task Loop", 2024,
+                                    NULL, 0, &usb_TaskHandle, 0);
+            
+            ESP_LOGI(TAG, "USB Core started OK.");
+
+            return HOJA_OK;
+
+        }   
+        else
+        {
+            ESP_LOGE(TAG, "USB Core Command: Get Bus Status: Bus Unplugged.");
+            return HOJA_USB_NODET;
         }
 
-        // Start SNES task.
-        xTaskCreatePinnedToCore(usb_sendinput_task, "USB I2C Task Loop", 2024,
-                                NULL, 0, &usb_TaskHandle, 1);
-        
-        ESP_LOGI(TAG, "USB Core started OK.");
-
-        return HOJA_OK;
     }
     else
     {
@@ -141,11 +185,11 @@ void usb_sendinput_task(void * parameters)
     while(1)
     {
         // Start transmission with 1 second timeout
-        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
+        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, portMAX_DELAY);
 
         if (err != ESP_OK)
         {
-            ESP_LOGE(TAG, "Failed to send I2C Input:");
+            ESP_LOGE(TAG, "Failed to send I2C Input to USB:");
             ESP_LOGE(esp_err_to_name(err), "");
         }
 
@@ -191,11 +235,11 @@ void usb_sendinput_task(void * parameters)
         output_buffer[7] = i2c_input.stick_right_y;
 
         hoja_button_reset();
-        
-        // Delay 1 ms
+
         vTaskDelay(1/portTICK_PERIOD_MS);
 
     }
+    
     
     i2c_cmd_link_delete(tmpcmd);
 }

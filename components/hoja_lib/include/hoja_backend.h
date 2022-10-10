@@ -106,6 +106,9 @@ typedef struct
 
 hoja_params_s hoja_params;
 
+// Task to scan buttons periodically.
+void hoja_button_task(void * parameters);
+
 // Function to reset all buttons to neutral values
 void hoja_button_reset();
 

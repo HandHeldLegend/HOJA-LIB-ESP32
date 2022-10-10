@@ -28,21 +28,21 @@ typedef enum
 #define GC_BUTTON_B         6
 #define GC_BUTTON_X         5
 #define GC_BUTTON_Y         4
-#define GC_BUTTON_LB        8
-#define GC_BUTTON_RB        9
-#define GC_BUTTON_Z         10
+#define GC_BUTTON_LB        9
+#define GC_BUTTON_RB        10
+#define GC_BUTTON_Z         11
 #define GC_BUTTON_START     3
-#define GC_BUTTON_DUP       11
-#define GC_BUTTON_DDOWN     12
-#define GC_BUTTON_DRIGHT    13
-#define GC_BUTTON_DLEFT     14
+#define GC_BUTTON_DUP       12
+#define GC_BUTTON_DDOWN     13
+#define GC_BUTTON_DRIGHT    14
+#define GC_BUTTON_DLEFT     15
 
-#define GC_ADC_LEFTX        23
-#define GC_ADC_LEFTY        31
-#define GC_ADC_RIGHTX       39
-#define GC_ADC_RIGHTY       47
-#define GC_ADC_LT           55
-#define GC_ADC_RT           63
+#define GC_ADC_LEFTX        16
+#define GC_ADC_LEFTY        24
+#define GC_ADC_RIGHTX       32
+#define GC_ADC_RIGHTY       40
+#define GC_ADC_LT           48
+#define GC_ADC_RT           56
 
 #define GC_ADC_LEN          8
 

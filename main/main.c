@@ -229,11 +229,11 @@ void app_main()
     hoja_api_regstickcallback(stick_task);
 
     hoja_api_init();
-
-    wired_detect();
+    util_i2c_initialize();
+    //wired_detect();
 
     //core_usb_start();
     //core_ns_start();
     //core_gamecube_start();
-    rgb_init();
+    //rgb_init();
 }

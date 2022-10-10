@@ -154,15 +154,6 @@ static void gamecube_rmt_isr(void* arg)
     
 }
 
-void gamecube_task(void * paramters)
-{
-    while(1)
-    {
-        hoja_button_cb();
-        vTaskDelay(0.25/portTICK_RATE_MS);
-    }
-}
-
 void gamecube_init(void)
 {
     const char* TAG = "gamecube_init";
@@ -264,10 +255,6 @@ void gamecube_init(void)
     gpio_set_direction(CONFIG_HOJA_GPIO_NS_SERIAL, GPIO_MODE_INPUT_OUTPUT_OD);
     gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_PROBE, 0, 0);
     gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
-
-    // Start GameCube task.
-    xTaskCreatePinnedToCore(gamecube_task, "Gamecube Task Loop", 2024,
-                            NULL, 0, &gamecube_TaskHandle, 1);
 
     rmt_isr_register(gamecube_rmt_isr, NULL, 3, NULL);
 

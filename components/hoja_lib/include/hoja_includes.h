@@ -45,9 +45,11 @@
 #include "core_snes_backend.h"
 #include "core_switch_backend.h"
 
+#include "util_i2c.h"
 #include "util_joybus_rmt.h"
 #include "util_rgb.h"
 #include "util_wired_detect.h"
+#include "util_battery.h"
 
 
 #endif
