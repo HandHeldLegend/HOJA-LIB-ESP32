@@ -80,12 +80,14 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
         default:
             ESP_LOGI(TAG, "Unrecognized request received: %X, %X", report_id, p_data[9]);
 
+            /*
             ESP_LOGI(TAG, "FULL DUMP:\n");
                 for(uint8_t i = 0; i < len; i++)
                 {
                     ESP_LOGI("%d: ", "%X", p_data[i]);
-                }
+                }*/
             // Set input report ID
+            
             ns_report_setid(COMM_RID_STANDARDFULL);
 
             break;
@@ -108,15 +110,6 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
 
         case SUBC_GET_CONTROLLERSTATE:
             ESP_LOGI(TAG, "SUBC - Get controller state.");
-
-            if (1)
-            {
-                ESP_LOGI(TAG, "FULL DUMP:\n");
-                for(uint8_t i = 0; i < len; i++)
-                {
-                    ESP_LOGI("%d: ", "%X", p_data[i]);
-                }
-            }
             ns_report_setack(0x80);
             
             break;
@@ -125,13 +118,6 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
             ESP_LOGI(TAG, "SUBC - Get device info.");
 
             ns_report_setack(0x82);
-            
-            ESP_LOGI(TAG, "FULL DUMP:\n");
-                for(uint8_t i = 0; i < len; i++)
-                {
-                    ESP_LOGI("%d: ", "%X", p_data[i]);
-                }
-
             ns_report_sub_setdevinfo();
             break;
 
@@ -193,11 +179,6 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
         
         default:
             ESP_LOGI(TAG, "SUBC - Unrecognized subcommand: %X", command);
-            ESP_LOGI(TAG, "FULL DUMP:\n");
-                for(uint8_t i = 0; i < len; i++)
-                {
-                    ESP_LOGI("%d: ", "%X", p_data[i]);
-                }
             ns_report_setack(0x80);
             break;
 

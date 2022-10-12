@@ -16,7 +16,6 @@
 #define RGB_HIGH    0x6
 #define RGB_LOW     0x4
 
-#define LED_COUNT 4
 // How many bytes per LED?
 #define RGB_BYTE_MULTIPLIER 9
 
@@ -64,6 +63,22 @@ typedef struct
     uint16_t frames;
 } rgb_anim_s;
 
+typedef enum
+{
+    UTIL_RGB_STATUS_AVAILABLE = 0,
+    UTIL_RGB_STATUS_DISABLED  = 1,
+} util_rgb_status_t;
+
+util_rgb_status_t util_rgb_status;
+
+typedef enum
+{
+    UTIL_RGB_MODE_RGB = 0,
+    UTIL_RGB_MODE_GRB = 1,
+} util_rgb_mode_t;
+
+util_rgb_mode_t util_rgb_mode;
+
 #define COLOR_BLACK     (rgb_s) {.rgb = 0x000000}
 #define COLOR_RED       (rgb_s) {.rgb = 0xFF0000}
 #define COLOR_ORANGE    (rgb_s) {.rgb = 0xFF8000}
@@ -75,10 +90,6 @@ typedef struct
 #define COLOR_VIOLET    (rgb_s) {.rgb = 0x8000FF}
 #define COLOR_PURPLE    (rgb_s) {.rgb = 0xFF00FF}
 
-
-
-void rgb_brightness_set(uint8_t brightness, rgb_s *led_colors);
-
 // Blend two colors together.
 // color1 - The first color
 // color2 - The second color
@@ -86,13 +97,16 @@ void rgb_brightness_set(uint8_t brightness, rgb_s *led_colors);
 // Returns an rgb_s color type.
 rgb_s rgb_blend(rgb_s color1, rgb_s color2, uint8_t blend_amount);
 
-void rgb_create_packet(uint8_t *buffer, rgb_s *led_colors, uint8_t led_count, uint8_t rgb_mode);
+void rgb_setbrightness(uint8_t brightness);
+
+// Set all RGB colors to the same.
+void rgb_setall(rgb_s color, rgb_s *led_colors);
 
 // Update the LED colors and brightness.
-void rgb_show(rgb_s *colors, uint8_t brightness);
+void rgb_show();
 
 // Initialize RGB Controller Backend
 // Only support WS2812B Protocol!
-hoja_err_t rgb_init();
+hoja_err_t util_rgb_init(rgb_s *led_colors, util_rgb_mode_t mode);
 
 #endif

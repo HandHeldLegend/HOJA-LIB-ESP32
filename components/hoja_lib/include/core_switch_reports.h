@@ -29,8 +29,8 @@ uint16_t ns_input_report_size;
 uint16_t ns_report_timer;
 
 //#define INPUT_FREQUENCY_FAST    9 //9
-#define INPUT_FREQUENCY_SLOW    75
-#define INPUT_FREQUENCY_FAST    12
+#define INPUT_FREQUENCY_SLOW    20
+#define INPUT_FREQUENCY_FAST    10
 
 uint8_t ns_input_frequency;
 uint8_t ns_input_pause;

@@ -110,6 +110,7 @@ static uint8_t hid_descriptor_ns_core[213] = {
 //uint8_t hid_descriptor_ns_core_len = 213;
 
 TaskHandle_t ns_ReportModeHandle = NULL;
+uint8_t ns_currentReportMode = 0xAA;
 bool ns_connected = false;
 
 // Callbacks for GAP bt events
@@ -147,9 +148,25 @@ void ns_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
             ESP_LOGI(TAG, "power mode change: %d", param->mode_chg.mode);
             if (param->mode_chg.mode == 0)
             {
-                ns_input_pause = 1;
+                if (ns_ReportModeHandle != NULL)
+                {
+                    vTaskDelete(ns_ReportModeHandle);
+                    ns_ReportModeHandle = NULL;
+                }
+                
             }
-            else ns_input_pause = 0;
+            else
+            {
+                if (ns_currentReportMode == 0xAA)
+                {
+                    ns_controller_setinputreportmode(0x30);
+                }
+                else
+                {
+                    ns_controller_setinputreportmode(ns_currentReportMode);
+                }
+                
+            }
             break;
         }
         
@@ -247,9 +264,6 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
             }
             break;
         case ESP_HIDD_SEND_REPORT_EVT:
-            // This shit spams it all up lets clear it out ok :)
-            /* ESP_LOGI(TAG, "ESP_HIDD_SEND_REPORT_EVT id:0x%02x, type:%d", param->send_report.report_id,
-                    param->send_report.report_type); */
             break;
         case ESP_HIDD_REPORT_ERR_EVT:
             ESP_LOGI(TAG, "ESP_HIDD_REPORT_ERR_EVT");
@@ -265,9 +279,6 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
             ESP_LOGI(TAG, "ESP_HIDD_SET_PROTOCOL_EVT");
             break;
         case ESP_HIDD_INTR_DATA_EVT:
-            //ESP_LOGI(TAG, "ESP_HIDD_INTR_DATA_EVT");
-            //ESP_LOGI(TAG, "Event code: %d", param->intr_data.data[0]);
-
             // Send interrupt data to command handler
             ns_comms_handle_command(param->intr_data.report_id, param->intr_data.len, param->intr_data.data);
             

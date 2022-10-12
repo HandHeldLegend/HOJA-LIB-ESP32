@@ -54,7 +54,7 @@ hoja_err_t core_snes_start()
 
     // Start SNES task.
     xTaskCreatePinnedToCore(snes_task, "SNES/NES Task Loop", 2024,
-                            NULL, 0, &snes_TaskHandle, 1);
+                            NULL, 0, &snes_TaskHandle, 0);
     
     ESP_LOGI(TAG, "SNES Core started OK.");
 
@@ -88,9 +88,6 @@ void snes_task(void * parameters)
     for(;;)
     {
         esp_err_t err;
-
-        // Scan the buttons using the callback defined by user.
-        hoja_button_cb();
 
         // SNES bits button order
         // B, Y, Start, Select, Up, Down, Left, Right, A, X, L, R
@@ -139,6 +136,6 @@ void snes_task(void * parameters)
         snes_slave_transaction.tx_buffer = tmp;
 
         err = spi_slave_transmit(HSPI_HOST, &snes_slave_transaction, portMAX_DELAY);
-        vTaskDelay(3/portTICK_PERIOD_MS);
+        vTaskDelay(1/portTICK_PERIOD_MS);
     }
 }

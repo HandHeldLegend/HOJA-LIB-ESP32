@@ -10,6 +10,42 @@
 
 TaskHandle_t usb_TaskHandle = NULL;
 
+void core_usb_stop(void)
+{
+    const char* TAG = "core_usb_start";
+
+    ESP_LOGI(TAG, "Core Stop: USB");
+    esp_err_t err = ESP_OK;
+
+    if (util_i2c_status != UTIL_I2C_STATUS_AVAILABLE)
+    {
+        ESP_LOGE(TAG, "Cannot stop USB core. Required I2C utility initialize first.");
+        return;
+    }
+    ESP_LOGI(TAG, "USB Core okay to stop as I2C is set up.");
+
+    // BUILD USB START COMMAND
+    i2c_cmd_handle_t tmpcmd = i2c_cmd_link_create();
+    uint8_t tosend[2] = {USB_CMD_SYSTEMSET, USB_SYSTEM_RESET};
+    i2c_master_start(tmpcmd);
+    i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write(tmpcmd, tosend, 2, true);
+    i2c_master_stop(tmpcmd);
+
+    // TRANSMIT USB START COMMAND
+    err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
+    i2c_cmd_link_delete(tmpcmd);
+
+    // CHECK IF USB START COMMAND TRANSMITTED OK
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "USB Core Command: USB Service Stop: Transmit Fail.");
+        ESP_LOGE(esp_err_to_name(err), "");
+        return;
+    }
+    ESP_LOGI(TAG, "USB Core Command: USB Service Stop: Transmit OK.");
+}
+
 hoja_err_t core_usb_start(void)
 {
     const char* TAG = "core_usb_start";
@@ -239,7 +275,8 @@ void usb_sendinput_task(void * parameters)
         vTaskDelay(1/portTICK_PERIOD_MS);
 
     }
-    
-    
+
     i2c_cmd_link_delete(tmpcmd);
 }
+
+

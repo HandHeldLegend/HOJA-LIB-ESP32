@@ -7,21 +7,35 @@
 
 typedef enum
 {
-    BATFIELD_VGOOD = 0,
-    BATFIELD_CHGSTAT = 1,
-} util_battery_field_t;
+    BATSTATUS_NOTCHARGING = 0x00,
+    BATSTATUS_TRICKLEFAST = 0x01,
+    BATSTATUS_CONSTANT    = 0x02,
+    BATSTATUS_COMPLETED   = 0x03,
+} util_battery_status_t;
 
 typedef enum
 {
-    BATSTATUS_EMPTY       = 0,
-    BATSTATUS_NOTCHARGING = 1,
-    BATSTATUS_TRICKLEFAST = 2,
-    BATSTATUS_CONSTANT    = 3,
-    BATSTATUS_COMPLETED   = 4,
-    BATSTATUS_VNOTGOOD    = 5,
-    BATSTATUS_VGOOD       = 6,
-} util_battery_status_t;
+    BATCABLE_UNPLUGGED    = 0,
+    BATCABLE_PLUGGED      = 1,
+} util_battery_plugged_t;
 
-util_battery_status_t util_battery_getstatus(util_battery_field_t field);
+typedef struct
+{
+    union
+    {
+        struct 
+        { 
+            uint8_t plug_status : 1;
+            uint8_t dummy1 : 4;
+            uint8_t charge_status : 2;
+            uint8_t dummy2 : 1;
+        };
+        uint8_t status;
+    };
+} util_battery_status_s;
+
+uint8_t util_battery_getstatus();
+
+void util_battery_write(uint8_t offset, uint8_t byte);
 
 #endif

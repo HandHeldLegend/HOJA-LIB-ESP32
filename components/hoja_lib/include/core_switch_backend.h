@@ -69,8 +69,8 @@ static uint8_t hid_descriptor_ns_core[213];
 
 // Handler for vTask for report mode changes.
 TaskHandle_t ns_ReportModeHandle;
-// Hander for the vTask for keeping a pulse.
-TaskHandle_t ns_BlankReportsHandle;
+
+uint8_t ns_currentReportMode;
 
 // Start the Nintendo Switch controller core
 hoja_err_t core_ns_start(void);

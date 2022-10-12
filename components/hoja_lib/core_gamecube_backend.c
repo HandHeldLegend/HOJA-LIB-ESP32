@@ -268,16 +268,10 @@ hoja_err_t core_gamecube_start()
 
     gamecube_init();
 
-    vTaskDelay(1000/portTICK_PERIOD_MS);
+    vTaskDelay(200/portTICK_PERIOD_MS);
     
     JB_TX_PROBE_CONF1.tx_start = 1;
     JB_RX_CONF1.rx_en = 1;
 
-    while(1)
-    {
-        ESP_LOGI(TAG, "CMD received: %X", command);
-        command = 0xFF;
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-    }
-
+    return HOJA_OK;
 }

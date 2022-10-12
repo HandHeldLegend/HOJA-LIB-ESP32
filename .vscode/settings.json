@@ -20,8 +20,24 @@
         "xhash": "c",
         "xmemory": "c",
         "xtree": "c",
-        "xutility": "c"
+        "xutility": "c",
+        "cstring": "c",
+        "*.ipp": "c",
+        "atomic": "c",
+        "charconv": "c",
+        "format": "c",
+        "functional": "c",
+        "strstream": "c",
+        "system_error": "c",
+        "xlocale": "c",
+        "xlocbuf": "c",
+        "xlocinfo": "c",
+        "xlocmon": "c",
+        "xstring": "c",
+        "esp-idf changes": "c",
+        "esp_bt_main.h": "c"
     },
     "idf.flashType": "UART",
-    "idf.portWin": "COM10"
+    "idf.portWin": "COM10",
+    "cmake.configureOnOpen": false
 }

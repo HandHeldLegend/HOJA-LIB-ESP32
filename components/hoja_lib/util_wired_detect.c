@@ -53,12 +53,14 @@ util_wire_det_t wired_detect()
     portBASE_TYPE res;
     int16_t count_out = 0;
 
+    vTaskDelay(100/portTICK_PERIOD_MS);
+
     while (!done)
     {
         /* Wait for the event information passed from PCNT's interrupt handler.
          * Once received, decode the event type and print it on the serial monitor.
          */
-        res = xQueueReceive(pcnt_evt_queue, &evt, 100 / portTICK_PERIOD_MS);
+        res = xQueueReceive(pcnt_evt_queue, &evt, 300 / portTICK_PERIOD_MS);
         if (res == pdTRUE) {
             pcnt_get_counter_value(PCNT_UNIT_0, &count_out);
             ESP_LOGI(TAG, "JOYBUS Event PCNT unit[%d]; cnt: %d", evt.unit, count_out);
@@ -89,7 +91,7 @@ util_wire_det_t wired_detect()
         /* Wait for the event information passed from PCNT's interrupt handler.
          * Once received, decode the event type and print it on the serial monitor.
          */
-        res = xQueueReceive(pcnt_evt_queue, &evt, 100 / portTICK_PERIOD_MS);
+        res = xQueueReceive(pcnt_evt_queue, &evt, 300 / portTICK_PERIOD_MS);
         if (res == pdTRUE) {
             pcnt_get_counter_value(PCNT_UNIT_0, &count_out);
             ESP_LOGI(TAG, "SNES DETECT Event PCNT unit[%d]; cnt: %d", evt.unit, count_out);
@@ -104,6 +106,8 @@ util_wire_det_t wired_detect()
             done = 1;
         }
     }
+
+    pcnt_isr_service_uninstall();
 
     return detected_type;
 }

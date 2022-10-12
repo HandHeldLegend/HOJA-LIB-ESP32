@@ -72,6 +72,9 @@
 uint32_t regread_low = 0;
 uint32_t regread_high = 0;
 
+// Variable to hold current color data
+rgb_s led_colors[CONFIG_HOJA_RGB_COUNT] = {0};
+
 bool getbit(uint32_t bytes, uint8_t bit)
 {
     uint8_t tmp = bit;
@@ -186,6 +189,138 @@ void stick_task()
     return;
 }
 
+void boot_anim()
+{
+    int back_forth = 0;
+    bool toggle = false;
+    bool colorflip = false;
+    uint8_t color_idx = 0;
+    uint8_t color_last_idx = 0;
+    rgb_s colors[6] = {COLOR_RED, COLOR_ORANGE, COLOR_YELLOW, COLOR_GREEN, COLOR_BLUE, COLOR_PURPLE};
+    for(int i = 0; i < 12; i++)
+    {
+        memset(led_colors, 0x00, sizeof(led_colors));
+        led_colors[back_forth] = colors[color_idx];
+        
+        if (!toggle)
+        {
+            if (back_forth > 0)
+            {
+                led_colors[back_forth-1] = colors[color_last_idx];
+                color_last_idx = color_idx;
+            }
+            back_forth += 1;
+            if (back_forth == CONFIG_HOJA_RGB_COUNT)
+            {
+                toggle = true;
+                back_forth = CONFIG_HOJA_RGB_COUNT-1;
+            }
+        }
+        else
+        {
+            if (back_forth < CONFIG_HOJA_RGB_COUNT-1)
+            {
+                led_colors[back_forth+1] = colors[color_last_idx];
+                color_last_idx = color_idx;
+            }
+            back_forth -= 1;
+            if (back_forth == -1)
+            {
+                toggle = false;
+                back_forth = 0;
+            }
+        }
+
+        if (!colorflip)
+        {
+            if (color_idx + 1 > 5)
+            {
+                colorflip = true;
+                color_idx = 5;
+            }
+            else
+            {
+                color_idx += 1;
+            }
+        }
+        else
+        {
+            if (color_idx - 1 < 0)
+            {
+                colorflip = false;
+                color_idx = 0;
+            }
+            else
+            {
+                color_idx -= 1;
+            }
+        }
+
+        rgb_show();
+        vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+    rgb_setall(COLOR_BLACK, led_colors);
+    rgb_show();
+}
+
+TaskHandle_t battery_monitor_handle = NULL;
+
+util_battery_status_s battery_status = {0};
+
+void battery_check_task(void * parameters)
+{
+    const char* TAG = "battery_check_task";
+
+    for(;;)
+    {
+        util_battery_status_s t = {0};
+        t.status = util_battery_getstatus();
+        if (t.status != battery_status.status)
+        {
+            // Check if our plugged status has changed.
+            if (t.plug_status != battery_status.plug_status)
+            {
+                ESP_LOGI(TAG, "Plug status changed. Rebooting...");
+                
+                // Send restart command to battery utility
+                core_usb_stop();
+                esp_restart();
+            }
+
+            rgb_setbrightness(25);
+            // If the status has changed, it's dirty and we
+            // need to inspect!
+            if (t.plug_status == BATCABLE_PLUGGED)
+            {
+                if (t.charge_status == BATSTATUS_NOTCHARGING)
+                {
+                    rgb_setall(COLOR_YELLOW, led_colors);
+                }
+                else if (t.charge_status == BATSTATUS_TRICKLEFAST)
+                {
+                    rgb_setall(COLOR_GREEN, led_colors);
+                }
+                else if (t.charge_status == BATSTATUS_CONSTANT)
+                {
+                    rgb_setall(COLOR_TEAL, led_colors);
+                }
+                else if (t.charge_status == BATSTATUS_COMPLETED)
+                {
+                    rgb_setall(COLOR_BLUE, led_colors);
+                }
+                
+            }
+            else
+            {
+                rgb_setall(COLOR_RED, led_colors);
+            }
+            battery_status.status = t.status;
+            rgb_show();
+        }
+        vTaskDelay(500/portTICK_PERIOD_MS);
+    } 
+}
+
 void app_main()
 {
     const char* TAG = "app_main";
@@ -230,10 +365,66 @@ void app_main()
 
     hoja_api_init();
     util_i2c_initialize();
-    //wired_detect();
+    util_rgb_init(led_colors, UTIL_RGB_MODE_GRB);
 
-    //core_usb_start();
-    //core_ns_start();
-    //core_gamecube_start();
-    //rgb_init();
+    rgb_setbrightness(25);
+    boot_anim();
+    rgb_setbrightness(25);
+
+    vTaskDelay(100/portTICK_PERIOD_MS);
+    // Get plugged status
+    battery_status.status = util_battery_getstatus();
+
+    if (battery_status.plug_status == BATCABLE_PLUGGED)
+    {
+        // If cable is plugged in on boot, we can
+        // check what we're plugged in to. Try USB first?
+        hoja_err_t herr = core_usb_start();
+
+        if (herr != HOJA_OK)
+        {
+            // If we're here the USB core did not start because of some reason. Check other valid methods.
+            util_wire_det_t detected_type = wired_detect();
+
+            switch(detected_type)
+            {
+                default:
+                case DETECT_NONE:
+                    break;
+                case DETECT_JOYBUS:
+                    rgb_setall(COLOR_PURPLE, led_colors);
+                    rgb_show();
+                    vTaskDelay(500/portTICK_PERIOD_MS);
+                    core_gamecube_start();
+                    break;
+                case DETECT_SNES:
+                    rgb_setall(COLOR_ORANGE, led_colors);
+                    rgb_show();
+                    vTaskDelay(500/portTICK_PERIOD_MS);
+                    core_snes_start();
+                    break;
+            }
+        }
+        else
+        {
+            // If we're here USB Core started OK.
+            rgb_s col = {.rgb = 0xf4aef5};
+            rgb_setall(col, led_colors);
+            rgb_show();
+            vTaskDelay(500/portTICK_PERIOD_MS);
+        }
+
+    }
+    else
+    {
+        // If we're here, start our wireless mode of choice.
+        rgb_setall(COLOR_BLUE, led_colors);
+        rgb_show();
+        vTaskDelay(500/portTICK_PERIOD_MS);
+        core_ns_start();
+    }
+
+    // Start battery monitor task.
+    xTaskCreatePinnedToCore(battery_check_task, "Battery Monitor", 2024, NULL, 0, battery_monitor_handle, 1);
+    
 }

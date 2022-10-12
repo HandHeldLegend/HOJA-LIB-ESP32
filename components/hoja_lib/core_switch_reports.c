@@ -169,7 +169,7 @@ void ns_report_task_sendshort(void * parameters)
     {
         if (ns_input_pause)
         {
-            vTaskDelay(INPUT_FREQUENCY_SLOW / portTICK_PERIOD_MS);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
             continue;
         }
 
@@ -179,7 +179,7 @@ void ns_report_task_sendshort(void * parameters)
         ns_report_setbuttons(NS_BM_SHORT);
         esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, ns_input_report_id, ns_input_report_size, ns_input_report);
         
-        vTaskDelay(INPUT_FREQUENCY_SLOW / portTICK_PERIOD_MS); 
+        vTaskDelay(12 / portTICK_PERIOD_MS); 
     }
 }
 
@@ -192,18 +192,9 @@ void ns_report_task_sendstandard(void * parameters)
     {
         if (ns_input_pause)
         {
-            vTaskDelay(INPUT_FREQUENCY_SLOW / portTICK_PERIOD_MS);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
             continue;
         }
-
-
-        // First we want to run three loops of button updates. This does not take a lot of cycles
-        hoja_button_cb();
-        hoja_button_cb();
-        hoja_button_cb();
-
-        // Check the sticks once
-        hoja_stick_cb();
         
         ns_report_clear();
         ns_report_settimer();
@@ -213,15 +204,10 @@ void ns_report_task_sendstandard(void * parameters)
         ns_input_report_size = 13;
         ns_input_report[12] = 0x70;
         esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, ns_input_report_id, ns_input_report_size, ns_input_report);
-        
         hoja_button_reset();
-
-        // Scan three more times :)
-        hoja_button_cb();
-        hoja_button_cb();
-        hoja_button_cb();
-
-        vTaskDelay(INPUT_FREQUENCY_FAST / portTICK_PERIOD_MS);
+        // Check the sticks once
+        hoja_stick_cb();
+        vTaskDelay(12 / portTICK_PERIOD_MS);
     }
 }
 
@@ -231,11 +217,16 @@ void ns_report_task_sendempty(void * parameters)
     ESP_LOGI(TAG, "Sending empty (0xFF) reports on core %d\n", xPortGetCoreID());
 
     while(1)
-    {
-        uint8_t tmp[2] = {0x00, 0x00};
-        esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0xA1, 2, tmp);
-
-        //ESP_LOGI(TAG, "Retroblue: Empty Report Sending...");
-        vTaskDelay(INPUT_FREQUENCY_SLOW / portTICK_PERIOD_MS);
+    {   
+        if (!ns_input_pause)
+        {
+            uint8_t tmp[2] = {ns_input_report[0], 0x00};
+            // Set report timer
+            ns_report_settimer();
+            esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0xA1, 2, tmp);
+            
+            //ESP_LOGI(TAG, "Retroblue: Empty Report Sending...");
+        }
+        vTaskDelay(18 / portTICK_PERIOD_MS);
     }
 }

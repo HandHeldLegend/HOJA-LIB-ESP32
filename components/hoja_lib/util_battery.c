@@ -1,18 +1,18 @@
 #include "util_battery.h"
 
-util_battery_status_t util_battery_getstatus(util_battery_field_t field)
+uint8_t util_battery_getstatus()
 {
     const char* TAG = "util_battery_getstatus";
+    uint8_t ret = 0x00;
 
     if (util_i2c_status != UTIL_I2C_STATUS_AVAILABLE)
     {
         ESP_LOGE(TAG, "Must init I2C before getting battery status.");
-        return BATSTATUS_EMPTY;
+        return ret;
     }
 
-    ESP_LOGI(TAG, "Battery utility get status.");
     esp_err_t err = ESP_OK;
-    util_battery_status_t ret = BATSTATUS_EMPTY;
+    
 
     // BUILD BATTERY READ COMMAND
     i2c_cmd_handle_t tmpcmd = i2c_cmd_link_create();
@@ -35,42 +35,43 @@ util_battery_status_t util_battery_getstatus(util_battery_field_t field)
     {
         ESP_LOGE(TAG, "Battery Status Read: Transmit Fail.");
         ESP_LOGE(esp_err_to_name(err), "");
-        return BATSTATUS_EMPTY;
+        return ret;
     }
-    
-    // Parse out response data
-    uint8_t chg_stat = (response[0] >> 5) & 0x3;
+    ret = response[0];
 
-    if (field == BATFIELD_CHGSTAT)
-    {
-        switch(chg_stat)
-        {
-            default:
-            case 0x00:
-                ret = BATSTATUS_NOTCHARGING;
-                break;
-            case 0x01:
-                ret = BATSTATUS_TRICKLEFAST;
-                break;
-            case 0x02:
-                ret = BATSTATUS_CONSTANT;
-                break;
-            case 0x03:
-                ret = BATSTATUS_COMPLETED;
-                break;
-        }
-    }
-    else if (field == BATFIELD_VGOOD)
-    {
-        if (response[0] & 0x1)
-        {
-            ret = BATSTATUS_VGOOD;
-        }
-        else 
-        {
-            ret = BATSTATUS_VNOTGOOD;
-        }
-    }
-
+    ESP_LOGI(TAG, "Battery Status: %X", ret);
     return ret;
+}
+
+void util_battery_write(uint8_t offset, uint8_t byte)
+{
+    const char* TAG = "util_battery_write";
+    uint8_t ret = 0x00;
+
+    if (util_i2c_status != UTIL_I2C_STATUS_AVAILABLE)
+    {
+        ESP_LOGE(TAG, "Must init I2C before writing battery register.");
+        return ret;
+    }
+
+    uint8_t buffer[2] = {offset, byte};
+
+    esp_err_t err = ESP_OK;
+    // Set up and send data over I2C
+    i2c_cmd_handle_t tmpcmd = i2c_cmd_link_create();
+
+    // Build the i2c packet
+    // to send the USB start command
+    i2c_master_start(tmpcmd);
+    i2c_master_write_byte(tmpcmd, (UTIL_BATTERY_I2C_ADDRESS << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write(tmpcmd, buffer, 2, true);
+    i2c_master_stop(tmpcmd);
+
+    err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, portMAX_DELAY);
+
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to send I2C command to battery:");
+        ESP_LOGE(esp_err_to_name(err), "");
+    }
 }

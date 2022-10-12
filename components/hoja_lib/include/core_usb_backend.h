@@ -78,10 +78,10 @@ typedef struct
     uint8_t stick_right_y;
 } i2c_input_s;
 
+void core_usb_stop(void);
+
 // Exposed functions
 hoja_err_t core_usb_start(void);
-
-hoja_err_t core_usb_stop(void);
 
 // Private functions
 void usb_sendinput_task(void * parameters);
