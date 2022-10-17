@@ -29,7 +29,7 @@ hoja_err_t hoja_settings_init(void)
         err = nvs_get_blob(my_handle, "hoja_settings", &loaded_settings, &required_size);
         if (err != ESP_OK)
         {   
-            ESP_LOGE(TAG, "Could not load settings. 0x%08X", loaded_settings.magic_bytes);
+            ESP_LOGE(TAG, "Could not load settings. 0x%08X", (unsigned int) loaded_settings.magic_bytes);
             return HOJA_FAIL;
         }
         if (loaded_settings.magic_bytes != SETTINGS_MAGIC)
@@ -41,7 +41,7 @@ hoja_err_t hoja_settings_init(void)
         }
         else
         {
-            ESP_LOGI(TAG, "Settings loaded with magic byte 0x%08X", loaded_settings.magic_bytes);
+            ESP_LOGI(TAG, "Settings loaded with magic byte 0x%08X", (unsigned int) loaded_settings.magic_bytes);
             nvs_close(my_handle);
         }
         

@@ -36,7 +36,7 @@ void gamecube_input_translate(void)
     gcmd_poll_rmt[GC_BUTTON_DLEFT]  = g_button_data.d_left   ? JB_HIGH : JB_LOW;
     gcmd_poll_rmt[GC_BUTTON_DRIGHT] = g_button_data.d_right  ? JB_HIGH : JB_LOW;
 
-    memcpy(JB_TX_POLL_MEM, gcmd_poll_rmt, sizeof(rmt_item32_t) * GC_POLL_RMT_LEN);
+    memcpy(JB_POLL_MEM, gcmd_poll_rmt, sizeof(rmt_item32_t) * GC_POLL_RMT_LEN);
 
     hoja_stick_cb();
 
@@ -56,27 +56,24 @@ static void gamecube_rmt_isr(void* arg)
     {
         // Set up command byte placeholder
         joybus_rx_buffer_s cmd_buffer = {0};
-        cmd_buffer.byte0 = 0x00;
-        uint8_t tmpi = 0;
+        cmd_buffer.val = 0x00;
 
         for (uint8_t i = 0; i < 8; i++)
         {   
             // If duration 0 is less than duration 1, it's a HIGH bit. Otherwise low bit.
             // Shift the bit so it's always in the leftmost bit position.
-            cmd_buffer.byte0 |= ( (JB_RX_MEM[i].duration0 < JB_RX_MEM[i].duration1) ? 1 : 0) << (7-i);
+            cmd_buffer.val |= ( (JB_RX_MEM[i].duration0 < JB_RX_MEM[i].duration1) ? 1 : 0) << (7-i);
         }
 
-        command = cmd_buffer.byte0;
+        command = cmd_buffer.val;
 
         // Disable RX
-        JB_RX_CONF1.rx_en = 0;
+        JB_RX_EN = 0;
         // Reset write pointer for RX
-        JB_RX_CONF1.mem_wr_rst = 1;
-        
+        JB_RX_RDRST = 1;
         // Clear RX bit for ch0
-        RMT.int_clr.ch0_rx_end = 1;
-
-        JB_RX_CONF1.mem_wr_rst = 0;
+        JB_RX_CLEARISR = 1;
+        JB_RX_RDRST = 0;
 
         // Check the command byte and respond accordingly
         switch(cmd_buffer.byte0)
@@ -84,25 +81,25 @@ static void gamecube_rmt_isr(void* arg)
             // Probe Command
             case 0x00:
             default:
-                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_PROBE, 0, 0);
-                JB_TX_PROBE_CONF1.mem_owner = 0;
-                JB_TX_PROBE_CONF1.tx_start = 1;
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + JB_TX_CHANNEL_PROBE, 0, 0);
+                JB_PROBE_MEMOWNER = 0;
+                JB_PROBE_TXSTART = 1;
                 break;
 
             // Origin Command
             case 0x41:
             case 0x42:
-                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_ORIGIN, 0, 0);
-                JB_TX_ORIGIN_CONF1.mem_owner = 0;
-                JB_TX_ORIGIN_CONF1.tx_start = 1;
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + JB_TX_CHANNEL_ORIGIN, 0, 0);
+                JB_ORIGIN_MEMOWNER = 0;
+                JB_ORIGIN_TXSTART = 1;
                 gamecube_input_translate();
                 break;
 
             // Poll Command
             case 0x40:
-                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_POLL, 0, 0);
-                JB_TX_POLL_CONF1.mem_owner = 0;
-                JB_TX_POLL_CONF1.tx_start = 1;
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + JB_TX_CHANNEL_POLL, 0, 0);
+                JB_POLL_MEMOWNER = 0;
+                JB_POLL_TXSTART = 1;
                 gamecube_input_translate();
                 break;
         }
@@ -110,46 +107,55 @@ static void gamecube_rmt_isr(void* arg)
         
     }
     // Probe response transaction end
-    else if (RMT.int_st.ch1_tx_end)
+    else if (JB_PROBE_TXENDSTAT)
     {
         // Reset TX read pointer bit
-        JB_TX_PROBE_CONF1.mem_rd_rst = 1;
-        JB_TX_PROBE_CONF1.mem_rd_rst = 0;
+        JB_PROBE_MEMRST     = 1;
+        JB_PROBE_MEMRST     = 0;
         // Clear TX end interrupt bit
-        RMT.int_clr.ch1_tx_end = 1;
+        JB_PROBE_CLEARTXINT  = 1;
 
         // Start RX on ch0
-        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
-        JB_RX_CONF1.mem_owner = 1;
-        JB_RX_CONF1.rx_en = 1;
+        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
+        JB_RX_MEMOWNER  = 1;
+        // Reset write/read pointer for RX
+        JB_RX_WRRST = 1;
+        JB_RX_RDRST = 1;
+        JB_RX_EN        = 1;
     }
     // Origin response transaction end
-    else if (RMT.int_st.ch2_tx_end)
+    else if (JB_ORIGIN_TXENDSTAT)
     {
         // Reset TX read pointer bit
-        JB_TX_ORIGIN_CONF1.mem_rd_rst = 1;
-        JB_TX_ORIGIN_CONF1.mem_rd_rst = 0;
+        JB_ORIGIN_MEMRST     = 1;
+        JB_ORIGIN_MEMRST     = 0;
         // Clear TX end interrupt bit
-        RMT.int_clr.ch2_tx_end = 1;
+        JB_ORIGIN_CLEARTXINT  = 1;
 
         // Start RX on ch0
-        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
-        JB_RX_CONF1.mem_owner = 1;
-        JB_RX_CONF1.rx_en = 1;
+        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
+        JB_RX_MEMOWNER  = 1;
+        // Reset write/read pointer for RX
+        JB_RX_WRRST = 1;
+        JB_RX_RDRST = 1;
+        JB_RX_EN        = 1;
     }
     // Poll response transaction end
-    else if (RMT.int_st.ch4_tx_end)
+    else if (JB_POLL_TXENDSTAT)
     {
         // Reset TX read pointer bit
-        JB_TX_POLL_CONF1.mem_rd_rst = 1;
-        JB_TX_POLL_CONF1.mem_rd_rst = 0;
+        JB_POLL_MEMRST     = 1;
+        JB_POLL_MEMRST     = 0;
         // Clear TX end interrupt bit
-        RMT.int_clr.ch4_tx_end = 1;
+        JB_POLL_CLEARTXINT  = 1;
 
         // Start RX on ch0
-        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
-        JB_RX_CONF1.mem_owner = 1;
-        JB_RX_CONF1.rx_en = 1;
+        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
+        JB_RX_MEMOWNER  = 1;
+        // Reset write/read pointer for RX
+        JB_RX_WRRST = 1;
+        JB_RX_RDRST = 1;
+        JB_RX_EN        = 1;
     }
     
 }
@@ -160,67 +166,60 @@ void gamecube_init(void)
 
     periph_ll_enable_clk_clear_rst(PERIPH_RMT_MODULE);
 
-    RMT.apb_conf.fifo_mask = RMT_DATA_MODE_MEM;
+    JB_RMT_FIFO = RMT_DATA_MODE_MEM;
 
     // set up RMT peripherial register stuff
     // for receive channel
-    JB_RX_CONF0.div_cnt = 10; // 0.125us increments.
-    JB_RX_CONF0.idle_thres = 35; // 4us idle
-    JB_RX_CONF0.mem_size = 1;
-    JB_RX_CONF0.carrier_en = 0;
+    JB_RX_CLKDIV        = 10; // 0.125us increments.
+    JB_RX_IDLETHRESH    = 35; // 4us idle
+    JB_RX_MEMSIZE       = 1;
+    JB_RX_FILTEREN      = 0;
+    JB_RX_MEMOWNER      = 1;
+    JB_RX_RDRST         = 1;
+    JB_RX_COMPLETEISR   = 1;
 
-    JB_RX_CONF1.idle_out_lv = RMT_IDLE_LEVEL_HIGH;
-    JB_RX_CONF1.idle_out_en = 1;
-
-    JB_RX_CONF1.rx_filter_thres = 0;
-    JB_RX_CONF1.rx_filter_en = 0;
-    JB_RX_CONF1.mem_owner = RMT_MEM_OWNER_RX;
-    JB_RX_CONF1.mem_rd_rst = 1;
-    JB_RX_CONF1.mem_rd_rst = 0;
-    JB_RX_CONF1.mem_wr_rst = 1;
-    JB_RX_CONF1.mem_wr_rst = 0;
-    JB_RX_CONF1.ref_always_on = RMT_BASECLK_APB;
+    // For ESP32 S3
+    #if CONFIG_IDF_TARGET_ESP32S3
+    #elif CONFIG_IDF_TARGET_ESP32
+    RMT.conf_ch[JB_RX_CHANNEL].conf1.ref_always_on = 1;
+    #endif
+    
 
     // set up RMT peripheral register stuff
     // for transaction channels :)
-    JB_TX_PROBE_CONF0.div_cnt   = 20; // 0.25 us increments
-    JB_TX_ORIGIN_CONF0.div_cnt  = 20;
-    JB_TX_POLL_CONF0.div_cnt    = 20;
-    
-    JB_TX_PROBE_CONF0.mem_size  = 1;
-    JB_TX_ORIGIN_CONF0.mem_size = 2;
-    JB_TX_POLL_CONF0.mem_size   = 2;
+    // Probe Channel
+    JB_PROBE_DIVCT          = 20;
+    JB_PROBE_MEMSIZE        = 1;
+    JB_PROBE_CONTMODE       = 0;
+    JB_PROBE_CARRIEREN      = 0;
+    JB_PROBE_MEMOWNER       = RMT_MEM_OWNER_TX;
+    JB_PROBE_REFALWAYSON    = 1;
+    JB_PROBE_IDLEOUTEN      = 1;
+    JB_PROBE_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
+    JB_PROBE_TXENDINTENA    = 1;
 
-    JB_TX_PROBE_CONF1.tx_conti_mode     = 0;
-    JB_TX_ORIGIN_CONF1.tx_conti_mode    = 0;
-    JB_TX_POLL_CONF1.tx_conti_mode      = 0;
 
-    JB_TX_PROBE_CONF0.carrier_en    = 0;
-    JB_TX_ORIGIN_CONF0.carrier_en   = 0;
-    JB_TX_POLL_CONF0.carrier_en     = 0;
+    // Origin Channel
+    JB_ORIGIN_DIVCT          = 20;
+    JB_ORIGIN_MEMSIZE        = 2;
+    JB_ORIGIN_CONTMODE       = 0;
+    JB_ORIGIN_CARRIEREN      = 0;
+    JB_ORIGIN_MEMOWNER       = RMT_MEM_OWNER_TX;
+    JB_ORIGIN_REFALWAYSON    = 1;
+    JB_ORIGIN_IDLEOUTEN      = 1;
+    JB_ORIGIN_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
+    JB_ORIGIN_TXENDINTENA    = 1;
 
-    JB_TX_ORIGIN_CONF1.mem_owner    = RMT_MEM_OWNER_TX;
-    JB_TX_POLL_CONF1.mem_owner      = RMT_MEM_OWNER_TX;
-    JB_TX_PROBE_CONF1.mem_owner     = RMT_MEM_OWNER_TX;
-
-    JB_TX_PROBE_CONF1.ref_always_on     = RMT_BASECLK_APB;
-    JB_TX_ORIGIN_CONF1.ref_always_on    = RMT_BASECLK_APB;
-    JB_TX_POLL_CONF1.ref_always_on      = RMT_BASECLK_APB;
-
-    JB_TX_PROBE_CONF1.idle_out_lv   = RMT_IDLE_LEVEL_HIGH;
-    JB_TX_ORIGIN_CONF1.idle_out_lv  = RMT_IDLE_LEVEL_HIGH;
-    JB_TX_POLL_CONF1.idle_out_lv    = RMT_IDLE_LEVEL_HIGH;
-
-    JB_TX_PROBE_CONF1.idle_out_en   = 1;
-    JB_TX_ORIGIN_CONF1.idle_out_en  = 1;
-    JB_TX_POLL_CONF1.idle_out_en    = 1;
-
-    // Enable transaction complete interrupts
-    RMT.int_ena.ch1_tx_end = 1;
-    RMT.int_ena.ch2_tx_end = 1;
-    RMT.int_ena.ch4_tx_end = 1;
-    // Enable RX got interrupt
-    RMT.int_ena.ch0_rx_end = 1;
+    // Poll Channel
+    JB_POLL_DIVCT          = 20;
+    JB_POLL_MEMSIZE        = 2;
+    JB_POLL_CONTMODE       = 0;
+    JB_POLL_CARRIEREN      = 0;
+    JB_POLL_MEMOWNER       = RMT_MEM_OWNER_TX;
+    JB_POLL_REFALWAYSON    = 1;
+    JB_POLL_IDLEOUTEN      = 1;
+    JB_POLL_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
+    JB_POLL_TXENDINTENA    = 1;
     
 
     rmt_item32_t gcmd_probe_rmt[GC_PROBE_RMT_LEN] = {
@@ -245,11 +244,8 @@ void gamecube_init(void)
         JB_STOP, JB_ZERO
     };
 
-    JB_TX_PROBE_CONF1.mem_rd_rst = 1;
-    JB_TX_PROBE_CONF1.mem_rd_rst = 0;
-
-    memcpy(JB_TX_PROBE_MEM, gcmd_probe_rmt, sizeof(rmt_item32_t) * GC_PROBE_RMT_LEN);
-    memcpy(JB_TX_ORIGIN_MEM, gcmd_origin_rmt, sizeof(rmt_item32_t) * GC_ORIGIN_RMT_LEN);
+    memcpy(JB_PROBE_MEM, gcmd_probe_rmt, sizeof(rmt_item32_t) * GC_PROBE_RMT_LEN);
+    memcpy(JB_ORIGIN_MEM, gcmd_origin_rmt, sizeof(rmt_item32_t) * GC_ORIGIN_RMT_LEN);
 
     PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[CONFIG_HOJA_GPIO_NS_SERIAL], PIN_FUNC_GPIO);
     gpio_set_direction(CONFIG_HOJA_GPIO_NS_SERIAL, GPIO_MODE_INPUT_OUTPUT_OD);
@@ -260,18 +256,31 @@ void gamecube_init(void)
 
 }
 
+void gc_debug_task(void * parameters)
+{
+    const char* TAG = "gc_debug_task";
+    for(;;)
+    {
+        ESP_LOGI(TAG, "CMD: %X", (unsigned int) command);
+        vTaskDelay(800/portTICK_PERIOD_MS);
+    }
+}
+
+TaskHandle_t gc_debug_task_h;
+
 hoja_err_t core_gamecube_start()
 {  
     const char* TAG = "core_gamecube_start";
     esp_err_t er = ESP_OK;
     ESP_LOGI(TAG, "GameCube Core Started.");
 
+    xTaskCreatePinnedToCore(gc_debug_task, "Debug", 1024, NULL, 0, &gc_debug_task_h, 0);
+
     gamecube_init();
 
     vTaskDelay(200/portTICK_PERIOD_MS);
     
-    JB_TX_PROBE_CONF1.tx_start = 1;
-    JB_RX_CONF1.rx_en = 1;
+    JB_RX_EN = 1;
 
     return HOJA_OK;
 }

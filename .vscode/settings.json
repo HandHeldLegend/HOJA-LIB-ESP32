@@ -35,7 +35,15 @@
         "xlocmon": "c",
         "xstring": "c",
         "esp-idf changes": "c",
-        "esp_bt_main.h": "c"
+        "esp_bt_main.h": "c",
+        "rmt_rx.h": "c",
+        "rmt_common.h": "c",
+        "esp_assert.h": "c",
+        "rmt_types_legacy.h": "c",
+        "gpio.h": "c",
+        "semphr.h": "c",
+        "stdint.h": "c",
+        "stdint-gcc.h": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM10",

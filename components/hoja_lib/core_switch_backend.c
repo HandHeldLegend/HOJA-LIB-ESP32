@@ -1,5 +1,7 @@
 #include "core_switch_backend.h"
 
+nscore_param_s ns_core_param = {0};
+
 static uint8_t hid_descriptor_ns_core[213] = {
     0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
     0x09, 0x05,        // Usage (Game Pad)

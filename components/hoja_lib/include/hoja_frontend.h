@@ -18,23 +18,9 @@
 // Different settings are implemented here which are
 // not meant to change during runtime and should
 // be set before compilation
-typedef struct
-{
 
-} hoja_setup_s;
 
-// Pin needs to be defined to set the GPIO pin for SNES/NES function.
-uint8_t HOJA_PIN_LATCH;
-// Pin needs to be defined to set the GPIO pin for SNES/NES function.
-uint8_t HOJA_PIN_CLOCK;
-// Pin needs to be defined to set the GPIO pin for SNES/NES/GameCube function.
-uint8_t HOJA_PIN_SERIAL;
-
-uint8_t HOJA_PIN_I2C_SDA;
-
-uint8_t HOJA_PIN_I2C_SCL;
-
-SemaphoreHandle_t xSemaphore;
+extern SemaphoreHandle_t xSemaphore;
 
 /* Functions relating to the API itself */
 
@@ -80,9 +66,9 @@ hoja_err_t rb_api_setSNESStickPad(uint8_t enable);
 
 // Vars for callbacks
 typedef void (*hoja_callback_t) (void);
-hoja_callback_t hoja_button_cb;
-hoja_callback_t hoja_stick_cb;
-hoja_callback_t hoja_rgb_cb;
+extern hoja_callback_t hoja_button_cb;
+extern hoja_callback_t hoja_stick_cb;
+extern hoja_callback_t hoja_rgb_cb;
 
 
 // Function to register callback function for setting buttons

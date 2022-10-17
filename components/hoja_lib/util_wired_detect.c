@@ -1,6 +1,6 @@
 #include "util_wired_detect.h"
 
-xQueueHandle pcnt_evt_queue;   // A queue to handle pulse counter events
+QueueHandle_t pcnt_evt_queue;   // A queue to handle pulse counter events
 
 static void IRAM_ATTR pcnt_intr_handler(void *arg)
 {

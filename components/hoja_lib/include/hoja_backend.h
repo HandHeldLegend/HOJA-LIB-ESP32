@@ -51,7 +51,7 @@ typedef struct
 /** 
  * @brief Global struct for reading incoming button data.
  */
-GamepadButtonData g_button_data;
+extern GamepadButtonData g_button_data;
 
 /** 
  * @brief This data should always be provided as uint16_t to provide
@@ -75,7 +75,7 @@ typedef struct
 /**
  *  @brief Global struct for reading incoming stick data.
  */
-GamepadStickData g_stick_data;
+extern GamepadStickData g_stick_data;
 
 typedef enum
 {
@@ -104,7 +104,7 @@ typedef struct
     bool controller_connected;
 } hoja_params_s;
 
-hoja_params_s hoja_params;
+extern hoja_params_s hoja_params;
 
 // Task to scan buttons periodically.
 void hoja_button_task(void * parameters);

@@ -9,5 +9,9 @@ idf_component_register(SRCS
                     "util_wired_detect.c" "util_battery.c"
                     "util_i2c.c"
                     INCLUDE_DIRS "include"
-                    REQUIRES bt esp32 freertos)
+                    REQUIRES bt hal xtensa 
+                    riscv esp_rom driver esp_common 
+                    soc esp_hw_support esp_system 
+                    newlib spi_flash log heap 
+                    freertos nvs_flash)
 

@@ -28,23 +28,6 @@
 
 #define JB_ZERO     (rmt_item32_t) {{{0,0,0,0}}}
 
-// Define some macros to make code cleaner :)
-#define JB_RX_MEM       RMTMEM.chan[0].data32
-#define JB_RX_CONF0     RMT.conf_ch[0].conf0
-#define JB_RX_CONF1     RMT.conf_ch[0].conf1
-
-#define JB_TX_PROBE_MEM     RMTMEM.chan[1].data32
-#define JB_TX_PROBE_CONF0   RMT.conf_ch[1].conf0
-#define JB_TX_PROBE_CONF1   RMT.conf_ch[1].conf1
-
-#define JB_TX_ORIGIN_MEM    RMTMEM.chan[2].data32
-#define JB_TX_ORIGIN_CONF0  RMT.conf_ch[2].conf0
-#define JB_TX_ORIGIN_CONF1  RMT.conf_ch[2].conf1
-
-#define JB_TX_POLL_MEM      RMTMEM.chan[4].data32
-#define JB_TX_POLL_CONF0    RMT.conf_ch[4].conf0
-#define JB_TX_POLL_CONF1    RMT.conf_ch[4].conf1
-
 typedef struct
 {
     union

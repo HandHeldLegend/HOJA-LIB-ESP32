@@ -24,17 +24,17 @@
  * @brief Input report array. Items in this array
  * get set before sending a response report.
  */
-uint8_t ns_input_report[362];
-uint16_t ns_input_report_size;
-uint16_t ns_report_timer;
+extern uint8_t ns_input_report[362];
+extern uint16_t ns_input_report_size;
+extern uint16_t ns_report_timer;
 
 //#define INPUT_FREQUENCY_FAST    9 //9
 #define INPUT_FREQUENCY_SLOW    20
 #define INPUT_FREQUENCY_FAST    10
 
-uint8_t ns_input_frequency;
-uint8_t ns_input_pause;
-uint8_t ns_timeout_counter;
+extern uint8_t ns_input_frequency;
+extern uint8_t ns_input_pause;
+extern uint8_t ns_timeout_counter;
 
 
 void ns_report_clear(void);

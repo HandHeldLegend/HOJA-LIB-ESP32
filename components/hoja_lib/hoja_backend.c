@@ -2,6 +2,7 @@
 
 GamepadButtonData g_button_data = {};
 GamepadStickData g_stick_data = {};
+hoja_params_s hoja_params = {0};
 
 // Resets all button data set
 void hoja_button_reset()

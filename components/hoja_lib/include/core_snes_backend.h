@@ -4,7 +4,7 @@
 #include "hoja_includes.h"
 
 // Button Buffer used to store and send button data
-uint16_t snes_button_buffer;
+extern uint16_t snes_button_buffer;
 
 // Exposed functions
 //--------------------

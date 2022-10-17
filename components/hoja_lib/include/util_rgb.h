@@ -69,7 +69,7 @@ typedef enum
     UTIL_RGB_STATUS_DISABLED  = 1,
 } util_rgb_status_t;
 
-util_rgb_status_t util_rgb_status;
+extern util_rgb_status_t util_rgb_status;
 
 typedef enum
 {
@@ -77,7 +77,7 @@ typedef enum
     UTIL_RGB_MODE_GRB = 1,
 } util_rgb_mode_t;
 
-util_rgb_mode_t util_rgb_mode;
+extern util_rgb_mode_t util_rgb_mode;
 
 #define COLOR_BLACK     (rgb_s) {.rgb = 0x000000}
 #define COLOR_RED       (rgb_s) {.rgb = 0xFF0000}

@@ -17,7 +17,7 @@ typedef enum
 
 // Used as a global variable so every core
 // can be informed as to the status of i2c
-util_i2c_status_t util_i2c_status;
+extern util_i2c_status_t util_i2c_status;
 
 hoja_err_t util_i2c_initialize(void);
 

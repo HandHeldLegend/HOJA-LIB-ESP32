@@ -51,7 +51,7 @@ void util_battery_write(uint8_t offset, uint8_t byte)
     if (util_i2c_status != UTIL_I2C_STATUS_AVAILABLE)
     {
         ESP_LOGE(TAG, "Must init I2C before writing battery register.");
-        return ret;
+        return;
     }
 
     uint8_t buffer[2] = {offset, byte};

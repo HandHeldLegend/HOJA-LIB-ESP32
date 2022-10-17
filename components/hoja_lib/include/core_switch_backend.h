@@ -54,23 +54,23 @@
 #define NS_COLOR_BLACK      0x00
 
 // Parameters for bluetooth function
-struct nscore_param_s
+typedef struct 
 {
     esp_hidd_app_param_t app_param;
     esp_hidd_qos_param_t both_qos;
     SemaphoreHandle_t ns_semaphore;
-};
+} nscore_param_s;
 
 // Instance of NS Core parameters
-struct nscore_param_s ns_core_param;
+extern nscore_param_s ns_core_param;
 
 // HID descriptor instances
 static uint8_t hid_descriptor_ns_core[213];
 
 // Handler for vTask for report mode changes.
-TaskHandle_t ns_ReportModeHandle;
+extern TaskHandle_t ns_ReportModeHandle;
 
-uint8_t ns_currentReportMode;
+extern uint8_t ns_currentReportMode;
 
 // Start the Nintendo Switch controller core
 hoja_err_t core_ns_start(void);

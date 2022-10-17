@@ -49,7 +49,7 @@ typedef struct
 
 } hoja_settings_s;
 
-hoja_settings_s loaded_settings;
+extern hoja_settings_s loaded_settings;
 
 hoja_err_t hoja_settings_init(void);
 

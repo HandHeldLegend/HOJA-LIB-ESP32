@@ -106,9 +106,9 @@ typedef struct
     uint8_t r_stick_cal[11];
 } ns_input_stickcaldata_s;
 
-ns_input_short_s ns_input_short;
-ns_input_long_s ns_input_long;
-ns_input_stickcaldata_s ns_input_stickcaldata;
+extern ns_input_short_s ns_input_short;
+extern ns_input_long_s ns_input_long;
+extern ns_input_stickcaldata_s ns_input_stickcaldata;
 
 hoja_err_t ns_input_translate(uint8_t button_mode);
 
