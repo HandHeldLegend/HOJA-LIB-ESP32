@@ -375,6 +375,8 @@ void app_main()
     // Get plugged status
     battery_status.status = util_battery_getstatus();
 
+    util_battery_write(0xA, 0xE0);
+
     if (battery_status.plug_status == BATCABLE_PLUGGED)
     {
         // If cable is plugged in on boot, we can

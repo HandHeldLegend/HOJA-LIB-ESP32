@@ -274,7 +274,7 @@ hoja_err_t core_gamecube_start()
     esp_err_t er = ESP_OK;
     ESP_LOGI(TAG, "GameCube Core Started.");
 
-    xTaskCreatePinnedToCore(gc_debug_task, "Debug", 1024, NULL, 0, &gc_debug_task_h, 0);
+    //xTaskCreatePinnedToCore(gc_debug_task, "Debug", 1024, NULL, 0, &gc_debug_task_h, 0);
 
     gamecube_init();
 

@@ -69,6 +69,8 @@ void util_battery_write(uint8_t offset, uint8_t byte)
 
     err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, portMAX_DELAY);
 
+    i2c_cmd_link_delete(tmpcmd);
+
     if (err != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to send I2C command to battery:");
