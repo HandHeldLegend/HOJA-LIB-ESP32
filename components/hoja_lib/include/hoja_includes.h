@@ -22,6 +22,7 @@
 #include "esp_random.h"
 #include "esp_gap_bt_api.h"
 #include "esp_timer.h"
+#include "esp_sleep.h"
 
 #include "nvs.h"
 #include "nvs_flash.h"
@@ -33,6 +34,7 @@
 #include "driver/adc.h"
 #include "driver/pcnt.h"
 #include "driver/rmt.h"
+#include "driver/rtc_io.h"
 
 #include "soc/soc.h"
 #include "soc/gpio_reg.h"

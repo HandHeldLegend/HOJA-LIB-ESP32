@@ -1,6 +1,6 @@
 #include "main.h"
 
-// Common macros
+// Main file for Open Controller Classic Edition example code. 
 
 // Clear a value from high GPIO register (GPIO 32 and higher)
 // GPIO.out1_w1tc.val = (uint32_t) (GPIO_NUM-32);
@@ -321,6 +321,34 @@ void battery_check_task(void * parameters)
     } 
 }
 
+// Sleep mode should check the charge level every 30 seconds or so. 
+void enter_sleep()
+{
+    rgb_setall(COLOR_CYAN, led_colors);
+    rgb_show();
+    for (uint8_t i = 25; i > 1; i--)
+    {
+        rgb_setbrightness(i);
+        rgb_show();
+    }
+    rgb_setbrightness(0);
+    rgb_show();
+
+    rtc_gpio_init(GPIO_BTN_SELECT);
+    rtc_gpio_pullup_en(GPIO_BTN_SELECT);
+    esp_sleep_enable_ext0_wakeup(GPIO_BTN_SELECT, 0);
+    rtc_gpio_isolate(GPIO_NUM_12);
+    rtc_gpio_isolate(CONFIG_HOJA_GPIO_NS_CLOCK);
+    rtc_gpio_isolate(CONFIG_HOJA_GPIO_NS_LATCH);
+    //esp_sleep_enable_timer_wakeup(10000000);
+    esp_deep_sleep_start();
+}
+
+void exit_sleep()
+{
+
+}
+
 void app_main()
 {
     const char* TAG = "app_main";
@@ -339,7 +367,6 @@ void app_main()
     ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_LY, ADC_ATTEN_DB_11));
     ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_RX, ADC_ATTEN_DB_11));
     ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_RY, ADC_ATTEN_DB_11));
-
 
     // IO configuration we can reuse
     gpio_config_t io_conf = {};
@@ -372,6 +399,7 @@ void app_main()
     rgb_setbrightness(25);
 
     vTaskDelay(100/portTICK_PERIOD_MS);
+
     // Get plugged status
     battery_status.status = util_battery_getstatus();
 
@@ -419,6 +447,10 @@ void app_main()
     }
     else
     {
+        //gpio_set_direction(GPIO_BTN_SELECT, GPIO_MODE_INPUT);
+        // Enable ship mode test
+        util_battery_write(0x9, 0x41);
+
         // If we're here, start our wireless mode of choice.
         rgb_setall(COLOR_BLUE, led_colors);
         rgb_show();
