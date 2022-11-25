@@ -26,7 +26,7 @@ void core_usb_stop(void)
 
     // BUILD USB START COMMAND
     i2c_cmd_handle_t tmpcmd = i2c_cmd_link_create();
-    uint8_t tosend[2] = {USB_CMD_SYSTEMSET, USB_SYSTEM_RESET};
+    uint8_t tosend[2] = {USB_CMD_SYSTEMSET, USB_SYSTEM_SLEEP};
     i2c_master_start(tmpcmd);
     i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
     i2c_master_write(tmpcmd, tosend, 2, true);
@@ -44,6 +44,33 @@ void core_usb_stop(void)
         return;
     }
     ESP_LOGI(TAG, "USB Core Command: USB Service Stop: Transmit OK.");
+}
+
+void core_usb_sleep()
+{
+    const char* TAG = "core_usb_sleep";
+
+    ESP_LOGI(TAG, "Core Sleep: USB");
+    esp_err_t err = ESP_OK;
+
+    if (util_i2c_status != UTIL_I2C_STATUS_AVAILABLE)
+    {
+        ESP_LOGE(TAG, "Cannot sleep USB core. Required I2C utility initialize first.");
+        return;
+    }
+    ESP_LOGI(TAG, "USB Core okay to sleep as I2C is set up.");
+
+    // BUILD USB START COMMAND
+    i2c_cmd_handle_t tmpcmd = i2c_cmd_link_create();
+    uint8_t tosend[2] = {USB_CMD_SYSTEMSET, USB_SYSTEM_SLEEP};
+    i2c_master_start(tmpcmd);
+    i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write(tmpcmd, tosend, 2, true);
+    i2c_master_stop(tmpcmd);
+
+    // TRANSMIT USB START COMMAND
+    err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
+    i2c_cmd_link_delete(tmpcmd);
 }
 
 hoja_err_t core_usb_start(void)
@@ -88,11 +115,9 @@ hoja_err_t core_usb_start(void)
     tmpcmd = i2c_cmd_link_create();
     uint8_t response[2] = {0};
     response[0] = 0xFF;
-    response[1] = 0xFF;
     i2c_master_start(tmpcmd);
     i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_READ, true);
-    i2c_master_read_byte(tmpcmd, &response[0], I2C_MASTER_ACK);
-    i2c_master_read_byte(tmpcmd, &response[1], I2C_MASTER_LAST_NACK);
+    i2c_master_read_byte(tmpcmd, &response[0], I2C_MASTER_LAST_NACK);
     i2c_master_stop(tmpcmd);
 
     // START READ
@@ -109,7 +134,7 @@ hoja_err_t core_usb_start(void)
     ESP_LOGI(TAG, "USB Core Read: Transmit OK.");
 
     // CHECK USB START RESPONSE STATUS
-    if ( (response[0] == USB_CMD_SYSTEMSET) && (response[1] == USB_MSG_OK) )
+    if ( response[0] == USB_MSG_OK )
     {
 
         ESP_LOGI(TAG, "USB Core Status: USB Service Started OK.");

@@ -15,7 +15,8 @@ typedef enum
 {
     USB_SYSTEM_START = 0,
     USB_SYSTEM_STOP = 1,
-    USB_SYSTEM_RESET = 2,
+    USB_SYSTEM_SLEEP = 2,
+    USB_SYSTEM_RESET = 3,
 } usb_system_commands_t;
 
 typedef enum
@@ -79,6 +80,8 @@ typedef struct
 } i2c_input_s;
 
 void core_usb_stop(void);
+
+void core_usb_sleep();
 
 // Exposed functions
 hoja_err_t core_usb_start(void);

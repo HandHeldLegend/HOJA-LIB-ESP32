@@ -98,7 +98,6 @@ hoja_err_t hoja_settings_default(void)
     }
 
     loaded_settings.magic_bytes = SETTINGS_MAGIC;
-    loaded_settings.controller_core = CORE_NINTENDOSWITCH;
 
     // Generate NS core address
     for(int i = 0; i < 8; i++)
@@ -118,7 +117,6 @@ hoja_err_t hoja_settings_default(void)
                 loaded_settings.ns_client_bt_address[i] = esp_random()%255;
                 break;
         }
-        
     }
     memset(loaded_settings.ns_host_bt_address, 0, 6);
     loaded_settings.ns_controller_paired = false;

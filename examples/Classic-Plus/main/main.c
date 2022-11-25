@@ -354,6 +354,24 @@ void battery_check_task(void * parameters)
     } 
 }
 
+void sleep_enter()
+{
+    util_battery_write(0x9, 0x41);
+    gpio_pullup_dis(GPIO_USB_TOGGLE);
+    core_usb_sleep();
+    vTaskDelay(1200/portTICK_PERIOD_MS);
+    rtc_gpio_init(GPIO_BTN_SELECT);
+    rtc_gpio_pullup_en(GPIO_BTN_SELECT);
+    esp_sleep_enable_ext0_wakeup(GPIO_BTN_SELECT, 0);
+    rtc_gpio_isolate(GPIO_NUM_12);
+    rtc_gpio_isolate(CONFIG_HOJA_GPIO_NS_CLOCK);
+    rtc_gpio_isolate(CONFIG_HOJA_GPIO_NS_LATCH);
+    rtc_gpio_isolate(CONFIG_HOJA_RGB_GPIO);
+    rtc_gpio_isolate(GPIO_USB_TOGGLE);
+    //esp_sleep_enable_timer_wakeup(10000000);
+    esp_deep_sleep_start();
+}
+
 void app_main()
 {
     const char* TAG = "app_main";
@@ -416,11 +434,14 @@ void app_main()
 
     util_battery_write(0xA, 0xE0);
 
+    usb_switch_check();
+
+    core_ns_start();
+
+    /*
     if (battery_status.plug_status == BATCABLE_PLUGGED)
     {
         gpio_set_level(GPIO_USB_TOGGLE, 1);
-
-        usb_switch_check();
 
         // If cable is plugged in on boot, we can
         // check what we're plugged in to. Try USB first?
@@ -472,5 +493,5 @@ void app_main()
 
     // Start battery monitor task.
     xTaskCreatePinnedToCore(battery_check_task, "Battery Monitor", 2024, NULL, 0, battery_monitor_handle, 1);
-    
+    */
 }

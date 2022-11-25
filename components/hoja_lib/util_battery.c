@@ -1,9 +1,11 @@
 #include "util_battery.h"
 
+uint8_t current_battery_status = 0x00;
+
 uint8_t util_battery_getstatus()
 {
     const char* TAG = "util_battery_getstatus";
-    uint8_t ret = 0x00;
+    uint8_t ret = current_battery_status;
 
     if (util_i2c_status != UTIL_I2C_STATUS_AVAILABLE)
     {
@@ -38,6 +40,7 @@ uint8_t util_battery_getstatus()
         return ret;
     }
     ret = response[0];
+    current_battery_status = response[0];
 
     ESP_LOGI(TAG, "Battery Status: %X", ret);
     return ret;

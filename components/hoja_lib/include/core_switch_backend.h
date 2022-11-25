@@ -65,7 +65,7 @@ typedef struct
 extern nscore_param_s ns_core_param;
 
 // HID descriptor instances
-static uint8_t hid_descriptor_ns_core[213];
+static uint8_t hid_descriptor_ns_core[134];
 
 // Handler for vTask for report mode changes.
 extern TaskHandle_t ns_ReportModeHandle;

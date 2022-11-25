@@ -2,7 +2,9 @@
 
 nscore_param_s ns_core_param = {0};
 
-static uint8_t hid_descriptor_ns_core[213] = {
+// This is an adjusted HID descriptor to only
+// use the necessary HID reports
+static uint8_t hid_descriptor_ns_core[134] = {
     0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
     0x09, 0x05,        // Usage (Game Pad)
     0xA1, 0x01,        // Collection (Application)
@@ -22,30 +24,6 @@ static uint8_t hid_descriptor_ns_core[213] = {
     0x25, 0x00,        //   Logical Maximum (0)
     0x75, 0x08,        //   Report Size (8)
     0x95, 0x30,        //   Report Count (48)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-
-    0x85, 0x31,        //   Report ID (49)
-    0x09, 0x31,        //   Usage (0x31)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x00,        //   Logical Maximum (0)
-    0x75, 0x08,        //   Report Size (8)
-    0x96, 0x69, 0x01,  //   Report Count (361) -- 50
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-
-    0x85, 0x32,        //   Report ID (50)
-    0x09, 0x32,        //   Usage (0x32)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x00,        //   Logical Maximum (0)
-    0x75, 0x08,        //   Report Size (8)
-    0x96, 0x69, 0x01,  //   Report Count (361)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-
-    0x85, 0x33,        //   Report ID (51)
-    0x09, 0x33,        //   Usage (0x33)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x00,        //   Logical Maximum (0)
-    0x75, 0x08,        //   Report Size (8)
-    0x96, 0x69, 0x01,  //   Report Count (361)
     0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
 
     0x85, 0x3F,        //   Report ID (63)
@@ -76,6 +54,7 @@ static uint8_t hid_descriptor_ns_core[213] = {
     0x75, 0x10,        //   Report Size (16)
     0x95, 0x04,        //   Report Count (4)
     0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+
     0x85, 0x01,        //   Report ID (1)
     0x06, 0x01, 0xFF,  //   Usage Page (Vendor Defined 0xFF01)
     0x09, 0x01,        //   Usage (0x01)
@@ -84,6 +63,7 @@ static uint8_t hid_descriptor_ns_core[213] = {
     0x75, 0x08,        //   Report Size (8)
     0x95, 0x30,        //   Report Count (48)
     0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+
     0x85, 0x10,        //   Report ID (16)
     0x09, 0x10,        //   Usage (0x10)
     0x15, 0x00,        //   Logical Minimum (0)
@@ -92,20 +72,6 @@ static uint8_t hid_descriptor_ns_core[213] = {
     0x95, 0x30,        //   Report Count (48)
     0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
 
-    0x85, 0x11,        //   Report ID (17)
-    0x09, 0x11,        //   Usage (0x11)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   Logical Maximum (65534)
-    0x75, 0x08,        //   Report Size (8)
-    0x95, 0x30,        //   Report Count (48)
-    0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x12,        //   Report ID (18)
-    0x09, 0x12,        //   Usage (0x12)
-    0x15, 0x00,        //   Logical Minimum (0) --200
-    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   Logical Maximum (65534)
-    0x75, 0x08,        //   Report Size (8)
-    0x95, 0x30,        //   Report Count (48)
-    0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
     0xC0
 };
 
@@ -139,13 +105,15 @@ void ns_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
             if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
                 ESP_LOGI(TAG, "authentication success: %s", param->auth_cmpl.device_name);
                 esp_log_buffer_hex(TAG, param->auth_cmpl.bda, ESP_BD_ADDR_LEN);
+                ns_connected = true;
             } else {
                 ESP_LOGI(TAG, "authentication failed, status:%d", param->auth_cmpl.stat);
-                vTaskDelay(3000 / portTICK_PERIOD_MS);
-                if (!ns_connected) core_ns_stop();
             }
             break;
         }
+        // This is critical for Nintendo Switch to act upon.
+        // If power mode is 0, there should be NO packets sent from the controller until
+        // another power mode is initiated by the Nintendo Switch console.
         case ESP_BT_GAP_MODE_CHG_EVT:{
             ESP_LOGI(TAG, "power mode change: %d", param->mode_chg.mode);
             if (param->mode_chg.mode == 0)
@@ -189,8 +157,6 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                 ESP_LOGI(TAG, "init hidd success!");
             } else {
                 ESP_LOGI(TAG, "init hidd failed!");
-                vTaskDelay(3000 / portTICK_PERIOD_MS);
-                    if (!ns_connected) core_ns_stop();
             }
             break;
         case ESP_HIDD_DEINIT_EVT:
@@ -227,7 +193,7 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 
                     if (!loaded_settings.ns_controller_paired)
                     {
-                        // TO-DO Save Pairing
+                        ns_savepairing(param->open.bd_addr);
                     }
 
                     ESP_LOGI(TAG, "Starting task short input mode...");
@@ -254,8 +220,6 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                     vTaskDelay(3000 / portTICK_PERIOD_MS);
                     if (!ns_connected) core_ns_stop();
                     ESP_LOGI(TAG, "disconnected!");
-                    //ns_bt_shutdown();
-
                 } else {
                     ESP_LOGI(TAG, "unknown connection status");
                 }
@@ -283,7 +247,6 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
         case ESP_HIDD_INTR_DATA_EVT:
             // Send interrupt data to command handler
             ns_comms_handle_command(param->intr_data.report_id, param->intr_data.len, param->intr_data.data);
-            
             break;
         case ESP_HIDD_VC_UNPLUG_EVT:
             ESP_LOGI(TAG, "ESP_HIDD_VC_UNPLUG_EVT");
@@ -356,15 +319,11 @@ hoja_err_t core_ns_start(void)
     // Convert calibration data
     ns_input_stickcalibration();
 
+    // Set MAC address for Switch Bluetooth
     esp_base_mac_addr_set(loaded_settings.ns_client_bt_address);
-
-    for (int i = 0; i<8; i++)
-    {
-        ESP_LOGI(TAG, "CONTROLLER BT ADDRESS: %x", loaded_settings.ns_client_bt_address[i]);
-    }
     
     // Set up NS app parameters
-    ns_core_param.app_param.name = "Wireless Gamepad";
+    ns_core_param.app_param.name = "Pro Controller";
     ns_core_param.app_param.description = "Gamepad";
     ns_core_param.app_param.provider = "Nintendo";
     ns_core_param.app_param.subclass = 0x08;
@@ -373,6 +332,7 @@ hoja_err_t core_ns_start(void)
     ESP_LOGI(TAG, "Length of desc: %d", sizeof(hid_descriptor_ns_core));
     memset(&ns_core_param.both_qos, 0, sizeof(esp_hidd_qos_param_t));
 
+    // Release BT BLE mode memory
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
 
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
@@ -440,15 +400,13 @@ hoja_err_t core_ns_start(void)
         return HOJA_FAIL;
     }
 
-    ESP_LOGI(TAG, "Setting device name");
     esp_bt_dev_set_device_name("Pro Controller");
 
+    ns_connected = false;
     esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
 
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-
-    //rbc_core_ns_stop();
-    //return HOJA_OK;
+    // Delay 1 seconds to see if console initiates connection
+    vTaskDelay(1000/portTICK_PERIOD_MS);
 
     if (loaded_settings.ns_controller_paired & !ns_connected)
     {
@@ -462,6 +420,15 @@ hoja_err_t core_ns_start(void)
     else
     {
         ESP_LOGI(TAG, "Controller already connected");
+    }
+
+    vTaskDelay(1500/portTICK_PERIOD_MS);
+    if (!ns_connected)
+    {
+        // If still not connected, return failure.
+        ESP_LOGI(TAG, "Not connected to Switch. Fall back to another mode.");
+        core_ns_stop();
+        return HOJA_FAIL;
     }
 
     return HOJA_OK;
@@ -506,7 +473,7 @@ hoja_err_t ns_savepairing(uint8_t* host_addr)
     loaded_settings.ns_controller_paired = true;
     
     // Save all settings
-    if (hoja_settings_saveall())
+    if (hoja_settings_saveall() == HOJA_OK)
     {
         ESP_LOGI(TAG, "Pairing info saved.");
         return HOJA_OK;

@@ -61,12 +61,8 @@
 #define GPIO_INPUT_CLEAR0_MASK  ( (1ULL<< GPIO_BTN_PULLA) | (1ULL<<GPIO_BTN_PULLB) | (1ULL<<GPIO_BTN_PULLD) )
 #define GPIO_INPUT_CLEAR1_MASK  ( (1ULL<<(GPIO_BTN_PULLC-32)) )
 
-// Define pins for Nintendo NES/SNES wired pad latch/clock
-#define PAD_PIN_CLOCK   GPIO_NUM_15
-#define PAD_PIN_LATCH   GPIO_NUM_14
-
-// Define pin for Nintendo wired serial line (GameCube and SNES)
-#define PAD_PIN_SERIAL  GPIO_NUM_17
+// ADC channel for battery voltage reading
+#define ADC_BATTERY_LVL     ADC1_CHANNEL_0
 
 // Variables used to store register reads
 uint32_t regread_low = 0;
@@ -74,6 +70,24 @@ uint32_t regread_high = 0;
 
 // Variable to hold current color data
 rgb_s led_colors[CONFIG_HOJA_RGB_COUNT] = {0};
+
+void read_battery_voltage(void * parameters)
+{
+    // Set up ADC
+    ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_DEFAULT));
+    ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_BATTERY_LVL, ADC_ATTEN_DB_11));
+
+    for(;;)
+    {
+        // Read ADC and convert to voltage values
+        int out = 0;
+        out = adc1_get_raw(ADC_BATTERY_LVL);
+        float raw = (float) out;
+        float voltage = ((raw * 3.3) / 1950);
+        ESP_LOGI("BAT LVL:", "%f", voltage);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+    }
+}
 
 bool getbit(uint32_t bytes, uint8_t bit)
 {
@@ -85,13 +99,18 @@ bool getbit(uint32_t bytes, uint8_t bit)
     return (bytes >> tmp) & 0x1;
 }
 
-// Set up function to update inputs
-// This will scan the sticks/buttons once
-// at a refresh rate determined by the core.
+uint32_t sleep_check_timer = 0;
+// Sleep mode should check the charge level every 30 seconds or so. 
+void enter_sleep()
+{
+    ESP_LOGI("enter_sleep", "Entering sleep mode");
+    util_battery_write(0x9, 0x41);
+    esp_deep_sleep_start();
+}
 
+// Set up function to update inputs
 // Used to determine delay period between each scan (microseconds)
 #define US_READ  15
-
 void button_task()
 {
     // First set port D as low output
@@ -165,6 +184,36 @@ void button_task()
 
     // Read select button (not tied to matrix)
     g_button_data.b_select      |= !getbit(regread_low, GPIO_BTN_SELECT);
+
+    if (g_button_data.b_select)
+    {
+        sleep_check_timer+=1;
+    }
+    else
+    {
+        sleep_check_timer = 0;
+    }
+
+    if (sleep_check_timer >= 250)
+    {
+        enter_sleep();
+    }
+}
+
+// Check to see if we should enable 'retro mode (Wired SNES/NES/GameCube)'
+bool retro_mode_check()
+{
+    // Scan all buttons
+    button_task();
+
+    // Check if start is pressed
+    if (g_button_data.b_start)
+    {
+        hoja_button_reset();
+        return true;
+    }
+    hoja_button_reset();
+    return false;
 }
 
 // Separate task to read sticks.
@@ -264,8 +313,45 @@ void boot_anim()
 }
 
 TaskHandle_t battery_monitor_handle = NULL;
+TaskHandle_t battery_voltage_handle = NULL;
+TaskHandle_t retro_mode_handle      = NULL;
 
 util_battery_status_s battery_status = {0};
+
+// Task that loops checking what retro mode we're going to be in
+void retro_mode_loop(void * params)
+{
+    ESP_LOGI("retro_mode_loop", "Waiting for retro mode recognition...");
+    for(;;)
+    {
+        util_wire_det_t detected_type = wired_detect();
+
+        switch(detected_type)
+        {
+            default:
+            case DETECT_NONE:
+                vTaskDelay(500/portTICK_PERIOD_MS);
+                break;
+            case DETECT_JOYBUS:
+                rgb_setall(COLOR_PURPLE, led_colors);
+                rgb_show();
+                vTaskDelay(500/portTICK_PERIOD_MS);
+                core_gamecube_start();
+                vTaskDelete(retro_mode_handle);
+                break;
+            case DETECT_SNES:
+                rgb_setall(COLOR_ORANGE, led_colors);
+                rgb_show();
+                vTaskDelay(500/portTICK_PERIOD_MS);
+                core_snes_start();
+                vTaskDelete(retro_mode_handle);
+                break;
+        }
+    }
+}
+
+bool battery_check_standby = false;
+bool retro_mode_enabled = false;
 
 void battery_check_task(void * parameters)
 {
@@ -278,7 +364,7 @@ void battery_check_task(void * parameters)
         if (t.status != battery_status.status)
         {
             // Check if our plugged status has changed.
-            if (t.plug_status != battery_status.plug_status)
+            if (t.plug_status != battery_status.plug_status && !retro_mode_enabled)
             {
                 ESP_LOGI(TAG, "Plug status changed. Rebooting...");
                 
@@ -286,67 +372,41 @@ void battery_check_task(void * parameters)
                 core_usb_stop();
                 esp_restart();
             }
+            else if (retro_mode_enabled)
+            {
+                retro_mode_enabled = false;
+            }
 
             rgb_setbrightness(25);
             // If the status has changed, it's dirty and we
             // need to inspect!
-            if (t.plug_status == BATCABLE_PLUGGED)
-            {
-                if (t.charge_status == BATSTATUS_NOTCHARGING)
-                {
-                    rgb_setall(COLOR_YELLOW, led_colors);
-                }
-                else if (t.charge_status == BATSTATUS_TRICKLEFAST)
-                {
-                    rgb_setall(COLOR_GREEN, led_colors);
-                }
-                else if (t.charge_status == BATSTATUS_CONSTANT)
-                {
-                    rgb_setall(COLOR_TEAL, led_colors);
-                }
-                else if (t.charge_status == BATSTATUS_COMPLETED)
-                {
-                    rgb_setall(COLOR_BLUE, led_colors);
-                }
-                
-            }
-            else
+            battery_status.status = t.status;
+            
+        }
+
+        if (battery_check_standby)
+        {
+            if (t.charge_status == BATSTATUS_NOTCHARGING)
             {
                 rgb_setall(COLOR_RED, led_colors);
             }
-            battery_status.status = t.status;
+            else if (t.charge_status == BATSTATUS_TRICKLEFAST)
+            {
+                rgb_setall(COLOR_ORANGE, led_colors);
+            }
+            else if (t.charge_status == BATSTATUS_CONSTANT)
+            {
+                rgb_setall(COLOR_PURPLE, led_colors);
+            }
+            else if (t.charge_status == BATSTATUS_COMPLETED)
+            {
+                rgb_setall(COLOR_GREEN, led_colors);
+            }
             rgb_show();
+            
         }
         vTaskDelay(500/portTICK_PERIOD_MS);
     } 
-}
-
-// Sleep mode should check the charge level every 30 seconds or so. 
-void enter_sleep()
-{
-    rgb_setall(COLOR_CYAN, led_colors);
-    rgb_show();
-    for (uint8_t i = 25; i > 1; i--)
-    {
-        rgb_setbrightness(i);
-        rgb_show();
-    }
-    rgb_setbrightness(0);
-    rgb_show();
-
-    rtc_gpio_init(GPIO_BTN_SELECT);
-    rtc_gpio_pullup_en(GPIO_BTN_SELECT);
-    esp_sleep_enable_ext0_wakeup(GPIO_BTN_SELECT, 0);
-    rtc_gpio_isolate(GPIO_NUM_12);
-    rtc_gpio_isolate(CONFIG_HOJA_GPIO_NS_CLOCK);
-    rtc_gpio_isolate(CONFIG_HOJA_GPIO_NS_LATCH);
-    //esp_sleep_enable_timer_wakeup(10000000);
-    esp_deep_sleep_start();
-}
-
-void exit_sleep()
-{
-
 }
 
 void app_main()
@@ -360,13 +420,6 @@ void app_main()
     #endif
 
     hoja_err_t err;
-
-    // Set up ADC
-    ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_DEFAULT));
-    ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_LX, ADC_ATTEN_DB_11));
-    ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_LY, ADC_ATTEN_DB_11));
-    ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_RX, ADC_ATTEN_DB_11));
-    ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_RY, ADC_ATTEN_DB_11));
 
     // IO configuration we can reuse
     gpio_config_t io_conf = {};
@@ -391,7 +444,6 @@ void app_main()
     hoja_api_regstickcallback(stick_task);
 
     hoja_api_init();
-    util_i2c_initialize();
     util_rgb_init(led_colors, UTIL_RGB_MODE_GRB);
 
     rgb_setbrightness(25);
@@ -400,65 +452,82 @@ void app_main()
 
     vTaskDelay(100/portTICK_PERIOD_MS);
 
+    util_i2c_initialize();
+    battery_status.status = 0;
     // Get plugged status
     battery_status.status = util_battery_getstatus();
 
-    util_battery_write(0xA, 0xE0);
-
-    if (battery_status.plug_status == BATCABLE_PLUGGED)
+    // Check if we should boot into retro mode
+    if (retro_mode_check())
     {
-        // If cable is plugged in on boot, we can
-        // check what we're plugged in to. Try USB first?
-        hoja_err_t herr = core_usb_start();
-
-        if (herr != HOJA_OK)
+        retro_mode_enabled = true;
+        rgb_setall(COLOR_RED, led_colors);
+        rgb_show();
+        // Start battery voltage read task.
+        xTaskCreatePinnedToCore(retro_mode_loop, "Retro Mode Checker", 2024, NULL, 0, &retro_mode_handle, 1);
+    }
+    else
+    {
+        // Not retro mode, let's do other checks
+        // If we're plugged in, attempt USB startup
+        if (battery_status.plug_status == BATCABLE_PLUGGED)
         {
-            // If we're here the USB core did not start because of some reason. Check other valid methods.
-            util_wire_det_t detected_type = wired_detect();
+            // Set battery charge rate to 200mA
+            util_battery_write(0x4, 0x2F);
 
-            switch(detected_type)
+            // If cable is plugged in on boot, we can
+            // check what we're plugged in to. Try USB first?
+            hoja_err_t herr = core_usb_start();
+            
+            if (herr != HOJA_OK)
             {
-                default:
-                case DETECT_NONE:
-                    break;
-                case DETECT_JOYBUS:
-                    rgb_setall(COLOR_PURPLE, led_colors);
-                    rgb_show();
-                    vTaskDelay(500/portTICK_PERIOD_MS);
-                    core_gamecube_start();
-                    break;
-                case DETECT_SNES:
-                    rgb_setall(COLOR_ORANGE, led_colors);
-                    rgb_show();
-                    vTaskDelay(500/portTICK_PERIOD_MS);
-                    core_snes_start();
-                    break;
+                // If USB core is not ready, stop it.
+                core_usb_stop();
+                // Enter a standby charging mode
+                battery_check_standby = true;
+            }
+            else
+            {
+                // If we're here USB Core started OK.
+                rgb_s col = {.rgb = 0xf4aef5};
+                rgb_setall(col, led_colors);
+                rgb_show();
+                vTaskDelay(500/portTICK_PERIOD_MS);
             }
         }
         else
         {
-            // If we're here USB Core started OK.
-            rgb_s col = {.rgb = 0xf4aef5};
-            rgb_setall(col, led_colors);
+            // If we're here, start our wireless mode of choice.
+            rgb_setall(COLOR_BLUE, led_colors);
             rgb_show();
             vTaskDelay(500/portTICK_PERIOD_MS);
+            if (core_ns_start() != HOJA_OK)
+            {
+                // Prevent edge cases by checking usb status again before trying sleep.
+                util_battery_status_s t = {0};
+                t.status = util_battery_getstatus();
+                if (t.status != battery_status.status)
+                {
+                    // Check if our plugged status has changed.
+                    if (t.plug_status != battery_status.plug_status)
+                    {
+                        ESP_LOGI(TAG, "Plug status changed. Rebooting...");
+                        
+                        // Send restart command to battery utility
+                        core_usb_stop();
+                        esp_restart();
+                    }
+                }
+                // Enter a sleep mode
+                enter_sleep();
+            }
         }
-
-    }
-    else
-    {
-        //gpio_set_direction(GPIO_BTN_SELECT, GPIO_MODE_INPUT);
-        // Enable ship mode test
-        util_battery_write(0x9, 0x41);
-
-        // If we're here, start our wireless mode of choice.
-        rgb_setall(COLOR_BLUE, led_colors);
-        rgb_show();
-        vTaskDelay(500/portTICK_PERIOD_MS);
-        core_ns_start();
     }
 
     // Start battery monitor task.
-    xTaskCreatePinnedToCore(battery_check_task, "Battery Monitor", 2024, NULL, 0, battery_monitor_handle, 1);
+    xTaskCreatePinnedToCore(battery_check_task, "Battery Monitor", 2024, NULL, 0, &battery_monitor_handle, 1);
+
+    // Start battery voltage read task.
+    xTaskCreatePinnedToCore(read_battery_voltage, "Battery Voltage Checker", 2024, NULL, 0, &battery_voltage_handle, 1);
     
 }
