@@ -84,13 +84,13 @@ void ns_report_setbuttons(uint8_t button_mode)
             ns_input_report[4] = ns_input_long.left_buttons;
 
             // To-do: Sticks
-            ns_input_report[5] = (g_stick_data.lsx & 0xFF);
-            ns_input_report[6] = (g_stick_data.lsx & 0xF00) >> 8;
+            ns_input_report[5] = (hoja_analog_data.ls_x & 0xFF);
+            ns_input_report[6] = (hoja_analog_data.ls_x & 0xF00) >> 8;
             //ns_input_report[7] |= (g_stick_data.lsy & 0xF) << 4;
-            ns_input_report[7] = (g_stick_data.lsy & 0xFF0) >> 4;
-            ns_input_report[8] = (g_stick_data.rsx & 0xFF);
-            ns_input_report[9] = (g_stick_data.rsx & 0xF00) >> 8;
-            ns_input_report[10] = (g_stick_data.rsy & 0xFF0) >> 4;
+            ns_input_report[7] = (hoja_analog_data.ls_y & 0xFF0) >> 4;
+            ns_input_report[8] = (hoja_analog_data.rs_x & 0xFF);
+            ns_input_report[9] = (hoja_analog_data.rs_x & 0xF00) >> 8;
+            ns_input_report[10] = (hoja_analog_data.rs_y & 0xFF0) >> 4;
             ns_input_report[11] = 0x08;
             break;
     }
@@ -157,6 +157,7 @@ void ns_report_sub_setshipmode(uint8_t ship_mode)
     if (ship_mode != 0x00 || ship_mode != 0x01) return;
 
     // Handle adjusting ship mode.
+    hoja_event_cb(HOJA_EVT_SYSTEM, HOJA_SHUTDOWN, 0x00);
 }
 
 // Set a 0x3F or short input report
@@ -165,7 +166,7 @@ void ns_report_task_sendshort(void * parameters)
     const char* TAG = "ns_report_task_sendshort";
     ESP_LOGI(TAG, "Sending short (0x3F) reports on core %d\n", xPortGetCoreID());
 
-    while(1)
+    for(;;)
     {
         if (ns_input_pause)
         {
@@ -195,7 +196,9 @@ void ns_report_task_sendstandard(void * parameters)
             vTaskDelay(100 / portTICK_PERIOD_MS);
             continue;
         }
-        
+
+        // Check the sticks once
+        hoja_analog_cb(&hoja_analog_data);
         ns_report_clear();
         ns_report_settimer();
         ns_report_setid(0x30);
@@ -205,9 +208,7 @@ void ns_report_task_sendstandard(void * parameters)
         ns_input_report[12] = 0x70;
         esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, ns_input_report_id, ns_input_report_size, ns_input_report);
         hoja_button_reset();
-        // Check the sticks once
-        hoja_stick_cb();
-        vTaskDelay(12 / portTICK_PERIOD_MS);
+        vTaskDelay(8 / portTICK_PERIOD_MS);
     }
 }
 
@@ -224,8 +225,7 @@ void ns_report_task_sendempty(void * parameters)
             // Set report timer
             ns_report_settimer();
             esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0xA1, 2, tmp);
-            
-            //ESP_LOGI(TAG, "Retroblue: Empty Report Sending...");
+
         }
         vTaskDelay(18 / portTICK_PERIOD_MS);
     }

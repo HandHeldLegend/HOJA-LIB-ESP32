@@ -1736,30 +1736,34 @@ CONFIG_WPA_MBEDTLS_TLS_CLIENT=y
 # end of Supplicant
 
 #
-# HOJA Optional Items
+# HOJA RGB Utility
 #
-CONFIG_HOJA_USB_ENABLE=y
 CONFIG_HOJA_RGB_ENABLE=y
 CONFIG_HOJA_RGB_GPIO=23
 CONFIG_HOJA_RGB_COUNT=4
-# end of HOJA Optional Items
+# end of HOJA RGB Utility
+
+#
+# HOJA I2C Utility
+#
+CONFIG_HOJA_I2C_ENABLE=y
+CONFIG_HOJA_GPIO_I2C_SCL=22
+CONFIG_HOJA_GPIO_I2C_SDA=21
+# end of HOJA I2C Utility
+
+#
+# HOJA USB Core EFM8UB1 Companion MCU
+#
+CONFIG_HOJA_EFM8UB1_ENABLE=y
+# end of HOJA USB Core EFM8UB1 Companion MCU
 
 #
 # HOJA GPIO Selection
 #
-CONFIG_HOJA_GPIO_I2C_SCL=22
-CONFIG_HOJA_GPIO_I2C_SDA=21
 CONFIG_HOJA_GPIO_NS_SERIAL=17
 CONFIG_HOJA_GPIO_NS_CLOCK=15
 CONFIG_HOJA_GPIO_NS_LATCH=14
 # end of HOJA GPIO Selection
-
-#
-# HOJA Core Include Selection
-#
-CONFIG_HOJA_CORE_NINTENDOSWITCH=y
-CONFIG_HOJA_CORE_SNES=y
-# end of HOJA Core Include Selection
 # end of Component config
 
 # Deprecated options for backward compatibility

@@ -218,8 +218,11 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                 } else if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
                     ns_connected = false;
                     vTaskDelay(3000 / portTICK_PERIOD_MS);
-                    if (!ns_connected) core_ns_stop();
-                    ESP_LOGI(TAG, "disconnected!");
+                    if (!ns_connected) 
+                    {
+                        core_ns_stop();
+                        ESP_LOGI(TAG, "disconnected!");
+                    }
                 } else {
                     ESP_LOGI(TAG, "unknown connection status");
                 }
@@ -361,8 +364,7 @@ hoja_err_t core_ns_start(void)
         ESP_LOGE(TAG, "Bluedroid failed to enable: %s\n",  esp_err_to_name(ret));
         return HOJA_FAIL;
     }
-
-
+    
     if ((ret = esp_bt_gap_register_callback(ns_bt_gap_cb)) != ESP_OK) 
     {
         ESP_LOGE(TAG, "GAP callback register failed: %s\n", esp_err_to_name(ret));
@@ -404,6 +406,8 @@ hoja_err_t core_ns_start(void)
 
     ns_connected = false;
     esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+
+    hoja_event_cb(HOJA_EVT_BT, HOJA_BT_STARTED, 0x00);
 
     // Delay 1 seconds to see if console initiates connection
     vTaskDelay(1000/portTICK_PERIOD_MS);
@@ -451,7 +455,7 @@ hoja_err_t core_ns_stop()
     esp_bluedroid_disable();
                     
     ESP_LOGI(TAG, "Nintendo Switch Core stopped OK.");
-    esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+    hoja_event_cb(HOJA_EVT_BT, HOJA_BT_DISCONNECT, 0x00);
 
     return HOJA_OK;
 }
@@ -476,6 +480,7 @@ hoja_err_t ns_savepairing(uint8_t* host_addr)
     if (hoja_settings_saveall() == HOJA_OK)
     {
         ESP_LOGI(TAG, "Pairing info saved.");
+        hoja_event_cb(HOJA_EVT_BT, HOJA_BT_PAIRED, 0x00);
         return HOJA_OK;
     } 
     else

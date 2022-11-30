@@ -1,11 +1,27 @@
 {
   "C_Cpp.intelliSenseEngine": "Tag Parser",
   "idf.flashType": "UART",
-  "idf.portWin": "COM7",
+  "idf.portWin": "COM10",
   "files.associations": {
     "rtc_io.h": "c",
     "main.h": "c",
-    "hoja_includes.h": "c"
+    "hoja_includes.h": "c",
+    "util_wired_detect.h": "c",
+    "hoja_backend.h": "c",
+    "hoja_types.h": "c",
+    "array": "c",
+    "chrono": "c",
+    "compare": "c",
+    "functional": "c",
+    "ratio": "c",
+    "tuple": "c",
+    "type_traits": "c",
+    "utility": "c",
+    "future": "c",
+    "system_error": "c",
+    "regex": "c",
+    "hoja_frontend.h": "c",
+    "util_common.h": "c"
   },
   "idf.adapterTargetName": "esp32"
 }

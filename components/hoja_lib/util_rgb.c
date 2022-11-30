@@ -1,5 +1,6 @@
 #include "util_rgb.h"
 
+#if CONFIG_HOJA_RGB_ENABLE
 spi_device_handle_t rgb_spi = NULL;
 util_rgb_status_t util_rgb_status = UTIL_RGB_STATUS_DISABLED;
 util_rgb_mode_t util_rgb_mode = UTIL_RGB_MODE_RGB;
@@ -156,7 +157,6 @@ void rgb_setall(rgb_s color, rgb_s *led_colors)
 
 void rgb_show()
 {   
-    
     if(util_rgb_status != UTIL_RGB_STATUS_AVAILABLE)
     {
         const char* TAG = "rgb_show";
@@ -175,10 +175,13 @@ void rgb_show()
 
     esp_err_t err = spi_device_transmit(rgb_spi, &trans);
 }
+#endif
 
 hoja_err_t util_rgb_init(rgb_s *led_colors, util_rgb_mode_t mode)
 {
     const char* TAG = "util_rgb_init";
+
+    #if CONFIG_HOJA_RGB_ENABLE
     esp_err_t err; 
 
     // Set up SPI for rgb
@@ -223,4 +226,8 @@ hoja_err_t util_rgb_init(rgb_s *led_colors, util_rgb_mode_t mode)
     current_colors = led_colors;
 
     return HOJA_OK;
+    #else
+    ESP_LOGE(TAG, "RGB Utility is disabled in SDK settings. Enable there.");
+    return HOJA_FAIL;
+    #endif
 }

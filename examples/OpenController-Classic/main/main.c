@@ -67,6 +67,7 @@
 // Variables used to store register reads
 uint32_t regread_low = 0;
 uint32_t regread_high = 0;
+bool     local_start_pressed = false;
 
 // Variable to hold current color data
 rgb_s led_colors[CONFIG_HOJA_RGB_COUNT] = {0};
@@ -89,29 +90,17 @@ void read_battery_voltage(void * parameters)
     }
 }
 
-bool getbit(uint32_t bytes, uint8_t bit)
-{
-    uint8_t tmp = bit;
-    if (bit > 31)
-    {
-        tmp -= 32;
-    }
-    return (bytes >> tmp) & 0x1;
-}
-
-uint32_t sleep_check_timer = 0;
 // Sleep mode should check the charge level every 30 seconds or so. 
 void enter_sleep()
 {
     ESP_LOGI("enter_sleep", "Entering sleep mode");
-    util_battery_write(0x9, 0x41);
     esp_deep_sleep_start();
 }
 
 // Set up function to update inputs
 // Used to determine delay period between each scan (microseconds)
 #define US_READ  15
-void button_task()
+void local_button_cb(hoja_button_data_s *button_data)
 {
     // First set port D as low output
     GPIO.out_w1tc = (uint32_t) (1ULL<<GPIO_BTN_PULLD);
@@ -126,11 +115,11 @@ void button_task()
     // of a button input getting dropped.
 
     // Y button
-    g_button_data.b_left        |= !getbit(regread_low, GPIO_BTN_Y);
+    button_data->button_left    |= !util_getbit(regread_low, GPIO_BTN_Y);
     // Dpad Down
-    g_button_data.d_down        |= !getbit(regread_high, GPIO_BTN_DD);
+    button_data->dpad_down      |= !util_getbit(regread_high, GPIO_BTN_DD);
     // L trigger
-    g_button_data.t_l           |= !getbit(regread_low, GPIO_BTN_L);
+    button_data->trigger_l      |= !util_getbit(regread_low, GPIO_BTN_L);
 
     // Release port D Set port C
     GPIO.out_w1ts = (uint32_t) (1ULL<<GPIO_BTN_PULLD);
@@ -143,9 +132,9 @@ void button_task()
     regread_high = REG_READ(GPIO_IN1_REG);
 
     // X button
-    g_button_data.b_up          |= !getbit(regread_low, GPIO_BTN_X);
+    button_data->button_up      |= !util_getbit(regread_low, GPIO_BTN_X);
     // Dpad Down
-    g_button_data.d_left        |= !getbit(regread_high, GPIO_BTN_DL);
+    button_data->dpad_left      |= !util_getbit(regread_high, GPIO_BTN_DL);
 
     // Release port C set port B
     GPIO.out_w1ts = (uint32_t) (1ULL<<GPIO_BTN_PULLC);
@@ -157,11 +146,19 @@ void button_task()
     regread_high = REG_READ(GPIO_IN1_REG);
 
     // B button
-    g_button_data.b_down        |= !getbit(regread_low, GPIO_BTN_B);
+    button_data->button_down    |= !util_getbit(regread_low, GPIO_BTN_B);
     // Dpad Up
-    g_button_data.d_up          |= !getbit(regread_high, GPIO_BTN_DU);
+    button_data->dpad_up        |= !util_getbit(regread_high, GPIO_BTN_DU);
     // Start button
-    g_button_data.b_start       |= !getbit(regread_low, GPIO_BTN_START);
+    button_data->button_start   |= !util_getbit(regread_low, GPIO_BTN_START);
+    if (button_data->button_start)
+    {
+        local_start_pressed = true;
+    }
+    else
+    {
+        local_start_pressed = false;
+    }
 
     // Release port B set port A
     GPIO.out_w1ts = (uint32_t) (1ULL<<GPIO_BTN_PULLB);
@@ -176,38 +173,31 @@ void button_task()
     GPIO.out1_w1ts.val = (uint32_t) (1ULL << 1);
 
     // A button
-    g_button_data.b_right       |= !getbit(regread_low, GPIO_BTN_A);
+    button_data->button_right   |= !util_getbit(regread_low, GPIO_BTN_A);
     // Dpad Right
-    g_button_data.d_right       |= !getbit(regread_high, GPIO_BTN_DR);
+    button_data->dpad_right     |= !util_getbit(regread_high, GPIO_BTN_DR);
     // R trigger
-    g_button_data.t_r           |= !getbit(regread_low, GPIO_BTN_R);
+    button_data->trigger_r      |= !util_getbit(regread_low, GPIO_BTN_R);
 
     // Read select button (not tied to matrix)
-    g_button_data.b_select      |= !getbit(regread_low, GPIO_BTN_SELECT);
+    button_data->button_select  |= !util_getbit(regread_low, GPIO_BTN_SELECT);
 
-    if (g_button_data.b_select)
+    // Tie the select button to our sleep button.
+    if (button_data->button_select)
     {
-        sleep_check_timer+=1;
+        button_data->button_sleep = 1;
     }
     else
     {
-        sleep_check_timer = 0;
-    }
-
-    if (sleep_check_timer >= 250)
-    {
-        enter_sleep();
+        button_data->button_sleep = 0;
     }
 }
 
 // Check to see if we should enable 'retro mode (Wired SNES/NES/GameCube)'
 bool retro_mode_check()
 {
-    // Scan all buttons
-    button_task();
-
     // Check if start is pressed
-    if (g_button_data.b_start)
+    if (local_start_pressed)
     {
         hoja_button_reset();
         return true;
@@ -219,23 +209,110 @@ bool retro_mode_check()
 // Separate task to read sticks.
 // This is essential to have as a separate component as ADC scans typically take more time and this is only
 // scanned once between each polling interval. This varies from core to core.
-void stick_task()
+void local_analog_cb(hoja_analog_data_s *analog_data)
 {
     const char* TAG = "stick_task";
     // read stick 1 and 2
 
     /*
-    g_stick_data.lsx = (uint16_t) adc1_get_raw(ADC_STICK_LX);
-    g_stick_data.rsx = (uint16_t) adc1_get_raw(ADC_STICK_RX);
-    g_stick_data.rsy = (uint16_t) adc1_get_raw(ADC_STICK_RY);
+    analog_data->ls_x = (uint16_t) adc1_get_raw(ADC_STICK_LX);
+    analog_data->rs_x = (uint16_t) adc1_get_raw(ADC_STICK_RX);
+    analog_data->rs_y = (uint16_t) adc1_get_raw(ADC_STICK_RY);
     */
 
-    g_stick_data.lsx = 2048;
-    g_stick_data.lsy = 2048;
-    g_stick_data.rsx = 2048;
-    g_stick_data.rsy = 2048;
+    analog_data->ls_x = 2048;
+    analog_data->ls_y = 2048;
+    analog_data->rs_x = 2048;
+    analog_data->rs_y = 2048;
+
+    analog_data->lt = 0;
+    analog_data->rt = 0;
 
     return;
+}
+
+// Handle System events
+void local_system_evt(hoja_system_event_t evt)
+{
+    const char* TAG = "local_system_evt";
+    switch(evt)
+    {
+        case HOJA_API_INIT_OK:
+            ESP_LOGI(TAG, "HOJA initialized OK callback.");
+            break;
+
+        case HOJA_SHUTDOWN:
+        case HOJA_REBOOT:
+            break;
+    }
+}
+
+void local_bt_evt(hoja_bt_event_t evt)
+{
+
+}
+
+void local_usb_evt(hoja_usb_event_t evt)
+{
+
+}
+
+void local_gc_evt(hoja_gc_event_t evt, uint8_t param)
+{
+
+}
+
+void local_ns_evt(hoja_ns_event_t evt, uint8_t param)
+{
+
+}
+
+void local_wired_evt(hoja_wired_event_t evt)
+{
+
+}
+
+void local_battery_evt(hoja_battery_event_t evt, uint8_t status_changed)
+{
+    
+}
+
+// Callback to handle HOJA events
+void local_event_cb(hoja_event_type_t type, uint8_t evt, uint8_t param)
+{   
+    switch(type)
+    {
+        default:
+            ESP_LOGI("local_event_cb", "Unrecognized event occurred: %X", (unsigned int) type);
+            break;
+        case HOJA_EVT_SYSTEM:
+            local_system_evt(evt);
+            break;
+
+        case HOJA_EVT_BT:
+            local_bt_evt(evt);
+            break;
+
+        case HOJA_EVT_BATTERY:
+            local_battery_evt(evt, param);
+            break;
+
+        case HOJA_EVT_GC:
+            local_gc_evt(evt, param);
+            break;
+
+        case HOJA_EVT_NS:
+            local_ns_evt(evt, param);
+            break;
+
+        case HOJA_EVT_USB:
+            local_usb_evt(evt);
+            break;
+
+        case HOJA_EVT_WIRED:
+            local_wired_evt(evt);
+            break;
+    }
 }
 
 void boot_anim()
@@ -312,112 +389,15 @@ void boot_anim()
     rgb_show();
 }
 
-TaskHandle_t battery_monitor_handle = NULL;
-TaskHandle_t battery_voltage_handle = NULL;
 TaskHandle_t retro_mode_handle      = NULL;
-
-util_battery_status_s battery_status = {0};
-
-// Task that loops checking what retro mode we're going to be in
-void retro_mode_loop(void * params)
-{
-    ESP_LOGI("retro_mode_loop", "Waiting for retro mode recognition...");
-    for(;;)
-    {
-        util_wire_det_t detected_type = wired_detect();
-
-        switch(detected_type)
-        {
-            default:
-            case DETECT_NONE:
-                vTaskDelay(500/portTICK_PERIOD_MS);
-                break;
-            case DETECT_JOYBUS:
-                rgb_setall(COLOR_PURPLE, led_colors);
-                rgb_show();
-                vTaskDelay(500/portTICK_PERIOD_MS);
-                core_gamecube_start();
-                vTaskDelete(retro_mode_handle);
-                break;
-            case DETECT_SNES:
-                rgb_setall(COLOR_ORANGE, led_colors);
-                rgb_show();
-                vTaskDelay(500/portTICK_PERIOD_MS);
-                core_snes_start();
-                vTaskDelete(retro_mode_handle);
-                break;
-        }
-    }
-}
 
 bool battery_check_standby = false;
 bool retro_mode_enabled = false;
 
-void battery_check_task(void * parameters)
-{
-    const char* TAG = "battery_check_task";
-
-    for(;;)
-    {
-        util_battery_status_s t = {0};
-        t.status = util_battery_getstatus();
-        if (t.status != battery_status.status)
-        {
-            // Check if our plugged status has changed.
-            if (t.plug_status != battery_status.plug_status && !retro_mode_enabled)
-            {
-                ESP_LOGI(TAG, "Plug status changed. Rebooting...");
-                
-                // Send restart command to battery utility
-                core_usb_stop();
-                esp_restart();
-            }
-            else if (retro_mode_enabled)
-            {
-                retro_mode_enabled = false;
-            }
-
-            rgb_setbrightness(25);
-            // If the status has changed, it's dirty and we
-            // need to inspect!
-            battery_status.status = t.status;
-            
-        }
-
-        if (battery_check_standby)
-        {
-            if (t.charge_status == BATSTATUS_NOTCHARGING)
-            {
-                rgb_setall(COLOR_RED, led_colors);
-            }
-            else if (t.charge_status == BATSTATUS_TRICKLEFAST)
-            {
-                rgb_setall(COLOR_ORANGE, led_colors);
-            }
-            else if (t.charge_status == BATSTATUS_CONSTANT)
-            {
-                rgb_setall(COLOR_PURPLE, led_colors);
-            }
-            else if (t.charge_status == BATSTATUS_COMPLETED)
-            {
-                rgb_setall(COLOR_GREEN, led_colors);
-            }
-            rgb_show();
-            
-        }
-        vTaskDelay(500/portTICK_PERIOD_MS);
-    } 
-}
 
 void app_main()
 {
     const char* TAG = "app_main";
-
-    #if CONFIG_USB_COMPANION_SETTINGS
-        ESP_LOGI(TAG, "USB I2C Enabled.");
-    #else
-        ESP_LOGI(TAG, "USB I2C Disabled.");
-    #endif
 
     hoja_err_t err;
 
@@ -440,94 +420,9 @@ void app_main()
     GPIO.out_w1ts = GPIO_INPUT_CLEAR0_MASK;
     GPIO.out1_w1ts.val = (uint32_t) 0x3;
 
-    hoja_api_regbuttoncallback(button_task);
-    hoja_api_regstickcallback(stick_task);
+    hoja_register_button_callback(local_button_cb);
+    hoja_register_analog_callback(local_analog_cb);
+    hoja_register_event_callback(local_event_cb);
 
-    hoja_api_init();
-    util_rgb_init(led_colors, UTIL_RGB_MODE_GRB);
-
-    rgb_setbrightness(25);
-    boot_anim();
-    rgb_setbrightness(25);
-
-    vTaskDelay(100/portTICK_PERIOD_MS);
-
-    util_i2c_initialize();
-    battery_status.status = 0;
-    // Get plugged status
-    battery_status.status = util_battery_getstatus();
-
-    // Check if we should boot into retro mode
-    if (retro_mode_check())
-    {
-        retro_mode_enabled = true;
-        rgb_setall(COLOR_RED, led_colors);
-        rgb_show();
-        // Start battery voltage read task.
-        xTaskCreatePinnedToCore(retro_mode_loop, "Retro Mode Checker", 2024, NULL, 0, &retro_mode_handle, 1);
-    }
-    else
-    {
-        // Not retro mode, let's do other checks
-        // If we're plugged in, attempt USB startup
-        if (battery_status.plug_status == BATCABLE_PLUGGED)
-        {
-            // Set battery charge rate to 200mA
-            util_battery_write(0x4, 0x2F);
-
-            // If cable is plugged in on boot, we can
-            // check what we're plugged in to. Try USB first?
-            hoja_err_t herr = core_usb_start();
-            
-            if (herr != HOJA_OK)
-            {
-                // If USB core is not ready, stop it.
-                core_usb_stop();
-                // Enter a standby charging mode
-                battery_check_standby = true;
-            }
-            else
-            {
-                // If we're here USB Core started OK.
-                rgb_s col = {.rgb = 0xf4aef5};
-                rgb_setall(col, led_colors);
-                rgb_show();
-                vTaskDelay(500/portTICK_PERIOD_MS);
-            }
-        }
-        else
-        {
-            // If we're here, start our wireless mode of choice.
-            rgb_setall(COLOR_BLUE, led_colors);
-            rgb_show();
-            vTaskDelay(500/portTICK_PERIOD_MS);
-            if (core_ns_start() != HOJA_OK)
-            {
-                // Prevent edge cases by checking usb status again before trying sleep.
-                util_battery_status_s t = {0};
-                t.status = util_battery_getstatus();
-                if (t.status != battery_status.status)
-                {
-                    // Check if our plugged status has changed.
-                    if (t.plug_status != battery_status.plug_status)
-                    {
-                        ESP_LOGI(TAG, "Plug status changed. Rebooting...");
-                        
-                        // Send restart command to battery utility
-                        core_usb_stop();
-                        esp_restart();
-                    }
-                }
-                // Enter a sleep mode
-                enter_sleep();
-            }
-        }
-    }
-
-    // Start battery monitor task.
-    xTaskCreatePinnedToCore(battery_check_task, "Battery Monitor", 2024, NULL, 0, &battery_monitor_handle, 1);
-
-    // Start battery voltage read task.
-    xTaskCreatePinnedToCore(read_battery_voltage, "Battery Voltage Checker", 2024, NULL, 0, &battery_voltage_handle, 1);
-    
+    err = hoja_init();
 }

@@ -12,6 +12,51 @@ void spi_dummy_cb(spi_slave_transaction_t *trans)
 
 }
 
+void snes_task(void * parameters)
+{
+    for(;;)
+    {
+        esp_err_t err;
+
+        // SNES bits button order
+        // B, Y, Start, Select, Up, Down, Left, Right, A, X, L, R
+        // Ordered starting from bit 0 with B up to bit 11 with R.
+        // SNES/NES buttons are HIGH when not pressed, LOW when pressed.
+        // We subtract the button value as it's inverted. Unpressed trailing bits need to
+        // remain HIGH as well.
+
+        // Reset button output to all HIGH bits.
+        snes_button_buffer = 0xFFFF;
+
+        // Go through each bit and set accordingly.
+        snes_button_buffer -= (hoja_button_data.button_down     << 15U  );
+        snes_button_buffer -= (hoja_button_data.button_left     << 14U  );
+        snes_button_buffer -= (hoja_button_data.button_select   << 13U  );
+        snes_button_buffer -= (hoja_button_data.button_start    << 12U  );
+        snes_button_buffer -= (hoja_button_data.dpad_up         << 11U  );
+        snes_button_buffer -= (hoja_button_data.dpad_down       << 10U  );
+        snes_button_buffer -= (hoja_button_data.dpad_left       << 9U   );
+        snes_button_buffer -= (hoja_button_data.dpad_right      << 8U   );
+        snes_button_buffer -= (hoja_button_data.button_right    << 7U   );
+        snes_button_buffer -= (hoja_button_data.button_up       << 6U   );
+        snes_button_buffer -= (hoja_button_data.trigger_l       << 5U   );
+        snes_button_buffer -= (hoja_button_data.trigger_r       << 4U   );
+
+        // Reset HOJA input buttons for next scan sequence.
+        hoja_button_reset();
+
+        memset(snes_recvbuf, 0xA5, 129);
+        snes_slave_transaction.length = 15;
+        uint8_t tmplow = (snes_button_buffer >> 8);
+        uint8_t tmphigh = (snes_button_buffer & 0xFF);
+        uint8_t tmp[2] = {tmplow, tmphigh};
+        snes_slave_transaction.tx_buffer = tmp;
+
+        err = spi_slave_transmit(HSPI_HOST, &snes_slave_transaction, portMAX_DELAY);
+        vTaskDelay(1/portTICK_PERIOD_MS);
+    }
+}
+
 hoja_err_t core_snes_start()
 {
     const char* TAG = "core_snes_start";
@@ -81,61 +126,4 @@ hoja_err_t core_snes_stop()
     ESP_LOGI(TAG, "SNES Core stopped OK.");
 
     return HOJA_OK;
-}
-
-void snes_task(void * parameters)
-{
-    for(;;)
-    {
-        esp_err_t err;
-
-        // SNES bits button order
-        // B, Y, Start, Select, Up, Down, Left, Right, A, X, L, R
-        // Ordered starting from bit 0 with B up to bit 11 with R.
-        // SNES/NES buttons are HIGH when not pressed, LOW when pressed.
-        // We subtract the button value as it's inverted. Unpressed trailing bits need to
-        // remain HIGH as well.
-
-        // Reset button output to all HIGH bits.
-        snes_button_buffer = 0xFFFF;
-
-        // Simultaneous dpad direction erasure
-        if (g_button_data.d_down && g_button_data.d_up)
-        {
-            g_button_data.d_down = 0;
-            g_button_data.d_up = 0;
-        }
-        if (g_button_data.d_left && g_button_data.d_right)
-        {
-            g_button_data.d_left = 0;
-            g_button_data.d_right = 0;
-        }
-
-        // Go through each bit and set accordingly.
-        snes_button_buffer -= (g_button_data.b_down     << 15U  );
-        snes_button_buffer -= (g_button_data.b_left     << 14U  );
-        snes_button_buffer -= (g_button_data.b_select   << 13U  );
-        snes_button_buffer -= (g_button_data.b_start    << 12U  );
-        snes_button_buffer -= (g_button_data.d_up       << 11U  );
-        snes_button_buffer -= (g_button_data.d_down     << 10U  );
-        snes_button_buffer -= (g_button_data.d_left     << 9U   );
-        snes_button_buffer -= (g_button_data.d_right    << 8U   );
-        snes_button_buffer -= (g_button_data.b_right    << 7U   );
-        snes_button_buffer -= (g_button_data.b_up       << 6U   );
-        snes_button_buffer -= (g_button_data.t_l        << 5U   );
-        snes_button_buffer -= (g_button_data.t_r        << 4U   );
-
-        // Reset HOJA input buttons for next scan sequence.
-        hoja_button_reset();
-
-        memset(snes_recvbuf, 0xA5, 129);
-        snes_slave_transaction.length = 15;
-        uint8_t tmplow = (snes_button_buffer >> 8);
-        uint8_t tmphigh = (snes_button_buffer & 0xFF);
-        uint8_t tmp[2] = {tmplow, tmphigh};
-        snes_slave_transaction.tx_buffer = tmp;
-
-        err = spi_slave_transmit(HSPI_HOST, &snes_slave_transaction, portMAX_DELAY);
-        vTaskDelay(1/portTICK_PERIOD_MS);
-    }
 }

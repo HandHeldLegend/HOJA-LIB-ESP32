@@ -49,8 +49,6 @@
 #include "soc/periph_defs.h"
 #include "soc/rmt_struct.h"
 
-
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -74,6 +72,8 @@
 #include "util_wired_detect.h"
 #include "util_battery.h"
 #include "util_rmt.h"
+#include "util_common.h"
+#include "util_gamepad.h"
 
 
 #endif

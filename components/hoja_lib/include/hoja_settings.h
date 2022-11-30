@@ -80,9 +80,15 @@ extern hoja_settings_s loaded_settings;
 
 hoja_err_t hoja_settings_init(void);
 
+// PUBLIC FUNCTIONS
+// -----------------
+
 hoja_err_t hoja_settings_saveall(void);
 
 hoja_err_t hoja_settings_default(void);
+
+// -----------------
+// -----------------
 
 
 #endif

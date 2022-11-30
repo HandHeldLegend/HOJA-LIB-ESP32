@@ -1,24 +1,45 @@
 #include "hoja_frontend.h"
 
-uint8_t HOJA_PIN_LATCH = 0xFF;
-uint8_t HOJA_PIN_CLOCK = 0xFF;
-uint8_t HOJA_PIN_SERIAL = 0xFF;
-
+// Private variables
 TaskHandle_t hoja_button_taskhandle = NULL;
-SemaphoreHandle_t xSemaphore;
+hoja_core_t hoja_current_core = HOJA_CORE_NULL;
+hoja_status_t hoja_current_status = HOJA_STATUS_IDLE;
 
-hoja_err_t hoja_api_init()
+/**
+ * @brief Initialize HOJA library. Register any callbacks before calling this function.
+*/
+hoja_err_t hoja_init()
 {
-    const char* TAG = "hoja_api_init";
+    const char* TAG = "hoja_init";
 	esp_err_t ret;
 
-    xSemaphore = xSemaphoreCreateMutex();
-
-    if (hoja_params.api_initialized)
+    if (hoja_current_status >= HOJA_STATUS_INITIALIZED)
     {
         ESP_LOGE(TAG, "API is already running.");
         return HOJA_FAIL;
     }
+
+    bool fail = false;
+    if (hoja_button_cb == NULL)
+    {
+        fail = true;
+        ESP_LOGE(TAG, "hoja_button_cb is not registered!");
+    }
+    if (hoja_analog_cb == NULL)
+    {
+        fail = true;
+        ESP_LOGE(TAG, "hoja_analog_cb is not registered!");
+    }
+    if (hoja_event_cb == NULL)
+    {
+        fail = true;
+        ESP_LOGE(TAG, "hoja_event_cb is not registered!");
+    }
+    if (fail)
+    {
+        return HOJA_FAIL;
+    }
+
 
     // Initialize NVS
     ret = nvs_flash_init();
@@ -38,75 +59,117 @@ if (hoja_settings_init() != HOJA_OK)
     {
         vTaskDelete(hoja_button_taskhandle);
     }
+    
     // We need to start the button scan task.
     xTaskCreatePinnedToCore(hoja_button_task, "HOJA Button Task", 2048, NULL, 0, &hoja_button_taskhandle, 1);
     
-    hoja_params.api_initialized = true;
+    hoja_current_status = HOJA_STATUS_INITIALIZED;
 
     ESP_LOGI(TAG, "HOJA initialized.");
+
+    hoja_event_cb(HOJA_EVT_SYSTEM, HOJA_API_INIT_OK, 0x00);
 
     return HOJA_OK;
 }
 
-hoja_err_t hoja_api_setcore(uint8_t core_type)
+/**
+ * @brief Set the core used by HOJA.
+ * @param core Type of hoja_core_t
+*/
+hoja_err_t hoja_set_core(hoja_core_t core)
 {
-    const char* TAG = "hoja_api_setcore";
+    const char* TAG = "hoja_set_core";
 
-    if (!hoja_params.api_initialized)
+    if (core >= HOJA_CORE_MAX)
     {
-        ESP_LOGE(TAG, "Initialize API before setting the core.");
+        ESP_LOGE(TAG, "Core type is invalid!");
         return HOJA_FAIL;
     }
 
-    if (hoja_params.core_started)
+    if (core == NULL)
     {
-        ESP_LOGE(TAG, "Core already started. Core must be stopped before changing.");
+        ESP_LOGE(TAG, "Core type is null!");
         return HOJA_FAIL;
     }
 
-    hoja_params.selected_core = core_type;
+    if (hoja_current_status == HOJA_STATUS_RUNNING)
+    {
+        ESP_LOGE(TAG, "Cannot set core while another core is running!");
+        return HOJA_FAIL;
+    }
+
+    hoja_current_core = core;
 
     ESP_LOGI(TAG, "HOJA Core set.");
     return HOJA_OK;
 }
 
-hoja_err_t hoja_api_startcore(void)
+/**
+ * @brief Attempt to start the core specified by hoja_set_core
+*/
+hoja_err_t hoja_start_core(void)
 {
-    char* TAG = "hoja_api_startcore";
+    char* TAG = "hoja_start_core";
+    hoja_err_t err = HOJA_FAIL;
 
-    if (!hoja_params.api_initialized)
+    switch(hoja_current_core)
     {
-        ESP_LOGE(TAG, "Initialize API and set core before starting the controller.");
-        return HOJA_FAIL;
-    }
-
-    switch(hoja_params.selected_core)
-    {
-        case CORE_NINTENDOSWITCH:
+        
+        case HOJA_CORE_NS:
             ESP_LOGI(TAG, "Attempting Nintendo Switch Core start...");
-            core_ns_start();
+            err = core_ns_start();
             break;
-        case CORE_SNES:
+        case HOJA_CORE_SNES:
             ESP_LOGI(TAG, "Attempting SNES/NES Core start...");
-            core_snes_start();
+            err = core_snes_start();
+            break;
+        case HOJA_CORE_GC:
+            ESP_LOGI(TAG, "Attempting GameCube Core start...");
+            err = core_gamecube_start();
+            break;
+        case HOJA_CORE_USB:
+            ESP_LOGI(TAG, "Attempting USB Core start...");
+            err = core_usb_start();
             break;
         default:
             // No core matches!
-            ESP_LOGI(TAG, "Specified core does not exist.");
+            ESP_LOGE(TAG, "Specified core does not exist or isn't implemented yet.");
             return HOJA_FAIL;
             break;
     }
 
-    return HOJA_OK;
+    return err;
 }
 
-// Pointer to hold callback
-hoja_callback_t hoja_button_cb;
-hoja_callback_t hoja_stick_cb;
-hoja_callback_t hoja_rgb_cb;
+/**
+ * @brief Is called when button task is initiated by the API.
+ * 
+ * @param *button_data Pointer to global button_data variable. Gets passed to callback function
+ * for modification of button inputs. Recommended to perform OR EQUALS on button_data members. Type of hoja_button_data_s
+*/
+hoja_button_callback_t hoja_button_cb = NULL;
 
-// Function to register callback function for setting buttons
-hoja_err_t hoja_api_regbuttoncallback(hoja_callback_t func)
+/**
+ * @brief Is called when analog reading is initiated by the API.
+ * 
+ * @param *analog_data Pointer to global analog_data variable. Gets passed to callback function
+ * for modification of analog inputs. Recommended to perform EQUALS on analog_data members. Type of hoja_analog_data_s
+*/
+hoja_analog_callback_t hoja_analog_cb = NULL;
+
+/**
+ * @brief Is called when HOJA event is triggered by the API.
+ * 
+ * @param type Type of hoja_event_type_t
+ * @param evt Event that occurred. See hoja_types.h for details on types for each category.
+ * @param param uint8_t type of data related to the event that occurred.
+*/
+hoja_event_callback_t hoja_event_cb = NULL;
+
+/**
+ * @brief Register HOJA callback function for button input.
+*/
+hoja_err_t hoja_register_button_callback(hoja_button_callback_t func)
 {
     if (func == NULL) return HOJA_FAIL;
 
@@ -115,22 +178,26 @@ hoja_err_t hoja_api_regbuttoncallback(hoja_callback_t func)
     return HOJA_OK;
 }
 
-// Function to register callback function for setting sticks
-hoja_err_t hoja_api_regstickcallback(hoja_callback_t func)
+/**
+ * @brief Register HOJA callback function for analog input.
+*/
+hoja_err_t hoja_register_analog_callback(hoja_analog_callback_t func)
 {
     if (func == NULL) return HOJA_FAIL;
 
-    hoja_stick_cb = func;
+    hoja_analog_cb = func;
 
     return HOJA_OK;
 }
 
-hoja_err_t hoja_api_regrgbcallback(hoja_callback_t func)
+/**
+ * @brief Register HOJA callback function for system, core, and utility events.
+*/
+hoja_err_t hoja_register_event_callback(hoja_event_callback_t func)
 {
     if (func == NULL) return HOJA_FAIL;
 
-    hoja_rgb_cb = func;
+    hoja_event_cb = func;
 
     return HOJA_OK;
 }
-

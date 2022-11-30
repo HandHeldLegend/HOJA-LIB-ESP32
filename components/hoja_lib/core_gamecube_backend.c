@@ -20,25 +20,23 @@ void gamecube_input_translate(void)
         JB_STOP, JB_ZERO
     };
 
-    hoja_stick_cb();
+    hoja_analog_cb(&hoja_analog_data);
 
-    gcmd_poll_rmt[GC_BUTTON_START]  = g_button_data.b_start  ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_Y]      = g_button_data.b_left   ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_X]      = g_button_data.b_up     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_B]      = g_button_data.b_down   ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_A]      = g_button_data.b_right  ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_START]  = hoja_button_data.button_start  ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_Y]      = hoja_button_data.button_left   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_X]      = hoja_button_data.button_up     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_B]      = hoja_button_data.button_down   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_A]      = hoja_button_data.button_right  ? JB_HIGH : JB_LOW;
 
-    gcmd_poll_rmt[GC_BUTTON_LB]     = g_button_data.t_zl     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_RB]     = g_button_data.t_zr     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_Z]      = (g_button_data.t_l | g_button_data.t_r)    ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_DUP]    = g_button_data.d_up     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_DDOWN]  = g_button_data.d_down   ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_DLEFT]  = g_button_data.d_left   ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_DRIGHT] = g_button_data.d_right  ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_LB]     = hoja_button_data.trigger_zl     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_RB]     = hoja_button_data.trigger_zr     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_Z]      = (hoja_button_data.trigger_l | hoja_button_data.trigger_r)    ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DUP]    = hoja_button_data.dpad_up     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DDOWN]  = hoja_button_data.dpad_down   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DLEFT]  = hoja_button_data.dpad_left   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DRIGHT] = hoja_button_data.dpad_right  ? JB_HIGH : JB_LOW;
 
     memcpy(JB_POLL_MEM, gcmd_poll_rmt, sizeof(rmt_item32_t) * GC_POLL_RMT_LEN);
-
-    hoja_stick_cb();
 
     hoja_button_reset();
 }
@@ -49,7 +47,6 @@ volatile uint32_t tmpgot = 0x00;
 
 static void gamecube_rmt_isr(void* arg) 
 {
-
     // At the end of a received transaction
     // on channel 0
     if (RMT.int_st.ch0_rx_end)
@@ -183,7 +180,6 @@ void gamecube_init(void)
     #elif CONFIG_IDF_TARGET_ESP32
     RMT.conf_ch[JB_RX_CHANNEL].conf1.ref_always_on = 1;
     #endif
-    
 
     // set up RMT peripheral register stuff
     // for transaction channels :)
@@ -221,7 +217,6 @@ void gamecube_init(void)
     JB_POLL_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
     JB_POLL_TXENDINTENA    = 1;
     
-
     rmt_item32_t gcmd_probe_rmt[GC_PROBE_RMT_LEN] = {
         JB_RMT_0X0, JB_RMT_0X9,
         JB_RMT_0X0, JB_RMT_0X0,
@@ -253,29 +248,14 @@ void gamecube_init(void)
     gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
 
     rmt_isr_register(gamecube_rmt_isr, NULL, 3, NULL);
-
 }
-
-void gc_debug_task(void * parameters)
-{
-    const char* TAG = "gc_debug_task";
-    for(;;)
-    {
-        ESP_LOGI(TAG, "CMD: %X", (unsigned int) command);
-        vTaskDelay(800/portTICK_PERIOD_MS);
-    }
-}
-
-TaskHandle_t gc_debug_task_h;
 
 hoja_err_t core_gamecube_start()
 {  
     const char* TAG = "core_gamecube_start";
     esp_err_t er = ESP_OK;
     ESP_LOGI(TAG, "GameCube Core Started.");
-
-    //xTaskCreatePinnedToCore(gc_debug_task, "Debug", 1024, NULL, 0, &gc_debug_task_h, 0);
-
+    
     gamecube_init();
 
     vTaskDelay(200/portTICK_PERIOD_MS);

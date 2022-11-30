@@ -24,49 +24,48 @@ hoja_err_t ns_input_translate(uint8_t button_mode)
             memset(&ns_input_short, 0, sizeof(ns_input_short_s));
 
             // Short mode stick data set
-            ns_input_short.l_stick[0] = g_stick_data.lsx & 0xFF;
-            ns_input_short.l_stick[1] = (g_stick_data.lsx & 0xF00) >> 8;
-            ns_input_short.l_stick[2] = g_stick_data.lsy & 0xFF;
-            ns_input_short.l_stick[3] = (g_stick_data.lsy & 0xF00) >> 8;
+            ns_input_short.l_stick[0] = hoja_analog_data.ls_x & 0xFF;
+            ns_input_short.l_stick[1] = (hoja_analog_data.ls_x & 0xF00) >> 8;
+            ns_input_short.l_stick[2] = hoja_analog_data.ls_y & 0xFF;
+            ns_input_short.l_stick[3] = (hoja_analog_data.ls_y & 0xF00) >> 8;
 
 
-            ns_input_short.b_right = g_button_data.b_right;
-            ns_input_short.b_down = g_button_data.b_down;
+            ns_input_short.b_right = hoja_button_data.button_right;
+            ns_input_short.b_down = hoja_button_data.button_down;
             break;
 
         case NS_BM_LONG:
-            //memset(&ns_input_long, 0, sizeof(ns_input_long_s));
 
             // Long mode stick data set
-            ns_input_long.l_stick[0] = g_stick_data.lsx & 0xFF;
-            ns_input_long.l_stick[1] = g_stick_data.lsx >> 8;
-            ns_input_long.l_stick[1] |= (g_stick_data.lsy & 0xF) << 4;
-            ns_input_long.l_stick[2] = g_stick_data.lsy >> 4;
+            ns_input_long.l_stick[0] = hoja_analog_data.ls_x & 0xFF;
+            ns_input_long.l_stick[1] = hoja_analog_data.ls_x >> 8;
+            ns_input_long.l_stick[1] |= (hoja_analog_data.ls_y & 0xF) << 4;
+            ns_input_long.l_stick[2] = hoja_analog_data.ls_y >> 4;
 
-            ns_input_long.r_stick[0] = g_stick_data.rsx & 0xFF;
-            ns_input_long.r_stick[1] = g_stick_data.rsx >> 8;
-            ns_input_long.r_stick[1] |= (g_stick_data.rsy & 0xF) << 4;
-            ns_input_long.r_stick[2] = g_stick_data.rsy >> 4;
+            ns_input_long.r_stick[0] = hoja_analog_data.rs_x & 0xFF;
+            ns_input_long.r_stick[1] = hoja_analog_data.rs_x >> 8;
+            ns_input_long.r_stick[1] |= (hoja_analog_data.rs_y & 0xF) << 4;
+            ns_input_long.r_stick[2] = hoja_analog_data.rs_y >> 4;
 
-            ns_input_long.b_plus = g_button_data.b_start;
-            ns_input_long.b_minus = g_button_data.b_select;
-            ns_input_long.b_home = g_button_data.b_home;
-            ns_input_long.b_capture = g_button_data.b_capture;
+            ns_input_long.b_plus = hoja_button_data.button_start;
+            ns_input_long.b_minus = hoja_button_data.button_select;
+            ns_input_long.b_home = hoja_button_data.button_home;
+            ns_input_long.b_capture = hoja_button_data.button_capture;
 
-            ns_input_long.d_down = g_button_data.d_down;
-            ns_input_long.d_up = g_button_data.d_up;
-            ns_input_long.d_left = g_button_data.d_left;
-            ns_input_long.d_right = g_button_data.d_right;
+            ns_input_long.d_down    = hoja_button_data.dpad_down;
+            ns_input_long.d_up      = hoja_button_data.dpad_up;
+            ns_input_long.d_left    = hoja_button_data.dpad_left;
+            ns_input_long.d_right   = hoja_button_data.dpad_right;
 
-            ns_input_long.b_a = g_button_data.b_right;
-            ns_input_long.b_b = g_button_data.b_down;
-            ns_input_long.b_x = g_button_data.b_up;
-            ns_input_long.b_y = g_button_data.b_left;
+            ns_input_long.b_a       = hoja_button_data.button_right;
+            ns_input_long.b_b       = hoja_button_data.button_down;
+            ns_input_long.b_x       = hoja_button_data.button_up;
+            ns_input_long.b_y       = hoja_button_data.button_left;
 
-            ns_input_long.t_zl = g_button_data.t_zl;
-            ns_input_long.t_zr = g_button_data.t_zr;
-            ns_input_long.t_l = g_button_data.t_l;
-            ns_input_long.t_r = g_button_data.t_r;    
+            ns_input_long.t_zl      = hoja_button_data.trigger_zl;
+            ns_input_long.t_zr      = hoja_button_data.trigger_zr;
+            ns_input_long.t_l       = hoja_button_data.trigger_l;
+            ns_input_long.t_r       = hoja_button_data.trigger_r;    
             break;
         default:
             ESP_LOGE(TAG, "Input type invalid!");

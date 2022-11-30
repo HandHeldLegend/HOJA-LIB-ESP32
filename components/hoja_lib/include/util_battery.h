@@ -5,8 +5,16 @@
 
 #define UTIL_BATTERY_I2C_ADDRESS 0x6A
 
+// Each type corresponds to the battery I2C address
 typedef enum
 {
+    BATTYPE_UNDEFINED = 0x00,
+    BATTYPE_BQ25180 = 0x6A,
+} util_battery_type_t;
+
+typedef enum
+{
+    BATSTATUS_UNDEFINED   = 0xFF,
     BATSTATUS_NOTCHARGING = 0x00,
     BATSTATUS_TRICKLEFAST = 0x01,
     BATSTATUS_CONSTANT    = 0x02,
@@ -15,8 +23,9 @@ typedef enum
 
 typedef enum
 {
-    BATCABLE_UNPLUGGED    = 0,
-    BATCABLE_PLUGGED      = 1,
+    BATCABLE_UNDEFINED    = 0xF,
+    BATCABLE_UNPLUGGED    = 0x0,
+    BATCABLE_PLUGGED      = 0x1,
 } util_battery_plugged_t;
 
 typedef struct
@@ -34,8 +43,18 @@ typedef struct
     };
 } util_battery_status_s;
 
-uint8_t util_battery_getstatus();
+// PUBLIC FUNCTIONS
+// -----------------
+hoja_err_t util_battery_set_type(util_battery_type_t type);
 
-void util_battery_write(uint8_t offset, uint8_t byte);
+hoja_err_t util_battery_start_monitor(void);
+
+void util_battery_stop_monitor(void);
+
+hoja_err_t util_battery_set_charge_rate(uint16_t rate_ma);
+
+void util_battery_enable_ship_mode(void);
+// -----------------
+// -----------------
 
 #endif

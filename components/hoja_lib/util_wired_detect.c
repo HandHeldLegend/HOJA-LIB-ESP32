@@ -1,7 +1,10 @@
 #include "util_wired_detect.h"
 
 QueueHandle_t pcnt_evt_queue;   // A queue to handle pulse counter events
+TaskHandle_t util_wired_loop_task = NULL;
 
+// PRIVATE FUNCTIONS
+// -----------------
 static void IRAM_ATTR pcnt_intr_handler(void *arg)
 {
     int pcnt_unit = (int)arg;
@@ -13,7 +16,7 @@ static void IRAM_ATTR pcnt_intr_handler(void *arg)
     xQueueSendFromISR(pcnt_evt_queue, &evt, NULL);
 }
 
-util_wire_det_t wired_detect()
+util_wire_det_t util_wired_get(void)
 {
     const char* TAG = "wired_detect";
 
@@ -111,3 +114,78 @@ util_wire_det_t wired_detect()
 
     return detected_type;
 }
+
+void util_wired_detect_task(void * params)
+{
+    ESP_LOGI("util_wired_detect_task", "Starting task to find wired connection...");
+    for(;;)
+    {
+        util_wire_det_t type = util_wired_get();
+        // Send appropriate event to have action taken
+        switch(type)
+        {
+            default:
+            case DETECT_NONE:
+                break;
+            case DETECT_JOYBUS:
+                hoja_event_cb(HOJA_EVT_WIRED, WIRED_JOYBUS_DETECT, NULL);
+                vTaskDelete(util_wired_loop_task);
+                util_wired_loop_task = NULL;
+                break;
+            case DETECT_SNES:
+                hoja_event_cb(HOJA_EVT_WIRED, WIRED_SNES_DETECT, NULL);
+                vTaskDelete(util_wired_loop_task);
+                util_wired_loop_task = NULL;
+                break;
+        }
+        vTaskDelay(500/portTICK_PERIOD_MS);
+    }
+}
+// -----------------
+// -----------------
+
+// PUBLIC FUNCTIONS
+// -----------------
+
+/**
+ * @brief Runs once and spits out an event callback telling you which
+ * retro console has been detected.
+*/
+void util_wired_detect(void)
+{
+    util_wire_det_t type = util_wired_get();
+
+    // Send appropriate event to have action taken
+    switch(type)
+    {
+        default:
+        case DETECT_NONE:
+            hoja_event_cb(HOJA_EVT_WIRED, WIRED_NO_DETECT, 0x00);
+            break;
+        case DETECT_JOYBUS:
+            hoja_event_cb(HOJA_EVT_WIRED, WIRED_JOYBUS_DETECT, 0x00);
+            break;
+        case DETECT_SNES:
+            hoja_event_cb(HOJA_EVT_WIRED, WIRED_SNES_DETECT, 0x00);
+            break;
+    }
+}
+
+/**
+ * @brief Starts a loop that will run until it detects a retro console.
+ * It then spits out an event callback telling you which retro console
+ * has been detected.
+*/
+hoja_err_t util_wired_detect_loop(void)
+{
+    if (util_wired_loop_task != NULL)
+    {
+        vTaskDelete(util_wired_loop_task);
+        util_wired_loop_task = NULL;
+    }
+
+    xTaskCreatePinnedToCore(util_wired_detect_task, "Wired Utility Detect Loop", 2048, NULL, 2, util_wired_loop_task, 1);
+
+    return HOJA_OK;
+}
+

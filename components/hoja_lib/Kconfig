@@ -1,14 +1,10 @@
-menu "HOJA Optional Items"
-
-    config HOJA_USB_ENABLE
-        bool "Enable EFMUB81 HID Companion Device"
-        default "n"
-
+menu "HOJA RGB Utility"
     config HOJA_RGB_ENABLE
         bool "Enable RGB (Neo Pixel) Driver"
-        default "n"
+        default "y"
 
     config HOJA_RGB_GPIO
+        depends on HOJA_RGB_ENABLE
         int "RGB Driver GPIO Output Pin"
         range 0 48
         default 23
@@ -16,6 +12,7 @@ menu "HOJA Optional Items"
             Default is 23
 
     config HOJA_RGB_COUNT
+        depends on HOJA_RGB_ENABLE
         int "RGB LED Count"
         range 0 100
         default 4
@@ -23,12 +20,15 @@ menu "HOJA Optional Items"
             This is used at compile time
             to determine how many LEDs there
             will be. 
-
 endmenu
 
-menu "HOJA GPIO Selection"
-
+menu "HOJA I2C Utility"
+    config HOJA_I2C_ENABLE
+        bool "Enable I2C Communications Managed by HOJA Library"
+        default "n"
+    
     config HOJA_GPIO_I2C_SCL
+        depends on HOJA_I2C_ENABLE
         int "I2C SCL Pin"
         range 0 48
         default 22
@@ -36,12 +36,29 @@ menu "HOJA GPIO Selection"
             Default is 22
 
     config HOJA_GPIO_I2C_SDA
+        depends on HOJA_I2C_ENABLE
         int "I2C SDA Pin"
         range 0 48
         default 21
         help 
             Default is 21
+endmenu
 
+menu "HOJA USB Core EFM8UB1 Companion MCU"
+    config HOJA_EFM8UB1_ENABLE
+        depends on HOJA_I2C_ENABLE
+        bool "Enable I2C communication with EFM8UB1 Companion."
+        default "n"
+        help
+            Requires companion MCU on the same PCB connected to the I2C
+            lines set up with the ESP32. 
+            I2C utility MUST be enabled in HOJA config settings.
+            See https://github.com/HandHeldLegend/HOJA-USB-EFM8UB1
+            for more information and for firmware files to flash to the EFM8UB1 MCU.
+            16KB model recommended.
+endmenu
+
+menu "HOJA GPIO Selection"
     config HOJA_GPIO_NS_SERIAL
         int "Nintendo Serial Pin"
         range 0 48
@@ -62,18 +79,4 @@ menu "HOJA GPIO Selection"
         default 14
         help
             Default is 14. Used for NES/SNES Latch Pin.
-
-endmenu
-
-
-menu "HOJA Core Include Selection"
-
-    config HOJA_CORE_NINTENDOSWITCH
-        bool "Nintendo Switch Bluetooth Core"
-        default "y"
-
-    config HOJA_CORE_SNES
-        bool "Super Nintendo Wired Core"
-        default "y"
-
 endmenu

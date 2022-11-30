@@ -19,22 +19,6 @@
 // How many bytes per LED?
 #define RGB_BYTE_MULTIPLIER 9
 
-typedef struct
-{
-    union
-    {
-        struct
-        {
-            uint8_t blue;
-            uint8_t green;
-            uint8_t red;
-            uint8_t dummy;
-        };
-        uint32_t rgb;
-    };
-    
-} rgb_s;
-
 // We use this type to set the bits
 // appropriately for the SPI output.
 // Easier to work with one 32 bit int

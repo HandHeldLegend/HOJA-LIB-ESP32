@@ -26,6 +26,12 @@ typedef struct {
 
 } pcnt_evt_t;
 
-util_wire_det_t wired_detect(void);
+// PUBLIC FUNCTIONS
+// -----------------
+void util_wired_detect(void);
+
+hoja_err_t util_wired_detect_loop(void);
+// -----------------
+// -----------------
 
 #endif
