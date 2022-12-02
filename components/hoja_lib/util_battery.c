@@ -47,9 +47,7 @@ hoja_err_t util_battery_get_status_byte(uint8_t *status_byte)
             ESP_LOGE(esp_err_to_name(err), "");
             return HOJA_I2C_FAIL;
         }
-        status_byte = response[0];
-
-        ESP_LOGI(TAG, "Battery Status: %X", (unsigned int) status_byte);
+        *status_byte = response[0];
     }
     else
     {
@@ -110,11 +108,12 @@ hoja_err_t util_battery_write(uint8_t offset, uint8_t byte)
 void util_battery_monitor_task(void * params)
 {
     const char* TAG = "util_battery_monitor_task";
+    uint8_t status_byte = 0x00;
 
     ESP_LOGI(TAG, "Starting monitor task loop...");
     for(;;)
     {
-        uint8_t status_byte = 0x00;
+        
         hoja_err_t e = util_battery_get_status_byte(&status_byte);
 
         if (e != HOJA_OK)
@@ -160,7 +159,7 @@ void util_battery_monitor_task(void * params)
                     break;
                     case BATSTATUS_TRICKLEFAST:
                     case BATSTATUS_CONSTANT:
-                    hoja_event_cb(HOJA_EVT_BATTERY, BATTERY_CHARGING_FAST, stat_change);
+                    hoja_event_cb(HOJA_EVT_BATTERY, BATTERY_CHARGING_PROGRESS, stat_change);
                     break;
                     case BATSTATUS_COMPLETED:
                     hoja_event_cb(HOJA_EVT_BATTERY, BATTERY_CHARGING_COMPLETE, stat_change);
@@ -225,7 +224,7 @@ hoja_err_t util_battery_start_monitor(void)
     }
 
     ESP_LOGI(TAG, "Battery monitor STARTED.");
-    xTaskCreatePinnedToCore(util_battery_monitor_task, "Battery Monitor Task", 2024, NULL, 2, util_battery_monitor_taskhandle, 1);
+    xTaskCreatePinnedToCore(util_battery_monitor_task, "Battery Monitor Task", 3000, NULL, 2, &util_battery_monitor_taskhandle, 1);
 
     return HOJA_OK;
 }

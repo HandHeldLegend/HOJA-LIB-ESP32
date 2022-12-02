@@ -64,6 +64,10 @@
 // ADC channel for battery voltage reading
 #define ADC_BATTERY_LVL     ADC1_CHANNEL_0
 
+uint8_t local_bluetooth_mode = HOJA_CORE_NS;
+uint8_t local_retro_mode = false;
+uint8_t local_cable_plugged = false;
+
 // Variables used to store register reads
 uint32_t regread_low = 0;
 uint32_t regread_high = 0;
@@ -72,6 +76,83 @@ bool     local_start_pressed = false;
 // Variable to hold current color data
 rgb_s led_colors[CONFIG_HOJA_RGB_COUNT] = {0};
 
+// LED boot animation
+void boot_anim()
+{
+    int back_forth = 0;
+    bool toggle = false;
+    bool colorflip = false;
+    uint8_t color_idx = 0;
+    uint8_t color_last_idx = 0;
+    rgb_s colors[6] = {COLOR_RED, COLOR_ORANGE, COLOR_YELLOW, COLOR_GREEN, COLOR_BLUE, COLOR_PURPLE};
+    for(int i = 0; i < 12; i++)
+    {
+        memset(led_colors, 0x00, sizeof(led_colors));
+        led_colors[back_forth] = colors[color_idx];
+        
+        if (!toggle)
+        {
+            if (back_forth > 0)
+            {
+                led_colors[back_forth-1] = colors[color_last_idx];
+                color_last_idx = color_idx;
+            }
+            back_forth += 1;
+            if (back_forth == CONFIG_HOJA_RGB_COUNT)
+            {
+                toggle = true;
+                back_forth = CONFIG_HOJA_RGB_COUNT-1;
+            }
+        }
+        else
+        {
+            if (back_forth < CONFIG_HOJA_RGB_COUNT-1)
+            {
+                led_colors[back_forth+1] = colors[color_last_idx];
+                color_last_idx = color_idx;
+            }
+            back_forth -= 1;
+            if (back_forth == -1)
+            {
+                toggle = false;
+                back_forth = 0;
+            }
+        }
+
+        if (!colorflip)
+        {
+            if (color_idx + 1 > 5)
+            {
+                colorflip = true;
+                color_idx = 5;
+            }
+            else
+            {
+                color_idx += 1;
+            }
+        }
+        else
+        {
+            if (color_idx - 1 < 0)
+            {
+                colorflip = false;
+                color_idx = 0;
+            }
+            else
+            {
+                color_idx -= 1;
+            }
+        }
+
+        rgb_show();
+        vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+    rgb_setall(COLOR_BLACK, led_colors);
+    rgb_show();
+}
+
+// Removed for now
+/*
 void read_battery_voltage(void * parameters)
 {
     // Set up ADC
@@ -89,12 +170,22 @@ void read_battery_voltage(void * parameters)
         vTaskDelay(1000/portTICK_PERIOD_MS);
     }
 }
+*/
+
+// Reboot system properly.
+void enter_reboot()
+{
+    util_battery_set_charge_rate(35);
+    esp_restart();
+}
 
 // Sleep mode should check the charge level every 30 seconds or so. 
 void enter_sleep()
 {
-    ESP_LOGI("enter_sleep", "Entering sleep mode");
-    esp_deep_sleep_start();
+    rgb_setall(COLOR_BLACK, led_colors);
+    rgb_show();
+
+    util_battery_enable_ship_mode();
 }
 
 // Set up function to update inputs
@@ -193,19 +284,6 @@ void local_button_cb(hoja_button_data_s *button_data)
     }
 }
 
-// Check to see if we should enable 'retro mode (Wired SNES/NES/GameCube)'
-bool retro_mode_check()
-{
-    // Check if start is pressed
-    if (local_start_pressed)
-    {
-        hoja_button_reset();
-        return true;
-    }
-    hoja_button_reset();
-    return false;
-}
-
 // Separate task to read sticks.
 // This is essential to have as a separate component as ADC scans typically take more time and this is only
 // scanned once between each polling interval. This varies from core to core.
@@ -237,12 +315,61 @@ void local_system_evt(hoja_system_event_t evt)
     const char* TAG = "local_system_evt";
     switch(evt)
     {
+        esp_err_t err = ESP_OK;
+
         case HOJA_API_INIT_OK:
             ESP_LOGI(TAG, "HOJA initialized OK callback.");
+
+            // Play boot animation.
+            boot_anim();
+
+            local_button_cb(&hoja_button_data);
+
+            // Check to see what buttons are being held. Adjust state accordingly.
+            if (hoja_button_data.button_start)
+            {
+                local_retro_mode = true;
+                err = util_wired_detect_loop();
+                if (!err)
+                {
+                    ESP_LOGI(TAG, "Started wired retro loop OK.");
+                    rgb_setall(COLOR_RED, led_colors);
+                    rgb_show();
+                }
+                else
+                {
+                    ESP_LOGE(TAG, "Failed to start wired retro loop.");
+                }
+            }
+            else
+            {
+                if (hoja_button_data.button_right)
+                {
+                    local_bluetooth_mode = HOJA_CORE_NS;
+                }
+                else if (hoja_button_data.button_left)
+                {
+                    local_bluetooth_mode = HOJA_CORE_BTHID;
+                }
+            }
+
+            // Start battery monitor and we can wait for proper callback to tell us
+            // what the status is.
+            err = util_battery_start_monitor();
             break;
 
         case HOJA_SHUTDOWN:
+            if (!local_cable_plugged)
+            {
+                enter_sleep();
+            }
+            else
+            {
+                enter_reboot();
+            }
+            break;
         case HOJA_REBOOT:
+            enter_reboot();
             break;
     }
 }
@@ -269,12 +396,133 @@ void local_ns_evt(hoja_ns_event_t evt, uint8_t param)
 
 void local_wired_evt(hoja_wired_event_t evt)
 {
+    const char* TAG = "local_wired_evt";
+    hoja_err_t err = HOJA_OK;
 
+    switch(evt)
+    {
+        default:
+        case WIRED_NO_DETECT:
+            err = HOJA_FAIL;
+            break;
+        
+        case WIRED_SNES_DETECT:
+            hoja_set_core(HOJA_CORE_SNES);
+            rgb_setall(COLOR_YELLOW, led_colors);
+            err = hoja_start_core();
+
+            break;
+
+        case WIRED_JOYBUS_DETECT:
+            hoja_set_core(HOJA_CORE_GC);
+            rgb_setall(COLOR_PURPLE, led_colors);
+            err = hoja_start_core();
+
+            break;
+    }
+
+    if (err != HOJA_OK)
+    {
+        ESP_LOGE(TAG, "Failed to start retro core.");
+        enter_sleep();
+    }
+    else
+    {
+        ESP_LOGI(TAG, "Started retro core OK.");
+        rgb_show();
+    }
 }
 
 void local_battery_evt(hoja_battery_event_t evt, uint8_t status_changed)
 {
-    
+    const char* TAG = "local_battery_evt";
+    hoja_err_t err = HOJA_OK;
+
+    switch(evt)
+    {
+        case BATTERY_CHARGER_PLUGGED:
+            // Charger was not plugged in, but then
+            // got plugged in. Only do this when
+            // not in retro mode.
+
+            local_cable_plugged = true;
+
+            if (status_changed && !local_retro_mode)
+            {
+                // Reboot controller
+
+            }
+            // First state check, charger is
+            // plugged in. Likely a boot state.
+            else if (!local_retro_mode)
+            {
+                hoja_set_core(HOJA_CORE_USB);
+                err = hoja_start_core();
+
+                // USB Core started OK.
+                if (!err)
+                {
+                    ESP_LOGI(TAG, "USB Core started OK");
+                }
+                // USB core failed to start.
+                else
+                {
+                    ESP_LOGI(TAG, "USB Core did not start. Standby charging mode...");
+                }
+
+            }
+            break;
+
+        case BATTERY_CHARGER_DISCONNECT:
+
+            local_cable_plugged = false;
+
+            // Charger was plugged in, but then
+            // got unplugged.
+            if (status_changed)
+            {
+                // Reboot controller.
+                
+            }
+            // First state check, charger is
+            // unplugged. This is likely a boot state.
+            else if (!local_retro_mode)
+            {
+                hoja_set_core(local_bluetooth_mode);
+                rgb_setall(COLOR_BLUE, led_colors);
+                rgb_show();
+                err = hoja_start_core();
+                
+                // Bluetooth core started OK.
+                if (!err)
+                {
+
+                }
+                // Bluetooth core did not connect or failed.
+                else
+                {
+                    // Shut down controller.
+                    enter_sleep();
+                }
+            }
+            break;
+
+        case BATTERY_CHARGING_PROGRESS:
+        break;
+
+        case BATTERY_CHARGING_COMPLETE:
+        break;
+
+        case BATTERY_NO_COMMUNICATION:
+            ESP_LOGE(TAG, "Failed to communicate with PMIC.");
+            break;
+
+        case BATTERY_LEVEL_CHANGED:
+        break;
+
+        case BATTERY_NOT_CHARGING:
+        break;
+    }
 }
 
 // Callback to handle HOJA events
@@ -315,86 +563,6 @@ void local_event_cb(hoja_event_type_t type, uint8_t evt, uint8_t param)
     }
 }
 
-void boot_anim()
-{
-    int back_forth = 0;
-    bool toggle = false;
-    bool colorflip = false;
-    uint8_t color_idx = 0;
-    uint8_t color_last_idx = 0;
-    rgb_s colors[6] = {COLOR_RED, COLOR_ORANGE, COLOR_YELLOW, COLOR_GREEN, COLOR_BLUE, COLOR_PURPLE};
-    for(int i = 0; i < 12; i++)
-    {
-        memset(led_colors, 0x00, sizeof(led_colors));
-        led_colors[back_forth] = colors[color_idx];
-        
-        if (!toggle)
-        {
-            if (back_forth > 0)
-            {
-                led_colors[back_forth-1] = colors[color_last_idx];
-                color_last_idx = color_idx;
-            }
-            back_forth += 1;
-            if (back_forth == CONFIG_HOJA_RGB_COUNT)
-            {
-                toggle = true;
-                back_forth = CONFIG_HOJA_RGB_COUNT-1;
-            }
-        }
-        else
-        {
-            if (back_forth < CONFIG_HOJA_RGB_COUNT-1)
-            {
-                led_colors[back_forth+1] = colors[color_last_idx];
-                color_last_idx = color_idx;
-            }
-            back_forth -= 1;
-            if (back_forth == -1)
-            {
-                toggle = false;
-                back_forth = 0;
-            }
-        }
-
-        if (!colorflip)
-        {
-            if (color_idx + 1 > 5)
-            {
-                colorflip = true;
-                color_idx = 5;
-            }
-            else
-            {
-                color_idx += 1;
-            }
-        }
-        else
-        {
-            if (color_idx - 1 < 0)
-            {
-                colorflip = false;
-                color_idx = 0;
-            }
-            else
-            {
-                color_idx -= 1;
-            }
-        }
-
-        rgb_show();
-        vTaskDelay(100/portTICK_PERIOD_MS);
-    }
-    rgb_setall(COLOR_BLACK, led_colors);
-    rgb_show();
-}
-
-TaskHandle_t retro_mode_handle      = NULL;
-
-bool battery_check_standby = false;
-bool retro_mode_enabled = false;
-
-
 void app_main()
 {
     const char* TAG = "app_main";
@@ -419,6 +587,10 @@ void app_main()
 
     GPIO.out_w1ts = GPIO_INPUT_CLEAR0_MASK;
     GPIO.out1_w1ts.val = (uint32_t) 0x3;
+
+    util_i2c_initialize();
+    util_battery_set_type(BATTYPE_BQ25180);
+    util_rgb_init(led_colors, RGB_MODE_GRB);
 
     hoja_register_button_callback(local_button_cb);
     hoja_register_analog_callback(local_analog_cb);

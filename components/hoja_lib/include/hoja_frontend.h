@@ -3,6 +3,8 @@
 
 #include "hoja_includes.h"
 
+extern hoja_status_t hoja_current_status;
+
 // This struct type is used to
 // set up HOJA API before runtime.
 // This should be passed through with hoja_api_init()

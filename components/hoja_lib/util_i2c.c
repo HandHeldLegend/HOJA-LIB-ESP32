@@ -6,7 +6,7 @@ hoja_err_t util_i2c_initialize(void)
 {
     const char* TAG = "util_i2c_initialize";
 
-    #if CONIFG_HOJA_I2C_ENABLE
+    #if CONFIG_HOJA_I2C_ENABLE
     ESP_LOGI(TAG, "I2C Utility Start.");
     esp_err_t err = ESP_OK;
 

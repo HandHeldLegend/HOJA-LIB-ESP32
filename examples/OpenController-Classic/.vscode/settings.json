@@ -1,7 +1,7 @@
 {
   "C_Cpp.intelliSenseEngine": "Tag Parser",
   "idf.flashType": "UART",
-  "idf.portWin": "COM10",
+  "idf.portWin": "COM7",
   "files.associations": {
     "rtc_io.h": "c",
     "main.h": "c",

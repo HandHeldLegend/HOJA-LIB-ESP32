@@ -13,9 +13,15 @@ hoja_err_t hoja_init()
     const char* TAG = "hoja_init";
 	esp_err_t ret;
 
-    if (hoja_current_status >= HOJA_STATUS_INITIALIZED)
+    if (hoja_current_status == HOJA_STATUS_INITIALIZED)
     {
-        ESP_LOGE(TAG, "API is already running.");
+        ESP_LOGE(TAG, "API is already initialized.");
+        return HOJA_FAIL;
+    }
+
+    if (hoja_current_status == HOJA_STATUS_RUNNING)
+    {
+        ESP_LOGE(TAG, "API is running a core already.");
         return HOJA_FAIL;
     }
 
@@ -138,6 +144,57 @@ hoja_err_t hoja_start_core(void)
             break;
     }
 
+    if (err == HOJA_OK)
+    {
+        hoja_current_status = HOJA_STATUS_RUNNING;
+    }
+    return err;
+}
+
+/**
+ * @brief Attempt to stop the core that is currently running.
+*/
+hoja_err_t hoja_stop_core(void)
+{
+    const char* TAG = "hoja_stop_core";
+
+    if (hoja_current_status != HOJA_STATUS_RUNNING)
+    {
+        ESP_LOGE(TAG, "Core needs to be running before you can stop it!");
+        return HOJA_FAIL;
+    }
+
+    hoja_err_t err = HOJA_FAIL;
+
+    switch(hoja_current_core)
+    {
+        case HOJA_CORE_NS:
+            ESP_LOGI(TAG, "Attempting Nintendo Switch Core stop...");
+            err = core_ns_stop();
+            break;
+        case HOJA_CORE_SNES:
+            ESP_LOGI(TAG, "Attempting SNES/NES Core stop...");
+            err = core_snes_stop();
+            break;
+        case HOJA_CORE_GC:
+            ESP_LOGI(TAG, "Attempting GameCube Core start...");
+            err = core_gamecube_stop();
+            break;
+        case HOJA_CORE_USB:
+            ESP_LOGI(TAG, "Attempting USB Core stop...");
+            err = core_usb_stop();
+            break;
+        default:
+            // No core matches!
+            ESP_LOGE(TAG, "Specified core does not exist or isn't implemented yet.");
+            return HOJA_FAIL;
+            break;
+    }
+
+    if (err == HOJA_OK)
+    {
+        hoja_current_status = HOJA_STATUS_INITIALIZED;
+    }
     return err;
 }
 

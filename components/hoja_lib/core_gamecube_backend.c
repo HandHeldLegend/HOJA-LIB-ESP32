@@ -4,8 +4,6 @@
 #define GC_PROBE_RMT_LEN   26
 #define GC_ORIGIN_RMT_LEN  82
 
-TaskHandle_t gamecube_TaskHandle = NULL;
-
 void gamecube_input_translate(void)
 {
     rmt_item32_t gcmd_poll_rmt[GC_POLL_RMT_LEN] = {
@@ -261,6 +259,14 @@ hoja_err_t core_gamecube_start()
     vTaskDelay(200/portTICK_PERIOD_MS);
     
     JB_RX_EN = 1;
+
+    return HOJA_OK;
+}
+
+hoja_err_t core_gamecube_stop()
+{
+    const char* TAG = "core_gamecube_stop";
+    periph_ll_enable_clk_clear_rst(PERIPH_RMT_MODULE);
 
     return HOJA_OK;
 }
