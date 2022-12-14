@@ -99,28 +99,23 @@ hoja_err_t hoja_settings_default(void)
 
     loaded_settings.magic_bytes = SETTINGS_MAGIC;
 
-    // Generate NS core address
-    for(int i = 0; i < 8; i++)
-    {
-        switch(i)
-        {
-            case 0:
-                loaded_settings.ns_client_bt_address[i] = 0x98;
-                break;
-            case 1:
-                loaded_settings.ns_client_bt_address[i] = 0x41;
-                break;
-            case 2:
-                loaded_settings.ns_client_bt_address[i] = 0x5C;
-                break;
-            default:
-                loaded_settings.ns_client_bt_address[i] = esp_random()%255;
-                break;
-        }
-    }
+    loaded_settings.controller_mode = HOJA_CONTROLLER_MODE_RETRO;
+
+    // Nintendo Switch Core stuff
     memset(loaded_settings.ns_host_bt_address, 0, 6);
+    hoja_settings_generate_btmac(loaded_settings.ns_client_bt_address);
     loaded_settings.ns_controller_paired = false;
-    loaded_settings.ns_controller_type = NS_CONTROLLER_TYPE_SNESCLASSIC;
+    loaded_settings.ns_controller_type = NS_CONTROLLER_TYPE_PROCON;
+
+    // Dinput Core stuff
+    memset(loaded_settings.bthid_host_bt_address, 0, 6);
+    hoja_settings_generate_btmac(loaded_settings.bthid_client_bt_address);
+    loaded_settings.bthid_controller_paired = false;
+
+    // Xinput Core stuff
+    memset(loaded_settings.btxinput_host_bt_address, 0, 6);
+    hoja_settings_generate_btmac(loaded_settings.btxinput_client_bt_address);
+    loaded_settings.btxinput_controller_paired = false;
 
     // Default color greenish
     loaded_settings.color_r = 0x38;
@@ -135,7 +130,15 @@ hoja_err_t hoja_settings_default(void)
     loaded_settings.sy_center = 0x740;
     loaded_settings.sy_max = 0xF47;
 
-    // Set default stick settings
+    loaded_settings.cx_min = 0xFA;
+    loaded_settings.cx_center = 0x740;
+    loaded_settings.cx_max = 0xF47;
+
+    loaded_settings.cy_min = 0xFA;
+    loaded_settings.cy_center = 0x740;
+    loaded_settings.cy_max = 0xF47;
+
+    loaded_settings.snes_stick_dpad = false;
 
     // Set blob
     nvs_set_blob(my_handle, "hoja_settings", &loaded_settings, sizeof(loaded_settings));
@@ -143,4 +146,27 @@ hoja_err_t hoja_settings_default(void)
     nvs_close(my_handle);
 
     return HOJA_OK;
+}
+
+void hoja_settings_generate_btmac(uint8_t * out)
+{
+    // Generate random MAC address
+    for(int i = 0; i < 8; i++)
+    {
+        switch(i)
+        {
+            case 0:
+                out[i] = 0x98;
+                break;
+            case 1:
+                out[i] = 0x41;
+                break;
+            case 2:
+                out[i] = 0x5C;
+                break;
+            default:
+                out[i] = esp_random()%255;
+                break;
+        }
+    }
 }

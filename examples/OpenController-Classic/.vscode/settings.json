@@ -21,7 +21,9 @@
     "system_error": "c",
     "regex": "c",
     "hoja_frontend.h": "c",
-    "util_common.h": "c"
+    "util_common.h": "c",
+    "hoja_settings.h": "c",
+    "util_battery.h": "c"
   },
   "idf.adapterTargetName": "esp32"
 }

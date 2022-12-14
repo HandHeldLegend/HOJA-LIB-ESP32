@@ -41,11 +41,13 @@ typedef struct
         };
         uint8_t status;
     };
-} util_battery_status_s;
+} __attribute__ ((packed)) util_battery_status_s;
 
 // PUBLIC FUNCTIONS
 // -----------------
 hoja_err_t util_battery_set_type(util_battery_type_t type);
+
+hoja_err_t util_battery_boot_status(void);
 
 hoja_err_t util_battery_start_monitor(void);
 

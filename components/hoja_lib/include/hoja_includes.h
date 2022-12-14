@@ -75,5 +75,6 @@
 #include "util_common.h"
 #include "util_gamepad.h"
 
+#include "rsc_descriptors.h"
 
 #endif

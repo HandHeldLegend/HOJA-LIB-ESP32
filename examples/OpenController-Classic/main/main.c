@@ -303,10 +303,8 @@ void local_analog_cb(hoja_analog_data_s *analog_data)
     analog_data->rs_x = 2048;
     analog_data->rs_y = 2048;
 
-    analog_data->lt = 0;
-    analog_data->rt = 0;
-
-    return;
+    analog_data->lt_a = 0;
+    analog_data->rt_a = 0;
 }
 
 // Handle System events
@@ -317,7 +315,7 @@ void local_system_evt(hoja_system_event_t evt)
     {
         esp_err_t err = ESP_OK;
 
-        case HOJA_API_INIT_OK:
+        case HEVT_API_INIT_OK:
             ESP_LOGI(TAG, "HOJA initialized OK callback.");
 
             // Play boot animation.
@@ -328,37 +326,23 @@ void local_system_evt(hoja_system_event_t evt)
             // Check to see what buttons are being held. Adjust state accordingly.
             if (hoja_button_data.button_start)
             {
-                local_retro_mode = true;
-                err = util_wired_detect_loop();
-                if (!err)
+                if (loaded_settings.controller_mode != HOJA_CONTROLLER_MODE_RETRO)
                 {
-                    ESP_LOGI(TAG, "Started wired retro loop OK.");
-                    rgb_setall(COLOR_RED, led_colors);
-                    rgb_show();
-                }
-                else
-                {
-                    ESP_LOGE(TAG, "Failed to start wired retro loop.");
-                }
-            }
-            else
-            {
-                if (hoja_button_data.button_right)
-                {
-                    local_bluetooth_mode = HOJA_CORE_NS;
-                }
-                else if (hoja_button_data.button_left)
-                {
-                    local_bluetooth_mode = HOJA_CORE_BTHID;
+                    loaded_settings.controller_mode = HOJA_CONTROLLER_MODE_RETRO;
+                    hoja_settings_saveall();
                 }
             }
 
-            // Start battery monitor and we can wait for proper callback to tell us
-            // what the status is.
-            err = util_battery_start_monitor();
+            // Get boot mode and it will perform a callback.
+            err = util_battery_boot_status();
+            if (err != HOJA_OK)
+            {
+                ESP_LOGE(TAG, "Issue when getting boot battery status.");
+            }
+
             break;
 
-        case HOJA_SHUTDOWN:
+        case HEVT_API_SHUTDOWN:
             if (!local_cable_plugged)
             {
                 enter_sleep();
@@ -368,7 +352,7 @@ void local_system_evt(hoja_system_event_t evt)
                 enter_reboot();
             }
             break;
-        case HOJA_REBOOT:
+        case HEVT_API_REBOOT:
             enter_reboot();
             break;
     }
@@ -402,18 +386,18 @@ void local_wired_evt(hoja_wired_event_t evt)
     switch(evt)
     {
         default:
-        case WIRED_NO_DETECT:
+        case HEVT_WIRED_NO_DETECT:
             err = HOJA_FAIL;
             break;
         
-        case WIRED_SNES_DETECT:
+        case HEVT_WIRED_SNES_DETECT:
             hoja_set_core(HOJA_CORE_SNES);
             rgb_setall(COLOR_YELLOW, led_colors);
             err = hoja_start_core();
 
             break;
 
-        case WIRED_JOYBUS_DETECT:
+        case HEVT_WIRED_JOYBUS_DETECT:
             hoja_set_core(HOJA_CORE_GC);
             rgb_setall(COLOR_PURPLE, led_colors);
             err = hoja_start_core();
@@ -433,95 +417,88 @@ void local_wired_evt(hoja_wired_event_t evt)
     }
 }
 
-void local_battery_evt(hoja_battery_event_t evt, uint8_t status_changed)
+void local_battery_evt(hoja_battery_event_t evt, uint8_t param)
 {
     const char* TAG = "local_battery_evt";
     hoja_err_t err = HOJA_OK;
 
     switch(evt)
     {
-        case BATTERY_CHARGER_PLUGGED:
-            // Charger was not plugged in, but then
-            // got plugged in. Only do this when
-            // not in retro mode.
-
-            local_cable_plugged = true;
-
-            if (status_changed && !local_retro_mode)
-            {
-                // Reboot controller
-
-            }
-            // First state check, charger is
-            // plugged in. Likely a boot state.
-            else if (!local_retro_mode)
-            {
-                hoja_set_core(HOJA_CORE_USB);
-                err = hoja_start_core();
-
-                // USB Core started OK.
-                if (!err)
-                {
-                    ESP_LOGI(TAG, "USB Core started OK");
-                }
-                // USB core failed to start.
-                else
-                {
-                    ESP_LOGI(TAG, "USB Core did not start. Standby charging mode...");
-                }
-
-            }
+        case HEVT_BATTERY_CHARGING:
             break;
 
-        case BATTERY_CHARGER_DISCONNECT:
+        case HEVT_BATTERY_CHARGECOMPLETE:
+            break;
 
-            local_cable_plugged = false;
+        case HEVT_BATTERY_NOCHARGE:
+            break;
 
-            // Charger was plugged in, but then
-            // got unplugged.
-            if (status_changed)
+        default:
+        case HEVT_BATTERY_LVLCHANGE:
+            // Not implemented
+            ESP_LOGE(TAG, "Not implemented.");
+            break;
+    }
+}
+
+void local_charger_evt(hoja_charger_event_t evt)
+{
+    const char* TAG = "local_charger_evt";
+    switch(evt)
+    {
+        case HEVT_CHARGER_PLUGGED:
+            break;
+        case HEVT_CHARGER_UNPLUGGED:
+            break;
+    }
+}
+
+void local_boot_evt(hoja_boot_event_t evt)
+{
+    esp_err_t err;
+    const char* TAG = "local_boot_evt";
+    switch(evt)
+    {
+        case HEVT_BOOT_NOBATTERY:
+            ESP_LOGI(TAG, "No battery detected.");
+        case HEVT_BOOT_PLUGGED:
+            if (evt == HEVT_BOOT_PLUGGED)
             {
-                // Reboot controller.
+                ESP_LOGI(TAG, "Plugged in.");
+            }   
+            /*if (loaded_settings.controller_mode == HOJA_CONTROLLER_MODE_RETRO)
+            {
                 
             }
-            // First state check, charger is
-            // unplugged. This is likely a boot state.
-            else if (!local_retro_mode)
+            err = util_wired_detect_loop();
+            if (!err)
             {
-                hoja_set_core(local_bluetooth_mode);
-                rgb_setall(COLOR_BLUE, led_colors);
+                ESP_LOGI(TAG, "Started wired retro loop OK.");
+                rgb_setall(COLOR_RED, led_colors);
                 rgb_show();
-                err = hoja_start_core();
-                
-                // Bluetooth core started OK.
-                if (!err)
-                {
-
-                }
-                // Bluetooth core did not connect or failed.
-                else
-                {
-                    // Shut down controller.
-                    enter_sleep();
-                }
             }
+            else
+            {
+                ESP_LOGE(TAG, "Failed to start wired retro loop.");
+            }*/
+
+            // USB test
+            hoja_set_core(HOJA_CORE_USB);
+            core_usb_set_subcore(USB_SUBCORE_XINPUT);
+            err = hoja_start_core();
+
+            if (err == ESP_OK)
+            {
+                rgb_setall(COLOR_GREEN, led_colors);
+                rgb_show();
+            }
+
             break;
 
-        case BATTERY_CHARGING_PROGRESS:
-        break;
-
-        case BATTERY_CHARGING_COMPLETE:
-        break;
-
-        case BATTERY_NO_COMMUNICATION:
-            ESP_LOGE(TAG, "Failed to communicate with PMIC.");
+        case HEVT_BOOT_UNPLUGGED:
+            ESP_LOGI(TAG, "Unplugged.");
+            enter_sleep();
             break;
-
-        case BATTERY_LEVEL_CHANGED:
-        break;
-
-        case BATTERY_NOT_CHARGING:
-        break;
     }
 }
 
@@ -533,8 +510,17 @@ void local_event_cb(hoja_event_type_t type, uint8_t evt, uint8_t param)
         default:
             ESP_LOGI("local_event_cb", "Unrecognized event occurred: %X", (unsigned int) type);
             break;
+
+        case HOJA_EVT_BOOT:
+            local_boot_evt(evt);
+            break;
+
         case HOJA_EVT_SYSTEM:
             local_system_evt(evt);
+            break;
+
+        case HOJA_EVT_CHARGER:
+            local_charger_evt(evt);
             break;
 
         case HOJA_EVT_BT:

@@ -116,24 +116,12 @@ void util_battery_monitor_task(void * params)
         
         hoja_err_t e = util_battery_get_status_byte(&status_byte);
 
-        if (e != HOJA_OK)
-        {
-            if (e == HOJA_I2C_FAIL || e == HOJA_I2C_NOTINIT)
-            {
-                hoja_event_cb(HOJA_EVT_BATTERY, BATTERY_NO_COMMUNICATION, false);
-            }
-        }
-        else
+        if (e == HOJA_OK)
         {
             util_battery_status_s s = {0};
             s.status = status_byte;
-            bool stat_change = true;
 
-            if (current_battery_status == BATSTATUS_UNDEFINED || current_battery_plugged == BATCABLE_UNDEFINED)
-            {
-                stat_change = false;
-            }
-
+            // Prioritize charger plug/unplug status.
             if (current_battery_plugged != s.plug_status)
             {
                 current_battery_plugged = s.plug_status;
@@ -141,13 +129,14 @@ void util_battery_monitor_task(void * params)
                 {
                     default:
                     case BATCABLE_UNPLUGGED:
-                    hoja_event_cb(HOJA_EVT_BATTERY, BATTERY_CHARGER_DISCONNECT, stat_change);
+                    hoja_event_cb(HOJA_EVT_CHARGER, HEVT_CHARGER_UNPLUGGED, 0x00);
                     break;
                     case BATCABLE_PLUGGED:
-                    hoja_event_cb(HOJA_EVT_BATTERY, BATTERY_CHARGER_PLUGGED, stat_change);
+                    hoja_event_cb(HOJA_EVT_CHARGER, HEVT_CHARGER_PLUGGED, 0x00);
                     break;
                 }
             }
+            // Check if charging status changed if we're plugged in.
             else if ( (current_battery_status != s.charge_status) && (current_battery_plugged == BATCABLE_PLUGGED) )
             {
                 current_battery_status = s.charge_status;
@@ -155,14 +144,14 @@ void util_battery_monitor_task(void * params)
                 {
                     default:
                     case BATSTATUS_NOTCHARGING:
-                    hoja_event_cb(HOJA_EVT_BATTERY, BATTERY_NOT_CHARGING, stat_change);
+                    hoja_event_cb(HOJA_EVT_BATTERY, HEVT_BATTERY_NOCHARGE, 0x00);
                     break;
                     case BATSTATUS_TRICKLEFAST:
                     case BATSTATUS_CONSTANT:
-                    hoja_event_cb(HOJA_EVT_BATTERY, BATTERY_CHARGING_PROGRESS, stat_change);
+                    hoja_event_cb(HOJA_EVT_BATTERY, HEVT_BATTERY_CHARGING, 0x00);
                     break;
                     case BATSTATUS_COMPLETED:
-                    hoja_event_cb(HOJA_EVT_BATTERY, BATTERY_CHARGING_COMPLETE, stat_change);
+                    hoja_event_cb(HOJA_EVT_BATTERY, HEVT_BATTERY_CHARGECOMPLETE, 0x00);
                     break;
                 }
             }
@@ -198,6 +187,54 @@ hoja_err_t util_battery_set_type(util_battery_type_t type)
             break;
         case BATTYPE_BQ25180:
             current_battery_type = type;
+            break;
+    }
+    return HOJA_OK;
+}
+
+/**
+ * @brief Upon boot, get the battery status and send a HOJA boot event callback.
+ * 
+*/
+hoja_err_t util_battery_boot_status(void)
+{
+    const char* TAG = "util_battery_boot_status";
+    ESP_LOGI(TAG, "Getting boot status.");
+
+    if (current_battery_type == BATTYPE_UNDEFINED)
+    {
+        ESP_LOGI(TAG, "Must set battery type before calling this.");
+        return HOJA_FAIL;
+    }
+
+    if ((current_battery_status != BATSTATUS_UNDEFINED) || (current_battery_plugged != BATCABLE_UNDEFINED))
+    {
+        ESP_LOGI(TAG, "Boot event can only be called once per power cycle.");
+        return HOJA_FAIL;
+    }
+
+    uint8_t status = 0x00;
+    util_battery_status_s batstat = {0};
+    hoja_err_t err = util_battery_get_status_byte(&status);
+    batstat.status = status;
+
+    current_battery_status  = batstat.charge_status;
+    current_battery_plugged = batstat.plug_status;
+
+    if (err == HOJA_I2C_FAIL)
+    {
+        hoja_event_cb(HOJA_EVT_BOOT, HEVT_BOOT_NOBATTERY, 0x00);
+        return HOJA_OK;
+    }
+
+    switch(current_battery_plugged)
+    {
+        default:
+        case BATCABLE_PLUGGED:
+            hoja_event_cb(HOJA_EVT_BOOT, HEVT_BOOT_PLUGGED, 0x00);
+            break;
+        case BATCABLE_UNPLUGGED:
+            hoja_event_cb(HOJA_EVT_BOOT, HEVT_BOOT_UNPLUGGED, 0x00);
             break;
     }
     return HOJA_OK;

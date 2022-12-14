@@ -9,6 +9,22 @@
 #define USB_I2C_ADDR                 0x45     /*!< Slave address of the MPU9250 sensor */
 
 TaskHandle_t usb_TaskHandle = NULL;
+usb_status_t core_usb_status = USB_STATUS_IDLE;
+usb_subcore_t core_usb_subcore = USB_SUBCORE_DINPUT;
+
+hoja_err_t core_usb_set_subcore(usb_subcore_t subcore)
+{
+    const char* TAG = "core_usb_set_subcore";
+    if(subcore >= USB_SUBCORE_MAX)
+    {
+        ESP_LOGE(TAG, "Invalid subcore setting.");
+        return HOJA_FAIL;
+    }
+
+    ESP_LOGI(TAG, "USB SubCore Set.");
+    core_usb_subcore = subcore;
+    return HOJA_OK;
+}
 
 hoja_err_t core_usb_stop(void)
 {
@@ -59,9 +75,15 @@ hoja_err_t core_usb_stop(void)
     #endif
 }
 
-hoja_err_t core_usb_start(void)
+hoja_err_t core_usb_start()
 {
     const char* TAG = "core_usb_start";
+
+    if (core_usb_status != USB_STATUS_IDLE)
+    {
+        ESP_LOGE(TAG, "USB core is already running.");
+        return HOJA_FAIL;
+    }
 
     // Conditional function define if EFM8UB1 Companion Option is ENABLED
     #if CONFIG_HOJA_EFM8UB1_ENABLE
@@ -77,10 +99,10 @@ hoja_err_t core_usb_start(void)
 
     // BUILD USB START COMMAND
     i2c_cmd_handle_t tmpcmd = i2c_cmd_link_create();
-    uint8_t tosend[2] = {USB_CMD_SYSTEMSET, USB_SYSTEM_START};
+    uint8_t tosend[3] = {USB_CMD_SYSTEMSET, USB_SYSTEM_START, core_usb_subcore};
     i2c_master_start(tmpcmd);
     i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write(tmpcmd, tosend, 2, true);
+    i2c_master_write(tmpcmd, tosend, 3, true);
     i2c_master_stop(tmpcmd);
 
     // TRANSMIT USB START COMMAND
@@ -192,7 +214,7 @@ hoja_err_t core_usb_start(void)
             
             ESP_LOGI(TAG, "USB Core started OK.");
 
-            hoja_event_cb(HOJA_EVT_USB, HOJA_USB_CONNECTED, 0x00);
+            hoja_event_cb(HOJA_EVT_USB, HEVT_USB_CONNECTED, 0x00);
 
             return HOJA_OK;
 
@@ -223,8 +245,8 @@ void usb_sendinput_task(void * parameters)
 {
     // Set up our variables for conversion
     const char* TAG = "usb_sendinput_task";
-    i2c_input_s i2c_input = {};
-    uint8_t output_buffer[8] = {};
+    usb_input_s usb_input = {};
+    uint8_t output_buffer[10] = {};
     output_buffer[0] = USB_CMD_INPUT;
     esp_err_t err = ESP_OK;
 
@@ -235,7 +257,7 @@ void usb_sendinput_task(void * parameters)
     // to send the USB start command
     i2c_master_start(tmpcmd);
     i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write(tmpcmd, output_buffer, 8, true);
+    i2c_master_write(tmpcmd, output_buffer, 10, true);
     i2c_master_stop(tmpcmd);
 
     while(1)
@@ -252,42 +274,16 @@ void usb_sendinput_task(void * parameters)
         // Scan the analogs using the callback defined by user.
         hoja_analog_cb(&hoja_analog_data);
 
-        // Convert button presses to appropriate format
-        i2c_input.button_a      = hoja_button_data.button_right;
-        i2c_input.button_b      = hoja_button_data.button_down;
-        i2c_input.button_x      = hoja_button_data.button_left;
-        i2c_input.button_y      = hoja_button_data.button_up;
+        usb_input.buttons_all    = hoja_button_data.buttons_all;
+        usb_input.buttons_system = hoja_button_data.buttons_system;
+        usb_input.ls_x           = (hoja_analog_data.ls_x >> 4);
+        usb_input.ls_y           = (hoja_analog_data.ls_y >> 4);
+        usb_input.rs_x           = (hoja_analog_data.rs_x >> 4);
+        usb_input.rs_y           = (hoja_analog_data.rs_y >> 4);
+        usb_input.lt_a           = (hoja_analog_data.lt_a >> 4);
+        usb_input.rt_a           = (hoja_analog_data.rt_a >> 4);
 
-        i2c_input.dpad_up       = hoja_button_data.dpad_up;
-        i2c_input.dpad_left     = hoja_button_data.dpad_left;
-        i2c_input.dpad_down     = hoja_button_data.dpad_down;
-        i2c_input.dpad_right    = hoja_button_data.dpad_right;
-
-        i2c_input.trigger_l     = hoja_button_data.trigger_l;
-        i2c_input.trigger_r     = hoja_button_data.trigger_r;
-        i2c_input.trigger_zl    = hoja_button_data.trigger_zl;
-        i2c_input.trigger_zr    = hoja_button_data.trigger_zr;
-        
-        i2c_input.stick_right   = hoja_button_data.button_stick_right;
-        i2c_input.stick_left    = hoja_button_data.button_stick_left;
-
-        i2c_input.button_home       = hoja_button_data.button_home;
-        i2c_input.button_capture    = hoja_button_data.button_capture;
-        i2c_input.button_plus       = hoja_button_data.button_start;
-        i2c_input.button_minus      = hoja_button_data.button_select;
-
-        i2c_input.stick_left_x      = hoja_analog_data.ls_x >> 4;
-        i2c_input.stick_left_y      = 255 - (hoja_analog_data.ls_y >> 4);
-        i2c_input.stick_right_x     = hoja_analog_data.rs_x >> 4;
-        i2c_input.stick_right_y     = 255 - (hoja_analog_data.rs_y >> 4);
-
-        output_buffer[1] = i2c_input.buttons_1;
-        output_buffer[2] = i2c_input.buttons_2;
-        output_buffer[3] = i2c_input.buttons_3;
-        output_buffer[4] = i2c_input.stick_left_x;
-        output_buffer[5] = i2c_input.stick_left_y;
-        output_buffer[6] = i2c_input.stick_right_x;
-        output_buffer[7] = i2c_input.stick_right_y;
+        memcpy(&output_buffer[1], &usb_input, 9);
 
         hoja_button_reset();
 

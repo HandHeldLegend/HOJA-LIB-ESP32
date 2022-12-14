@@ -157,7 +157,7 @@ void ns_report_sub_setshipmode(uint8_t ship_mode)
     if (ship_mode != 0x00 || ship_mode != 0x01) return;
 
     // Handle adjusting ship mode.
-    hoja_event_cb(HOJA_EVT_SYSTEM, HOJA_SHUTDOWN, 0x00);
+    hoja_event_cb(HOJA_EVT_SYSTEM, HEVT_API_SHUTDOWN, 0x00);
 }
 
 // Set a 0x3F or short input report

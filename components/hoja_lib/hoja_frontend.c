@@ -73,7 +73,7 @@ if (hoja_settings_init() != HOJA_OK)
 
     ESP_LOGI(TAG, "HOJA initialized.");
 
-    hoja_event_cb(HOJA_EVT_SYSTEM, HOJA_API_INIT_OK, 0x00);
+    hoja_event_cb(HOJA_EVT_SYSTEM, HEVT_API_INIT_OK, 0x00);
 
     return HOJA_OK;
 }

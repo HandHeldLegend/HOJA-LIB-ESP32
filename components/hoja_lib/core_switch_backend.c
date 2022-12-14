@@ -2,79 +2,6 @@
 
 nscore_param_s ns_core_param = {0};
 
-// This is an adjusted HID descriptor to only
-// use the necessary HID reports
-static uint8_t hid_descriptor_ns_core[134] = {
-    0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
-    0x09, 0x05,        // Usage (Game Pad)
-    0xA1, 0x01,        // Collection (Application)
-
-    0x85, 0x21,        //   Report ID (33)
-    0x06, 0x01, 0xFF,  //   Usage Page (Vendor Defined 0xFF01)
-    0x09, 0x21,        //   Usage (0x21)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x00,        //   Logical Maximum (0)
-    0x75, 0x08,        //   Report Size (8)
-    0x95, 0x30,        //   Report Count (48)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-
-    0x85, 0x30,        //   Report ID (48)
-    0x09, 0x30,        //   Usage (0x30)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x00,        //   Logical Maximum (0)
-    0x75, 0x08,        //   Report Size (8)
-    0x95, 0x30,        //   Report Count (48)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-
-    0x85, 0x3F,        //   Report ID (63)
-    0x05, 0x09,        //   Usage Page (Button)
-    0x19, 0x01,        //   Usage Minimum (0x01)
-    0x29, 0x10,        //   Usage Maximum (0x10)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x01,        //   Logical Maximum (1)
-    0x75, 0x01,        //   Report Size (1)
-    0x95, 0x10,        //   Report Count (16)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position) --100
-    0x05, 0x01,        //   Usage Page (Generic Desktop Ctrls)
-    0x09, 0x39,        //   Usage (Hat switch)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x07,        //   Logical Maximum (7)
-    0x75, 0x04,        //   Report Size (4)
-    0x95, 0x01,        //   Report Count (1)
-    0x81, 0x42,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,Null State)
-    0x75, 0x04,        //   Report Size (4)
-    0x95, 0x01,        //   Report Count (1)
-    0x81, 0x03,        //   Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x09, 0x30,        //   Usage (X)
-    0x09, 0x31,        //   Usage (Y)
-    0x09, 0x33,        //   Usage (Rx)
-    0x09, 0x34,        //   Usage (Ry)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   Logical Maximum (65534)
-    0x75, 0x10,        //   Report Size (16)
-    0x95, 0x04,        //   Report Count (4)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-
-    0x85, 0x01,        //   Report ID (1)
-    0x06, 0x01, 0xFF,  //   Usage Page (Vendor Defined 0xFF01)
-    0x09, 0x01,        //   Usage (0x01)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   Logical Maximum (65534) - 154
-    0x75, 0x08,        //   Report Size (8)
-    0x95, 0x30,        //   Report Count (48)
-    0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-
-    0x85, 0x10,        //   Report ID (16)
-    0x09, 0x10,        //   Usage (0x10)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   Logical Maximum (65534)
-    0x75, 0x08,        //   Report Size (8)
-    0x95, 0x30,        //   Report Count (48)
-    0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-
-    0xC0
-};
-
 //uint8_t hid_descriptor_ns_core_len = 213;
 
 TaskHandle_t ns_ReportModeHandle = NULL;
@@ -330,9 +257,8 @@ hoja_err_t core_ns_start(void)
     ns_core_param.app_param.description = "Gamepad";
     ns_core_param.app_param.provider = "Nintendo";
     ns_core_param.app_param.subclass = 0x08;
-    ns_core_param.app_param.desc_list = hid_descriptor_ns_core;
-    ns_core_param.app_param.desc_list_len = sizeof(hid_descriptor_ns_core);
-    ESP_LOGI(TAG, "Length of desc: %d", sizeof(hid_descriptor_ns_core));
+    ns_core_param.app_param.desc_list = procon_hid_descriptor;
+    ns_core_param.app_param.desc_list_len = sizeof(procon_hid_descriptor);
     memset(&ns_core_param.both_qos, 0, sizeof(esp_hidd_qos_param_t));
 
     // Release BT BLE mode memory
@@ -407,7 +333,7 @@ hoja_err_t core_ns_start(void)
     ns_connected = false;
     esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
 
-    hoja_event_cb(HOJA_EVT_BT, HOJA_BT_STARTED, 0x00);
+    hoja_event_cb(HOJA_EVT_BT, HEVT_BT_STARTED, 0x00);
 
     // Delay 1 seconds to see if console initiates connection
     vTaskDelay(1000/portTICK_PERIOD_MS);
@@ -455,7 +381,7 @@ hoja_err_t core_ns_stop()
     esp_bluedroid_disable();
                     
     ESP_LOGI(TAG, "Nintendo Switch Core stopped OK.");
-    hoja_event_cb(HOJA_EVT_BT, HOJA_BT_DISCONNECT, 0x00);
+    hoja_event_cb(HOJA_EVT_BT, HEVT_BT_DISCONNECT, 0x00);
 
     return HOJA_OK;
 }
@@ -480,7 +406,7 @@ hoja_err_t ns_savepairing(uint8_t* host_addr)
     if (hoja_settings_saveall() == HOJA_OK)
     {
         ESP_LOGI(TAG, "Pairing info saved.");
-        hoja_event_cb(HOJA_EVT_BT, HOJA_BT_PAIRED, 0x00);
+        hoja_event_cb(HOJA_EVT_BT, HEVT_BT_PAIRED, 0x00);
         return HOJA_OK;
     } 
     else

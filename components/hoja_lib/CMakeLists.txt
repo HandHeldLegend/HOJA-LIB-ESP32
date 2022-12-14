@@ -7,7 +7,7 @@ idf_component_register(SRCS
                     "core_gamecube_backend.c" "util_joybus_rmt.c"
                     "core_usb_backend.c" "util_rgb.c"
                     "util_wired_detect.c" "util_battery.c"
-                    "util_i2c.c" "util_common.c"
+                    "util_i2c.c" "util_common.c" "rsc_descriptors.c"
                     INCLUDE_DIRS "include"
                     REQUIRES bt hal xtensa 
                     riscv esp_rom driver esp_common 
