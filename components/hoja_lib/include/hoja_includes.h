@@ -11,16 +11,24 @@
 #include <hal/clk_gate_ll.h>
 #include <hal/rmt_ll.h>
 
-#include "esp_log.h"
+// Bluetooth Stuff
+
+// New HID api
+#include "esp_hid_common.h"
+#include "esp_hidd.h"
+
 #include "esp_hidd_api.h"
 #include "esp_bt_main.h"
 #include "esp_bt_device.h"
 #include "esp_bt.h"
-#include "esp_err.h"
+#include "esp_bt_defs.h"
+#include "esp_gap_bt_api.h"
+#include "esp_gap_ble_api.h"
+
 #include "esp_system.h"
 #include "esp_mac.h"
 #include "esp_random.h"
-#include "esp_gap_bt_api.h"
+
 #include "esp_timer.h"
 #include "esp_sleep.h"
 
@@ -65,6 +73,8 @@
 #include "core_usb_backend.h"
 #include "core_snes_backend.h"
 #include "core_switch_backend.h"
+#include "core_bt_dinput.h"
+#include "core_bt_xinput.h"
 
 #include "util_i2c.h"
 #include "util_joybus_rmt.h"
@@ -74,6 +84,22 @@
 #include "util_rmt.h"
 #include "util_common.h"
 #include "util_gamepad.h"
+#include "util_bt_hid.h"
+
+#include "esp_hid_gap.h"
+
+#ifndef SDP_MAX_PAD_LEN
+#define SDP_MAX_PAD_LEN 500
+#else
+#undef SDP_MAX_PAD_LEN
+#define SDP_MAX_PAD_LEN 500
+#endif
+
+// ESP libs
+#include "esp_log.h"
+#include "esp_err.h"
+
+
 
 #include "rsc_descriptors.h"
 

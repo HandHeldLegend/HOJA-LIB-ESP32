@@ -483,8 +483,14 @@ void local_boot_evt(hoja_boot_event_t evt)
             }*/
 
             // USB test
+            /*
             hoja_set_core(HOJA_CORE_USB);
             core_usb_set_subcore(USB_SUBCORE_XINPUT);
+            */
+
+            // BT DInput test
+            hoja_set_core(HOJA_CORE_BT_XINPUT);
+
             err = hoja_start_core();
 
             if (err == ESP_OK)
@@ -492,6 +498,7 @@ void local_boot_evt(hoja_boot_event_t evt)
                 rgb_setall(COLOR_GREEN, led_colors);
                 rgb_show();
             }
+            
 
             break;
 

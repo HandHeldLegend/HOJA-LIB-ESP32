@@ -215,7 +215,8 @@ typedef enum
     HOJA_CORE_N64,
     HOJA_CORE_GC,
     HOJA_CORE_USB,
-    HOJA_CORE_BTHID,
+    HOJA_CORE_BT_DINPUT,
+    HOJA_CORE_BT_XINPUT,
     HOJA_CORE_MAX,
 } hoja_core_t;
 

@@ -10,7 +10,6 @@
                 "${config:idf.espIdfPathWin}/components/**",
                 "${config:idf.espAdfPath}/components/**",
                 "${config:idf.espAdfPathWin}/components/**",
-                "${workspaceFolder}/include/**",
                 "${workspaceFolder}/**"
             ],
             "browse": {
@@ -19,7 +18,6 @@
                     "${config:idf.espIdfPathWin}/components",
                     "${config:idf.espAdfPath}/components/**",
                     "${config:idf.espAdfPathWin}/components/**",
-                    "${workspaceFolder}/include/**",
                     "${workspaceFolder}"
                 ],
                 "limitSymbolsToIncludedHeaders": false

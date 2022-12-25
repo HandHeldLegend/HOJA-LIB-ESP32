@@ -92,7 +92,7 @@ hoja_err_t hoja_set_core(hoja_core_t core)
         return HOJA_FAIL;
     }
 
-    if (core == NULL)
+    if (!core)
     {
         ESP_LOGE(TAG, "Core type is null!");
         return HOJA_FAIL;
@@ -136,6 +136,14 @@ hoja_err_t hoja_start_core(void)
         case HOJA_CORE_USB:
             ESP_LOGI(TAG, "Attempting USB Core start...");
             err = core_usb_start();
+            break;
+        case HOJA_CORE_BT_DINPUT:
+            ESP_LOGI(TAG, "Attempting BT DInput Core start...");
+            err = core_bt_dinput_start();
+            break;
+        case HOJA_CORE_BT_XINPUT:
+            ESP_LOGI(TAG, "Attempting BT XInput Core start...");
+            err = core_bt_xinput_start();
             break;
         default:
             // No core matches!
