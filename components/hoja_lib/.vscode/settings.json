@@ -25,6 +25,9 @@
     "esp_bt.h": "c",
     "bdroid_buildcfg.h": "c",
     "esp_hid_common.h": "c",
-    "util_ble_hid.h": "c"
+    "util_ble_hid.h": "c",
+    "core_bt_dinput.h": "c",
+    "core_bt_xinput.h": "c",
+    "util_bt_hid.h": "c"
   }
 }

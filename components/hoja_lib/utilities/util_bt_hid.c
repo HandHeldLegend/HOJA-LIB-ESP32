@@ -262,6 +262,8 @@ static void util_ble_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t
 // Status of BT HID Gamepad Utility
 util_bt_hid_status_t util_bt_hid_status = UTIL_BT_HID_STATUS_IDLE;
 
+static esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+
 // Private functions
 
 // Register app with BT Classic
@@ -270,17 +272,21 @@ hoja_err_t bt_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_dev
     const char* TAG = "bt_register_app";
 
     esp_err_t ret;
+
+    /*
     esp_bt_cod_t hid_cod;
     hid_cod.minor = 0x2;
     hid_cod.major = 0x5;
     hid_cod.service = 0x400;
-    esp_bt_gap_set_cod(hid_cod, ESP_BT_SET_COD_MAJOR_MINOR);
+    esp_bt_gap_set_cod(hid_cod, ESP_BT_SET_COD_MAJOR_MINOR);*/
 
     esp_bt_dev_set_device_name(hidd_device_config->device_name);
 
+    #if CONFIG_BT_SSP_ENABLED
     esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
     esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_NONE;
     esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
+    #endif
 
     if ((ret = esp_bt_gap_register_callback(util_bt_app_params->gap_cb)) != ESP_OK) 
     {
@@ -437,8 +443,6 @@ hoja_err_t util_bluetooth_init(uint8_t *mac_address)
         esp_bt_mode_t mode = ESP_BT_MODE_BLE;
     #endif
 
-    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-
     if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK) 
     {
         ESP_LOGE(TAG, "%s initialize controller failed: %s\n", __func__, esp_err_to_name(ret));
@@ -492,10 +496,16 @@ hoja_err_t util_bluetooth_register_app(util_bt_app_params_s *util_bt_app_params,
         return HOJA_FAIL;
     }
 
+    #if CONFIG_IDF_TARGET_ESP32
+    bt_cfg.mode = util_bt_app_params->bt_mode;
+    #endif
+
     switch(util_bt_app_params->bt_mode)
     {
         case ESP_BT_MODE_CLASSIC_BT:
             #if CONFIG_BT_HID_DEVICE_ENABLED
+            bt_cfg.bt_max_acl_conn = 3;
+            bt_cfg.bt_max_sync_conn = 3;
             err = bt_register_app(util_bt_app_params, hidd_device_config);
             #else
             ESP_LOGE(TAG, "BT Classic HID disabled. Enable in SDK settings. Also enable BT Dual mode.");

@@ -489,7 +489,7 @@ void local_boot_evt(hoja_boot_event_t evt)
             */
 
             // BT DInput test
-            hoja_set_core(HOJA_CORE_BT_XINPUT);
+            hoja_set_core(HOJA_CORE_BT_DINPUT);
 
             err = hoja_start_core();
 

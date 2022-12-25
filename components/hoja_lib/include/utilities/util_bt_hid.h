@@ -14,7 +14,7 @@ typedef enum
 typedef struct
 {
     // CB for BTC
-    esp_hd_cb_t hidd_cb;
+    esp_event_handler_t hidd_cb;
     esp_bt_gap_cb_t gap_cb;
 
     // CB for BLE

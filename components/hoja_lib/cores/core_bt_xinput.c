@@ -147,7 +147,8 @@ void xinput_ble_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
     }
 }
 
-const esp_hid_raw_report_map_t xinput_report_maps[1] = {
+// XInput HID report maps
+static esp_hid_raw_report_map_t xinput_report_maps[1] = {
     {
         .data = xinput_hid_report_descriptor,
         .len = (uint16_t) XINPUT_HID_REPORT_MAP_LEN
@@ -228,19 +229,18 @@ void xinput_stop_task(void)
     }
 }
 
-const esp_hid_device_config_t xinput_hidd_config = {
+static esp_hid_device_config_t xinput_hidd_config = {
     .vendor_id  = HID_VEND_XINPUT,
     .product_id = HID_PROD_XINPUT,
     .version    = 0x0000,
-    .device_name = "Xbox Bluetooth Gamepad",
-    .manufacturer_name = "Microsoft",
+    .device_name = "XInput BLE Gamepad",
+    .manufacturer_name = "HHL",
     .serial_number = "000000",
     .report_maps    = xinput_report_maps,
     .report_maps_len = 1,
 };
 
 // Public Functions
-
 hoja_err_t core_bt_xinput_start(void)
 {
     const char* TAG = "core_bt_xinput_start";
