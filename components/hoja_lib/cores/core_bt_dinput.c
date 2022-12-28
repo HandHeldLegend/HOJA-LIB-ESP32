@@ -1,6 +1,6 @@
 #include "core_bt_dinput.h"
 
-TaskHandle_t bt_dinput_task_handle = NULL;
+TaskHandle_t dinput_bt_task_handle = NULL;
 
 // DINPUT BLE HIDD callback
 void dinput_ble_hidd_cb(void *handler_args, esp_event_base_t base, int32_t id, void *event_data)
@@ -37,7 +37,7 @@ void dinput_ble_hidd_cb(void *handler_args, esp_event_base_t base, int32_t id, v
     }
     case ESP_HIDD_DISCONNECT_EVENT: {
         ESP_LOGI(TAG, "DISCONNECT: %s", esp_hid_disconnect_reason_str(esp_hidd_dev_transport_get(param->disconnect.dev), param->disconnect.reason));
-        xinput_stop_task();
+        dinput_stop_task();
         esp_hid_ble_gap_adv_start();
         break;
     }
@@ -54,7 +54,7 @@ void dinput_ble_hidd_cb(void *handler_args, esp_event_base_t base, int32_t id, v
 // DINPUT GAP BLE event callback
 void dinput_ble_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 {
-    const char* TAG = "xinput_ble_gap_cb";
+    const char* TAG = "dinput_ble_gap_cb";
 
     switch (event) {
     /*
@@ -105,8 +105,7 @@ void dinput_ble_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             ESP_LOGE(TAG, "BLE GAP AUTH ERROR: 0x%x", param->ble_security.auth_cmpl.fail_reason);
         } else {
             ESP_LOGI(TAG, "BLE GAP AUTH SUCCESS");
-            //ble_hid_task_start_up();//todo: this should be on auth_complete (in GAP)
-            xinput_start_task();
+            dinput_start_task();
         }
         break;
 
@@ -163,6 +162,103 @@ static util_bt_app_params_s dinput_app_params = {
     .appearance         = ESP_HID_APPEARANCE_GAMEPAD,
 };
 
+bool dinput_compare(di_input_s *one, di_input_s *two)
+{
+    bool ret = false;
+    ret |= one->buttons_1   != two->buttons_1;
+    ret |= one->buttons_2   != two->buttons_2;
+    ret |= one->dpad_hat    != two->dpad_hat;
+
+    ret |= one->stick_left_x != two->stick_left_x;
+    ret |= one->stick_left_y != two->stick_left_y;
+
+    ret |= one->stick_right_x != two->stick_right_x;
+    ret |= one->stick_right_y != two->stick_right_y;
+
+    ret |= one->analog_trigger_l != two->analog_trigger_l;
+    ret |= one->analog_trigger_r != two->analog_trigger_r;
+
+    return ret;
+}
+
+void dinput_bt_sendinput_task(void * param)
+{
+    const char* TAG = "dinput_bt_sendinput_task";
+    ESP_LOGI(TAG, "Starting input task loop.");
+
+    di_input_s di_input = {0};
+    di_input_s di_input_last = {0};
+    di_input_last.stick_left_x = 1;
+    uint8_t di_buffer[DI_HID_LEN];
+
+    for(;;)
+    {
+        hoja_analog_cb(&hoja_analog_data);
+        di_input.stick_left_x       = hoja_analog_data.ls_x >> 4;
+        di_input.stick_left_y       = hoja_analog_data.ls_y >> 4;
+        di_input.stick_right_x      = hoja_analog_data.rs_x >> 4;
+        di_input.stick_right_y      = hoja_analog_data.rs_y >> 4;
+
+        di_input.analog_trigger_l   = hoja_analog_data.lt_a >> 4;
+        di_input.analog_trigger_r   = hoja_analog_data.rt_a >> 4;
+
+        di_input.trigger_l           = hoja_button_data.trigger_l;
+        di_input.trigger_r           = hoja_button_data.trigger_r;
+
+        di_input.trigger_zl         = hoja_button_data.trigger_zl;
+        di_input.trigger_zr         = hoja_button_data.trigger_zr;
+
+        di_input.button_a           = hoja_button_data.button_right;
+        di_input.button_b           = hoja_button_data.button_down;
+        di_input.button_x           = hoja_button_data.button_up;
+        di_input.button_y           = hoja_button_data.button_left;
+
+        di_input.button_minus       = hoja_button_data.button_select;
+        di_input.button_plus        = hoja_button_data.button_start;
+        di_input.button_home        = hoja_button_data.button_home;
+        di_input.button_capture     = hoja_button_data.button_capture;
+
+        di_input.stick_left         = hoja_button_data.button_stick_left;
+        di_input.stick_right        = hoja_button_data.button_stick_right;
+        
+        uint8_t lr = (1 - hoja_button_data.dpad_left) + hoja_button_data.dpad_right;
+        uint8_t ud = (1 - hoja_button_data.dpad_down) + hoja_button_data.dpad_up;
+
+        di_input.dpad_hat = util_get_dpad_hat(HAT_MODE_DINPUT, lr, ud);
+        hoja_button_reset();
+
+        if (dinput_compare(&di_input, &di_input_last))
+        {
+            memcpy(di_buffer, &di_input, DI_HID_LEN);
+            esp_hidd_dev_input_set(dinput_app_params.hid_dev, 0, DI_INPUT_REPORT_ID, di_buffer, DI_HID_LEN);
+            memcpy(&di_input_last, &di_input, sizeof(di_input_s));
+        }
+        vTaskDelay(8/portTICK_PERIOD_MS);
+    }
+}
+
+void dinput_start_task(void)
+{
+    ESP_LOGI("dinput_start_task", "Starting task...");
+    vTaskDelay(500/portTICK_PERIOD_MS);
+    if (dinput_bt_task_handle)
+    {
+        vTaskDelete(dinput_bt_task_handle);
+        dinput_bt_task_handle = NULL;
+    }
+    xTaskCreatePinnedToCore(dinput_bt_sendinput_task, "dinput_bt_task", 2048, NULL, 0, &dinput_bt_task_handle, 0);
+}
+
+void dinput_stop_task(void)
+{
+    ESP_LOGI("dinput_stop_task", "Stopping task...");
+    if (dinput_bt_task_handle)
+    {
+        vTaskDelete(dinput_bt_task_handle);
+        dinput_bt_task_handle = NULL;
+    }
+}
+
 const esp_hid_device_config_t dinput_hidd_config = {
     .vendor_id  = HID_VEND_DINPUT,
     .product_id = HID_PROD_DINPUT,
@@ -179,10 +275,10 @@ hoja_err_t core_bt_dinput_start(void)
     const char* TAG = "core_bt_dinput_start";
 
     esp_err_t ret;
-    hoja_err_t err;
+    hoja_err_t err = HOJA_OK;
 
-    err = util_bluetooth_init(NULL);
+    err = util_bluetooth_init(loaded_settings.dinput_client_bt_address);
     err = util_bluetooth_register_app(&dinput_app_params, &dinput_hidd_config);
-    return HOJA_OK;
+    return err;
 }
 

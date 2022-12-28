@@ -419,12 +419,13 @@ hoja_err_t util_bluetooth_init(uint8_t *mac_address)
         return HOJA_FAIL;
     }
 
-    if (sizeof(mac_address) != (8*sizeof(uint8_t)))
+    if (!mac_address)
     {
         ESP_LOGE(TAG, "Mac address length is not 8 bytes. Using default address.");
     }
     else
     {
+        ESP_LOGI(TAG, "Setting mac address...");
         esp_base_mac_addr_set(mac_address);
     }
 

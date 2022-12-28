@@ -4,6 +4,7 @@
 #include "hoja_includes.h"
 
 #define XI_HID_LEN 16
+#define XI_INPUT_REPORT_ID 0x01
 
 /**
  * Xbox One BT Format

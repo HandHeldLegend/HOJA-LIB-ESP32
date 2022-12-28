@@ -163,6 +163,26 @@ static util_bt_app_params_s xinput_app_params = {
     .appearance         = ESP_HID_APPEARANCE_GAMEPAD,
 };
 
+// Takes in both XINPUT structs and returns if they match.
+bool xinput_compare(xi_input_s *one, xi_input_s *two)
+{
+    bool ret = false;
+    ret |= one->buttons_1   != two->buttons_1;
+    ret |= one->buttons_2   != two->buttons_2;
+    ret |= one->dpad_hat    != two->dpad_hat;
+
+    ret |= one->stick_left_x != two->stick_left_x;
+    ret |= one->stick_left_y != two->stick_left_y;
+
+    ret |= one->stick_right_x != two->stick_right_x;
+    ret |= one->stick_right_y != two->stick_right_y;
+
+    ret |= one->analog_trigger_l != two->analog_trigger_l;
+    ret |= one->analog_trigger_r != two->analog_trigger_r;
+
+    return ret;
+}
+
 void xinput_bt_sendinput_task(void * param)
 {
     const char* TAG = "xinput_bt_sendinput_task";
@@ -196,15 +216,11 @@ void xinput_bt_sendinput_task(void * param)
         xi_input.dpad_hat = util_get_dpad_hat(HAT_MODE_XINPUT, lr, ud);
         hoja_button_reset();
 
-        if ((xi_input_last.buttons_1 != xi_input.buttons_1) 
-        | (xi_input_last.buttons_2 != xi_input.buttons_2)
-        | (xi_input.dpad_hat != xi_input_last.dpad_hat))
+        if (xinput_compare(&xi_input, &xi_input_last))
         {
             memcpy(xi_buffer, &xi_input, XI_HID_LEN);
-            esp_hidd_dev_input_set(xinput_app_params.hid_dev, 0, 1, xi_buffer, XI_HID_LEN);
-            xi_input_last.buttons_1 = xi_input.buttons_1;
-            xi_input_last.buttons_2 = xi_input.buttons_2;
-            xi_input_last.dpad_hat  = xi_input.dpad_hat;
+            esp_hidd_dev_input_set(xinput_app_params.hid_dev, 0, XI_INPUT_REPORT_ID, xi_buffer, XI_HID_LEN);
+            memcpy(&xi_input_last, &xi_input, sizeof(xi_input_s));
         }
         vTaskDelay(8/portTICK_PERIOD_MS);
     }
@@ -245,9 +261,9 @@ hoja_err_t core_bt_xinput_start(void)
 {
     const char* TAG = "core_bt_xinput_start";
     esp_err_t ret;
-    hoja_err_t err;
+    hoja_err_t err = HOJA_OK;
 
-    err = util_bluetooth_init(NULL);
+    err = util_bluetooth_init(loaded_settings.xinput_client_bt_address);
     err = util_bluetooth_register_app(&xinput_app_params, &xinput_hidd_config);
-    return HOJA_OK;
+    return err;
 }

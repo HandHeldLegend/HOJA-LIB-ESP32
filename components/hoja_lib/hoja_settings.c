@@ -108,14 +108,14 @@ hoja_err_t hoja_settings_default(void)
     loaded_settings.ns_controller_type = NS_CONTROLLER_TYPE_PROCON;
 
     // Dinput Core stuff
-    memset(loaded_settings.bthid_host_bt_address, 0, 6);
-    hoja_settings_generate_btmac(loaded_settings.bthid_client_bt_address);
-    loaded_settings.bthid_controller_paired = false;
+    memset(loaded_settings.dinput_host_bt_address, 0, 6);
+    hoja_settings_generate_btmac(loaded_settings.dinput_client_bt_address);
+    loaded_settings.dinput_controller_paired = false;
 
     // Xinput Core stuff
-    memset(loaded_settings.btxinput_host_bt_address, 0, 6);
-    hoja_settings_generate_btmac(loaded_settings.btxinput_client_bt_address);
-    loaded_settings.btxinput_controller_paired = false;
+    memset(loaded_settings.xinput_host_bt_address, 0, 6);
+    hoja_settings_generate_btmac(loaded_settings.xinput_client_bt_address);
+    loaded_settings.xinput_controller_paired = false;
 
     // Default color greenish
     loaded_settings.color_r = 0x38;

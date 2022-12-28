@@ -79,16 +79,16 @@ typedef struct
 
     // Bluetooth DInput Core Settings
     //------------------------------------
-    uint8_t bthid_client_bt_address[8];
-    uint8_t bthid_host_bt_address[6];
-    bool    bthid_controller_paired;
+    uint8_t dinput_client_bt_address[8];
+    uint8_t dinput_host_bt_address[6];
+    bool    dinput_controller_paired;
     //------------------------------------
     //------------------------------------
 
     // Bluetooth XInput Core Settings
-    uint8_t btxinput_client_bt_address[8];
-    uint8_t btxinput_host_bt_address[6];
-    bool    btxinput_controller_paired;
+    uint8_t xinput_client_bt_address[8];
+    uint8_t xinput_host_bt_address[6];
+    bool    xinput_controller_paired;
     //------------------------------------
     //------------------------------------
 

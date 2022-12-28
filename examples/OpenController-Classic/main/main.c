@@ -493,7 +493,7 @@ void local_boot_evt(hoja_boot_event_t evt)
 
             err = hoja_start_core();
 
-            if (err == ESP_OK)
+            if (err == HOJA_OK)
             {
                 rgb_setall(COLOR_GREEN, led_colors);
                 rgb_show();
@@ -584,6 +584,7 @@ void app_main()
     util_i2c_initialize();
     util_battery_set_type(BATTYPE_BQ25180);
     util_rgb_init(led_colors, RGB_MODE_GRB);
+    rgb_setbrightness(100);
 
     hoja_register_button_callback(local_button_cb);
     hoja_register_analog_callback(local_analog_cb);
