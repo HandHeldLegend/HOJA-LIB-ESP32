@@ -73,7 +73,7 @@ if (hoja_settings_init() != HOJA_OK)
 
     ESP_LOGI(TAG, "HOJA initialized.");
 
-    hoja_event_cb(HOJA_EVT_SYSTEM, HOJA_API_INIT_OK, 0x00);
+    hoja_event_cb(HOJA_EVT_SYSTEM, HEVT_API_INIT_OK, 0x00);
 
     return HOJA_OK;
 }
@@ -92,7 +92,7 @@ hoja_err_t hoja_set_core(hoja_core_t core)
         return HOJA_FAIL;
     }
 
-    if (core == NULL)
+    if (!core)
     {
         ESP_LOGE(TAG, "Core type is null!");
         return HOJA_FAIL;
@@ -136,6 +136,14 @@ hoja_err_t hoja_start_core(void)
         case HOJA_CORE_USB:
             ESP_LOGI(TAG, "Attempting USB Core start...");
             err = core_usb_start();
+            break;
+        case HOJA_CORE_BT_DINPUT:
+            ESP_LOGI(TAG, "Attempting BT DInput Core start...");
+            err = core_bt_dinput_start();
+            break;
+        case HOJA_CORE_BT_XINPUT:
+            ESP_LOGI(TAG, "Attempting BT XInput Core start...");
+            err = core_bt_xinput_start();
             break;
         default:
             // No core matches!

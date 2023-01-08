@@ -1,3 +1,33 @@
 {
-  "C_Cpp.intelliSenseEngine": "Tag Parser"
+  "C_Cpp.intelliSenseEngine": "Tag Parser",
+  "files.associations": {
+    "core_switch_input.h": "c",
+    "core_switch_backend.h": "c",
+    "hoja_includes.h": "c",
+    "rsc_descriptors.h": "c",
+    "esp_hidd_prf_api.h": "c",
+    "hid_dev.h": "c",
+    "util_battery.h": "c",
+    "esp_gatt_defs.h": "c",
+    "esp_random.h": "c",
+    "esp_ble_includes.h": "c",
+    "hidd_le_prf_int.h": "c",
+    "btle_defines.h": "c",
+    "stddef.h": "c",
+    "esp_gattc_api.h": "c",
+    "esp_hidd_api.h": "c",
+    "esp_hidd.h": "c",
+    "esp_event_base.h": "c",
+    "hoja_bt_hid.h": "c",
+    "util_bluetooth_hid.h": "c",
+    "btc_manage.h": "c",
+    "bt_target.h": "c",
+    "esp_bt.h": "c",
+    "bdroid_buildcfg.h": "c",
+    "esp_hid_common.h": "c",
+    "util_ble_hid.h": "c",
+    "core_bt_dinput.h": "c",
+    "core_bt_xinput.h": "c",
+    "util_bt_hid.h": "c"
+  }
 }

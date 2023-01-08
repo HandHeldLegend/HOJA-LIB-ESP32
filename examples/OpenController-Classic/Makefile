@@ -3,6 +3,6 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := hoja
+PROJECT_NAME := OpenControllerClassic-HOJA
 
 include $(IDF_PATH)/make/project.mk

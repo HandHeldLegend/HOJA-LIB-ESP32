@@ -27,7 +27,7 @@ void hoja_button_task(void * parameters)
             {
                 ESP_LOGI(TAG, "Sleep triggered by select button!");
                 // Send shutdown event if sleep timer is confirmed overflow.
-                hoja_event_cb(HOJA_EVT_SYSTEM, HOJA_SHUTDOWN, 0x00);
+                hoja_event_cb(HOJA_EVT_SYSTEM, HEVT_API_SHUTDOWN, 0x00);
                 sleep_timer = 0;
             }
         }

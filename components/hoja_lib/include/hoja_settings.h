@@ -7,8 +7,16 @@ the onboard flash storage for later loading. */
 
 // Magic byte for determining if settings are up to date.
 // "rb01" -> 0x72623031
-#define SETTINGS_MAGIC 0x72623031
+#define SETTINGS_MAGIC 0x72623037
 #define SETTINGS_NAMESPACE "hoja_settings"
+
+typedef enum
+{
+    HOJA_CONTROLLER_MODE_NS,
+    HOJA_CONTROLLER_MODE_RETRO,
+    HOJA_CONTROLLER_MODE_XINPUT,
+    HOJA_CONTROLLER_MODE_DINPUT,
+} hoja_controller_mode_t;
 
 /**
  * @brief This is a struct which contains all of the
@@ -16,7 +24,6 @@ the onboard flash storage for later loading. */
  * and retrieve it as one object instead of scattering everything
  * around.
  * 
- * @param       controller_core See retroblue.api.h for definitions
  */
 typedef struct
 {
@@ -24,8 +31,16 @@ typedef struct
     //------------------------------------
     // Magic byte to determine version changes
     uint32_t magic_bytes;
+    //------------------------------------
+    //------------------------------------
+
+    // Save controller mode so we can boot
+    // into the same mode each time automatically.
+    hoja_controller_mode_t controller_mode;
 
     // Stick calibration
+    //------------------------------------
+    // Left stick
     uint16_t sx_min;
     uint16_t sx_center;
     uint16_t sx_max;
@@ -34,20 +49,24 @@ typedef struct
     uint16_t sy_center;
     uint16_t sy_max;
 
-    // Dpad Stick emulation mode
-    // Should the dpad be a stick?
-    // 0x00 - Dpad is just dpad
-    // 0x01 - Dpad is just analog stick
-    // 0x02 - Dpad is dpad + analog stick
-    uint8_t dpad_stick_mode;
+    // Right stick
+    uint16_t cx_min;
+    uint16_t cx_center;
+    uint16_t cx_max;
+
+    uint16_t cy_min;
+    uint16_t cy_center;
+    uint16_t cy_max;
+    //------------------------------------
+    //------------------------------------
 
     // Controller color
+    //------------------------------------
     uint8_t color_r;
     uint8_t color_g;
     uint8_t color_b;
     //------------------------------------
     //------------------------------------
-
 
     // Nintendo Switch Core Settings
     //------------------------------------
@@ -58,15 +77,20 @@ typedef struct
     //------------------------------------
     //------------------------------------
 
+    // Bluetooth DInput Core Settings
+    //------------------------------------
+    uint8_t dinput_client_bt_address[8];
+    uint8_t dinput_host_bt_address[6];
+    bool    dinput_controller_paired;
+    //------------------------------------
+    //------------------------------------
 
-    // Bluetooth Generic Core Settings
+    // Bluetooth XInput Core Settings
+    uint8_t xinput_client_bt_address[8];
+    uint8_t xinput_host_bt_address[6];
+    bool    xinput_controller_paired;
     //------------------------------------
-    uint8_t bthid_client_bt_address[8];
-    uint8_t bthid_host_bt_address[6];
-    bool    bthid_controller_paired;
     //------------------------------------
-    //------------------------------------
-
 
     // SNES Core Settings
     //------------------------------------
@@ -74,7 +98,7 @@ typedef struct
     //------------------------------------
     //------------------------------------
 
-} hoja_settings_s;
+} __attribute__ ((packed)) hoja_settings_s;
 
 extern hoja_settings_s loaded_settings;
 
@@ -86,6 +110,8 @@ hoja_err_t hoja_settings_init(void);
 hoja_err_t hoja_settings_saveall(void);
 
 hoja_err_t hoja_settings_default(void);
+
+void hoja_settings_generate_btmac(uint8_t * out);
 
 // -----------------
 // -----------------

@@ -6,26 +6,26 @@
  */
 typedef enum
 {
-    HOJA_OK         = 0,
-    HOJA_FAIL       = 1,
-    HOJA_USB_NODET  = 2,    // USB Core not detected on attempt.
-    HOJA_I2C_NOTINIT= 3,    // I2C not initialized.
-    HOJA_I2C_FAIL   = 4,    // I2C communication failed.
-    HOJA_BATTERY_NOTSET = 5, // Battery type needs to be set.
+    HOJA_OK = 0,
+    HOJA_FAIL,
+    HOJA_USB_NODET,         // USB Core not detected on attempt.
+    HOJA_I2C_NOTINIT,       // I2C not initialized.
+    HOJA_I2C_FAIL,          // I2C communication failed.
+    HOJA_BATTERY_NOTSET,    // Battery type needs to be set.
 } hoja_err_t;
 
 /** 
  * @brief This data should always be provided as uint16_t to provide
  * as much data as possible. This data will likely need to be
  * scaled down to a different range and we should provide more
- * data to avoid as much stairstepping in values as possible 
+ * data to avoid as much stairstepping in values as possible. ONLY 12 BIT VALS.
  * 
  * @param           ls_x  Left Stick X Data
  * @param           ls_y  Left Stick Y Data
  * @param           rs_x  Left Stick X Data
  * @param           rs_y  Left Stick X Data
- * @param           l_t   Left trigger Analog Data
- * @param           r_t   Right trigger Analog Data
+ * @param           lt_a  Left trigger Analog Data
+ * @param           rt_a  Right trigger Analog Data
 */
 typedef struct 
 {
@@ -33,9 +33,9 @@ typedef struct
     uint16_t ls_y;
     uint16_t rs_x;
     uint16_t rs_y;
-    uint16_t lt;
-    uint16_t rt;
-} hoja_analog_data_s;
+    uint16_t lt_a;
+    uint16_t rt_a;
+} __attribute__ ((packed)) hoja_analog_data_s;
 
 /** @brief This is a struct for containing all of the 
  * button input data as bits. This saves space
@@ -77,14 +77,23 @@ typedef struct
         };
         uint16_t buttons_all;
     };
-    // Menu buttons (Not remappable by API)
-    uint8_t button_capture;
-    uint8_t button_home;
+
+    union
+    {
+        struct
+        {
+            // Menu buttons (Not remappable by API)
+            uint8_t button_capture  : 1;
+            uint8_t button_home     : 1;
+            uint8_t padding         : 6;
+        };
+        uint8_t buttons_system;
+    };
 
     // Button for sleeping the controller
     uint8_t button_sleep;
 
-} hoja_button_data_s;
+} __attribute__ ((packed)) hoja_button_data_s;
 
 
 /**
@@ -92,14 +101,16 @@ typedef struct
  */
 typedef enum
 {
-    HOJA_EVT_BT     = 0,
-    HOJA_EVT_SYSTEM = 1,
-    HOJA_EVT_USB    = 2,
-    HOJA_EVT_GC     = 3,
-    HOJA_EVT_NS     = 4,
-    HOJA_EVT_INPUT  = 5,
-    HOJA_EVT_WIRED  = 6,
-    HOJA_EVT_BATTERY    = 7,
+    HOJA_EVT_BT,
+    HOJA_EVT_SYSTEM,
+    HOJA_EVT_USB,
+    HOJA_EVT_GC,
+    HOJA_EVT_NS,
+    HOJA_EVT_INPUT,
+    HOJA_EVT_WIRED,
+    HOJA_EVT_BOOT,
+    HOJA_EVT_BATTERY,
+    HOJA_EVT_CHARGER,
 } hoja_event_type_t;
 
 /**
@@ -107,10 +118,10 @@ typedef enum
  */
 typedef enum
 {
-    HOJA_BT_STARTED     = 0,
-    HOJA_BT_CONNECTING  = 1,
-    HOJA_BT_PAIRED      = 2,
-    HOJA_BT_DISCONNECT  = 3,
+    HEVT_BT_STARTED     = 0,
+    HEVT_BT_CONNECTING  = 1,
+    HEVT_BT_PAIRED      = 2,
+    HEVT_BT_DISCONNECT  = 3,
 } hoja_bt_event_t;
 
 /**
@@ -118,8 +129,8 @@ typedef enum
  */
 typedef enum
 {
-    HOJA_NS_RUMBLE      = 0,
-    HOJA_NS_PLAYERSET   = 1,
+    HEVT_NS_RUMBLE,
+    HEVT_NS_PLAYERSET,
 } hoja_ns_event_t;
 
 /**
@@ -127,8 +138,8 @@ typedef enum
  */
 typedef enum
 {
-    HOJA_USB_CONNECTED      = 0,
-    HOJA_USB_DISCONNECTED   = 1,
+    HEVT_USB_CONNECTED,
+    HEVT_USB_DISCONNECTED,
 } hoja_usb_event_t;
 
 /**
@@ -136,7 +147,7 @@ typedef enum
  */
 typedef enum
 {
-    HOJA_GC_RUMBLE      = 0,
+    HEVT_GC_RUMBLE
 } hoja_gc_event_t;
 
 /**
@@ -144,9 +155,9 @@ typedef enum
  */
 typedef enum
 {
-    HOJA_API_INIT_OK    = 0,
-    HOJA_SHUTDOWN       = 1,
-    HOJA_REBOOT         = 2,
+    HEVT_API_INIT_OK,
+    HEVT_API_SHUTDOWN,
+    HEVT_API_REBOOT,
 } hoja_system_event_t;
 
 /**
@@ -154,23 +165,33 @@ typedef enum
  */
 typedef enum
 {
-    WIRED_NO_DETECT     = 0,
-    WIRED_SNES_DETECT   = 1,
-    WIRED_JOYBUS_DETECT = 2,
+    HEVT_WIRED_NO_DETECT     = 0,
+    HEVT_WIRED_SNES_DETECT   = 1,
+    HEVT_WIRED_JOYBUS_DETECT = 2,
 } hoja_wired_event_t;
+
+typedef enum
+{
+    HEVT_BOOT_PLUGGED,
+    HEVT_BOOT_UNPLUGGED,
+    HEVT_BOOT_NOBATTERY,
+} hoja_boot_event_t;
+
+typedef enum
+{
+    HEVT_CHARGER_PLUGGED,
+    HEVT_CHARGER_UNPLUGGED,
+} hoja_charger_event_t;
 
 /**
  *  @brief Battery utility events
  */
 typedef enum
 {
-    BATTERY_CHARGER_PLUGGED,
-    BATTERY_CHARGER_DISCONNECT,
-    BATTERY_CHARGING_PROGRESS,
-    BATTERY_CHARGING_COMPLETE,
-    BATTERY_NO_COMMUNICATION,
-    BATTERY_LEVEL_CHANGED,
-    BATTERY_NOT_CHARGING,
+    HEVT_BATTERY_CHARGING,
+    HEVT_BATTERY_CHARGECOMPLETE,
+    HEVT_BATTERY_LVLCHANGE,
+    HEVT_BATTERY_NOCHARGE,
 } hoja_battery_event_t;
 
 /**
@@ -197,7 +218,8 @@ typedef enum
     HOJA_CORE_N64,
     HOJA_CORE_GC,
     HOJA_CORE_USB,
-    HOJA_CORE_BTHID,
+    HOJA_CORE_BT_DINPUT,
+    HOJA_CORE_BT_XINPUT,
     HOJA_CORE_MAX,
 } hoja_core_t;
 
@@ -242,6 +264,6 @@ typedef struct
         uint32_t rgb;
     };
     
-} rgb_s;
+} __attribute__ ((packed)) rgb_s;
 
 #endif
