@@ -105,7 +105,7 @@ hoja_err_t hoja_settings_default(void)
     memset(loaded_settings.ns_host_bt_address, 0, 6);
     hoja_settings_generate_btmac(loaded_settings.ns_client_bt_address);
     loaded_settings.ns_controller_paired = false;
-    loaded_settings.ns_controller_type = NS_CONTROLLER_TYPE_PROCON;
+    loaded_settings.ns_controller_type = NS_CONTROLLER_TYPE_UNKNOWN;
 
     // Dinput Core stuff
     memset(loaded_settings.dinput_host_bt_address, 0, 6);

@@ -204,6 +204,20 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 
 hoja_err_t core_ns_start(void)
 {
+    return core_ns_start_with_default_type(NS_CONTROLLER_TYPE_SNESCLASSIC);
+}
+
+hoja_err_t core_ns_start_with_default_type(uint8_t default_controller_type)
+{
+    if (loaded_settings.ns_controller_type == NS_CONTROLLER_TYPE_UNKNOWN)
+    {
+        loaded_settings.ns_controller_type = default_controller_type;
+    }
+    return core_ns_start_with_controller_type(loaded_settings.ns_controller_type);
+}
+
+hoja_err_t core_ns_start_with_controller_type(uint8_t controller_type)
+{
     const char* TAG = "core_ns_start";
     esp_err_t ret;
 
@@ -211,7 +225,7 @@ hoja_err_t core_ns_start(void)
     ns_controller_data.battery_level_full = 0x04;
     ns_controller_data.connection_info = 0x00;
 
-    loaded_settings.ns_controller_type = NS_CONTROLLER_TYPE_SNESCLASSIC;
+    loaded_settings.ns_controller_type = controller_type;
 
     // SET UP CONTROLLER TYPE VARS
     switch(loaded_settings.ns_controller_type)

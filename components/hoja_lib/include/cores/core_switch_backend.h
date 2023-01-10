@@ -35,6 +35,7 @@
 //#include "rbc_switch_vibration.h"
 
 /* Define controller types supported */
+#define NS_CONTROLLER_TYPE_UNKNOWN     0x00
 #define NS_CONTROLLER_TYPE_JOYCON_L    0x01
 #define NS_CONTROLLER_TYPE_JOYCON_R    0x02
 #define NS_CONTROLLER_TYPE_PROCON      0x03
@@ -71,6 +72,12 @@ extern uint8_t ns_currentReportMode;
 
 // Start the Nintendo Switch controller core
 hoja_err_t core_ns_start(void);
+
+// Start the Nintendo Switch controller core with a default controller type
+hoja_err_t core_ns_start_with_default_type(uint8_t default_controller_type);
+
+// Start the Nintendo Switch controller core with a specific controller type
+hoja_err_t core_ns_start_with_controller_type(uint8_t default_controller_type);
 
 // Stop the Nintendo Switch controller core
 hoja_err_t core_ns_stop(void);
