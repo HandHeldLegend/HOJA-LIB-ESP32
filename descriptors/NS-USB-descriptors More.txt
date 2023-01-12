@@ -1,0 +1,57 @@
+Device descriptor
+
+18,         //bLength
+0x01,       //bDescriptorType
+0x0110,     //bcdUSB
+0x00,       //bDeviceClass
+0x00,       //bDeviceSubClass
+0x00,       //bDeviceProtocol Use class code from interface descriptors
+64,         //bMaxPacketSize0
+0x20D6,      //idVendor
+0xA713,     //idProduct
+0x0100,     //bcdDevice
+1,          //iManufacturer
+2,          //iProduct
+0,          //iSerialNumber
+1,          //bNumConfigurations
+
+
+Device CONFIGURATION
+
+9,  //bLength
+0x02, //bDescriptorType CONFIGURATION
+34, //wTotalLength
+1, //bNumInterfaces 
+1, //bConfigurationValue 
+0, //iConfiguration
+0x80, //bmAttributes
+250, //bMaxPower
+
+/*CLASS HID INTERFACE DESCRIPTOR*/
+9, //bLength
+0x04, //bDescriptorType INTERFACE HID
+0, //bInterfaceNumber
+0, //bAlternateSetting 
+1, //bNumEndPoints
+0x03, //HID 
+0x00, // no subclass 
+0x00, //bInterfaceProtocol 
+0, //iInterface 
+
+/*HID DESCRIPTOR*/
+9,      //bLength
+0x21,   //HID
+0x0111, //bcdHID
+0x00,   //bCountryCode not supported
+0x1,    //bNumDescriptors
+0x22,   //bDescriptorType HID Report
+94,     //bDescriptorLength
+
+/*ENDPOINT DESCRIPTOR*/
+7,      //bLength
+0x05,   //ENDPOINT
+0x1,    //bEndpointAddress 
+0x3,    //bmAttributes
+64,     //wMaxPacketSize
+10,     //bInterval
+

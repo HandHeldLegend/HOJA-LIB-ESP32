@@ -1,7 +1,0 @@
-// The SDP_PAD_LEN define must be altered to be much higher in bt_target.h. 
-// Default is 300 which is too low for Nintendo Switch.
-
-#include "bt_target.h"
-
-// Example of new define
-#define SDP_MAX_PAD_LEN             500
