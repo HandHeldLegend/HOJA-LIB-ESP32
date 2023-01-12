@@ -65,7 +65,10 @@ hoja_err_t ns_input_translate(uint8_t button_mode)
             ns_input_long.t_zl      = hoja_button_data.trigger_zl;
             ns_input_long.t_zr      = hoja_button_data.trigger_zr;
             ns_input_long.t_l       = hoja_button_data.trigger_l;
-            ns_input_long.t_r       = hoja_button_data.trigger_r;    
+            ns_input_long.t_r       = hoja_button_data.trigger_r;
+            
+            ns_input_long.sb_left   = hoja_button_data.button_stick_left;
+            ns_input_long.sb_right  = hoja_button_data.button_stick_right;
             break;
         default:
             ESP_LOGE(TAG, "Input type invalid!");
