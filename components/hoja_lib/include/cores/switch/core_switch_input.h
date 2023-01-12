@@ -53,8 +53,18 @@ typedef struct
     {
         struct
         {
-            uint8_t b_y       : 1;
-            uint8_t b_x       : 1;
+            union
+            {
+                uint8_t b_y       : 1;
+                uint8_t c_up      : 1;
+            };
+            
+            union
+            {
+                uint8_t b_x       : 1;
+                uint8_t c_left    : 1;
+            };
+            
             uint8_t b_b       : 1;
             uint8_t b_a       : 1;
             uint8_t t_r_sr    : 1;

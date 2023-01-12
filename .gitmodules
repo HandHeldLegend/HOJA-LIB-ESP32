@@ -1,3 +1,0 @@
-[submodule "components/esp32-neopixel"]
-	path = components/esp32-neopixel
-	url = https://github.com/HandHeldLegend/esp32-neopixel

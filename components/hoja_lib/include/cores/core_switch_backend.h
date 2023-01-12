@@ -44,6 +44,32 @@
 #define NS_CONTROLLER_TYPE_GENESIS     0x07
 #define NS_CONTROLLER_TYPE_N64CLASSIC  0x08
 
+/**
+ *  @brief NS Core Controller Types
+ */
+typedef enum
+{
+    NS_TYPE_UNSET,
+    NS_TYPE_PROCON,
+    NS_TYPE_JOYCON_L,
+    NS_TYPE_JOYCON_R,
+    NS_TYPE_SNES,
+    NS_TYPE_NES,
+    NS_TYPE_FC,
+    NS_TYPE_GENESIS,
+    NS_TYPE_MAX,
+} ns_subcore_t;
+
+/**
+ * @brief NS Core Status
+*/
+typedef enum
+{
+    NS_STATUS_IDLE,
+    NS_STATUS_SUBCORESET,
+    NS_STATUS_RUNNING,
+} ns_core_status_t;
+
 /* Define controller global elements */
 #define NS_FW_PRIMARY       0x03
 #define NS_FW_SECONDARY     0x80

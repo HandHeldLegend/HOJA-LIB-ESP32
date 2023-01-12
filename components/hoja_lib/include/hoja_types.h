@@ -231,20 +231,6 @@ typedef enum
 } hoja_status_t;
 
 /**
- *  @brief NS Core Controller Types
- */
-typedef enum
-{
-    NS_TYPE_PROCON      = 0,
-    NS_TYPE_JOYCON_L    = 1,
-    NS_TYPE_JOYCON_R    = 2,
-    NS_TYPE_SNES        = 3,
-    NS_TYPE_NES         = 4,
-    NS_TYPE_FC          = 5,
-    NS_TYPE_GENESIS     = 6,
-} hoja_ns_controller_t;
-
-/**
  *  @brief RGB Struct Type Definition
  */
 typedef struct
@@ -261,6 +247,6 @@ typedef struct
         uint32_t rgb;
     };
     
-} __attribute__ ((packed)) rgb_s;
+} __attribute__ ((packed)) hoja_rgb_s;
 
 #endif

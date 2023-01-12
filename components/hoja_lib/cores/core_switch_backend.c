@@ -8,6 +8,10 @@ TaskHandle_t ns_ReportModeHandle = NULL;
 uint8_t ns_currentReportMode = 0xAA;
 bool ns_connected = false;
 
+// Private variables
+ns_subcore_t _ns_subcore = NS_TYPE_PROCON;
+ns_core_status_t _ns_status = NS_STATUS_IDLE;
+
 // Callbacks for GAP bt events
 void ns_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
 {
@@ -202,6 +206,27 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
         }
 }
 
+hoja_err_t core_ns_set_subcore(ns_subcore_t subcore)
+{
+    const char* TAG = "core_ns_set_subcore";
+
+    if (_ns_status > NS_STATUS_SUBCORESET)
+    {
+        ESP_LOGE(TAG, "Core must be stopped before setting subcore.");
+        return HOJA_FAIL;
+    }
+
+    if ( (subcore == NS_TYPE_UNSET) || (subcore == NULL) || (subcore >= NS_TYPE_MAX) )
+    {
+        ESP_LOGE(TAG, "Invalid subcore type.");
+        return HOJA_FAIL;
+    }
+
+    _ns_subcore = subcore;
+    _ns_status = NS_STATUS_SUBCORESET;
+    return HOJA_OK;
+}
+
 hoja_err_t core_ns_start(void)
 {
     const char* TAG = "core_ns_start";
@@ -211,13 +236,13 @@ hoja_err_t core_ns_start(void)
     ns_controller_data.battery_level_full = 0x04;
     ns_controller_data.connection_info = 0x00;
 
-    loaded_settings.ns_controller_type = NS_CONTROLLER_TYPE_SNESCLASSIC;
-
     // SET UP CONTROLLER TYPE VARS
-    switch(loaded_settings.ns_controller_type)
+    switch(_ns_subcore)
     {
-        case NS_CONTROLLER_TYPE_PROCON:
+        case NS_TYPE_UNSET:
         default:
+            ESP_LOGE(TAG, "Invalid core trying to start. Defaulting to ProCon.");
+        case NS_CONTROLLER_TYPE_PROCON:
             ns_controller_data.controller_type_primary = 0x03;
             ns_controller_data.controller_type_secondary = 0x02;
             break;
