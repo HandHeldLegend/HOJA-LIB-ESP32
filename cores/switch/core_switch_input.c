@@ -47,9 +47,9 @@ hoja_err_t ns_input_translate(uint8_t button_mode)
             ns_input_long.r_stick[1] |= (hoja_analog_data.rs_y & 0xF) << 4;
             ns_input_long.r_stick[2] = hoja_analog_data.rs_y >> 4;
 
-            ns_input_long.b_plus = hoja_button_data.button_start;
-            ns_input_long.b_minus = hoja_button_data.button_select;
-            ns_input_long.b_home = hoja_button_data.button_home;
+            ns_input_long.b_plus    = hoja_button_data.button_start;
+            ns_input_long.b_minus   = hoja_button_data.button_select;
+            ns_input_long.b_home    = hoja_button_data.button_home;
             ns_input_long.b_capture = hoja_button_data.button_capture;
 
             ns_input_long.d_down    = hoja_button_data.dpad_down;
@@ -65,7 +65,19 @@ hoja_err_t ns_input_translate(uint8_t button_mode)
             ns_input_long.t_zl      = hoja_button_data.trigger_zl;
             ns_input_long.t_zr      = hoja_button_data.trigger_zr;
             ns_input_long.t_l       = hoja_button_data.trigger_l;
-            ns_input_long.t_r       = hoja_button_data.trigger_r;    
+            ns_input_long.t_r       = hoja_button_data.trigger_r;
+
+            if (_ns_subcore == NS_TYPE_N64)
+            {
+                ns_input_long.c_down    = hoja_button_data.button_left;
+                ns_input_long.c_up      = hoja_button_data.button_up;
+                ns_input_long.c_left    = hoja_button_data.trigger_l;
+                ns_input_long.c_right   = hoja_button_data.trigger_r;
+                ns_input_long.b_z       = hoja_button_data.trigger_zl;
+                ns_input_long.t_zr      = hoja_button_data.trigger_zr;
+                ns_input_long.t_l       = hoja_button_data.button_select;
+            }
+                
             break;
         default:
             ESP_LOGE(TAG, "Input type invalid!");

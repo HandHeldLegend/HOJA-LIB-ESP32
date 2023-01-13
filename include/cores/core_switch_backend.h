@@ -51,6 +51,7 @@ typedef enum
 {
     NS_TYPE_UNSET,
     NS_TYPE_PROCON,
+    NS_TYPE_N64,
     NS_TYPE_JOYCON_L,
     NS_TYPE_JOYCON_R,
     NS_TYPE_SNES,
@@ -59,6 +60,8 @@ typedef enum
     NS_TYPE_GENESIS,
     NS_TYPE_MAX,
 } ns_subcore_t;
+
+extern ns_subcore_t _ns_subcore;
 
 /**
  * @brief NS Core Status

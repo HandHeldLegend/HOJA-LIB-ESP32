@@ -46,7 +46,7 @@ void snes_task(void * parameters)
         hoja_button_reset();
 
         memset(snes_recvbuf, 0xA5, 129);
-        snes_slave_transaction.length = 15;
+        snes_slave_transaction.length = 16;
         uint8_t tmplow = (snes_button_buffer >> 8);
         uint8_t tmphigh = (snes_button_buffer & 0xFF);
         uint8_t tmp[2] = {tmplow, tmphigh};

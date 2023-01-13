@@ -70,7 +70,12 @@ typedef struct
             uint8_t t_r_sr    : 1;
             uint8_t t_r_sl    : 1;
             uint8_t t_r       : 1;
-            uint8_t t_zr      : 1;
+
+            union
+            {
+                uint8_t t_zr      : 1;
+                uint8_t c_down    : 1;
+            }; 
         };
         uint8_t right_buttons;
     };
@@ -78,8 +83,18 @@ typedef struct
     {
         struct
         {
-            uint8_t b_minus     : 1;
-            uint8_t b_plus      : 1;
+            union
+            {
+                uint8_t b_minus     : 1;
+                uint8_t c_right     : 1;
+            };  
+            
+            union
+            {
+                uint8_t b_plus      : 1;
+                uint8_t b_start     : 1;
+            };
+            
             uint8_t sb_right    : 1;
             uint8_t sb_left     : 1;
             uint8_t b_home      : 1;
@@ -100,7 +115,13 @@ typedef struct
             uint8_t t_l_sr    : 1;
             uint8_t t_l_sl    : 1;
             uint8_t t_l       : 1;
-            uint8_t t_zl      : 1;
+
+            union
+            {
+                uint8_t t_zl      : 1;
+                uint8_t b_z       : 1;
+            };
+            
         };
         uint8_t left_buttons;
     };
