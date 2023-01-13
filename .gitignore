@@ -3,6 +3,8 @@
 
 build/
 
+.vscode/
+
 sdkconfig.defaults
 
 sdkconfig.old
