@@ -3,9 +3,11 @@
 uint16_t snes_button_buffer = 0xFFFF;
 TaskHandle_t snes_TaskHandle = NULL;
 
-// Set up var for receive buffer.
-WORD_ALIGNED_ATTR char snes_recvbuf[129]="";
 spi_slave_transaction_t snes_slave_transaction;
+
+uint8_t snes_lower = 0xFF;
+uint8_t snes_upper = 0xFF;
+uint8_t snes_buffer[2] = {0xFF, 0xFF};
 
 void spi_dummy_cb(spi_slave_transaction_t *trans)
 {
@@ -26,33 +28,36 @@ void snes_task(void * parameters)
         // remain HIGH as well.
 
         // Reset button output to all HIGH bits.
-        snes_button_buffer = 0xFFFF;
+        snes_lower = 0xFF;
+        snes_upper = 0xFF;
 
         // Go through each bit and set accordingly.
-        snes_button_buffer -= (hoja_button_data.button_down     << 15U  );
-        snes_button_buffer -= (hoja_button_data.button_left     << 14U  );
-        snes_button_buffer -= (hoja_button_data.button_select   << 13U  );
-        snes_button_buffer -= (hoja_button_data.button_start    << 12U  );
-        snes_button_buffer -= (hoja_button_data.dpad_up         << 11U  );
-        snes_button_buffer -= (hoja_button_data.dpad_down       << 10U  );
-        snes_button_buffer -= (hoja_button_data.dpad_left       << 9U   );
-        snes_button_buffer -= (hoja_button_data.dpad_right      << 8U   );
-        snes_button_buffer -= (hoja_button_data.button_right    << 7U   );
-        snes_button_buffer -= (hoja_button_data.button_up       << 6U   );
-        snes_button_buffer -= (hoja_button_data.trigger_l       << 5U   );
-        snes_button_buffer -= (hoja_button_data.trigger_r       << 4U   );
+        snes_lower -= (hoja_button_data.button_down)  << 7U;
+        snes_lower -= (hoja_button_data.button_left)  << 6U;
+        snes_lower -= (hoja_button_data.button_select)<< 5U;
+        snes_lower -= (hoja_button_data.button_start) << 4U;
+        snes_lower -= (hoja_button_data.dpad_up)      << 3U;
+        snes_lower -= (hoja_button_data.dpad_down)    << 2U;
+        snes_lower -= (hoja_button_data.dpad_left)    << 1U;
+        snes_lower -= (hoja_button_data.dpad_right);
+
+        snes_upper -= (hoja_button_data.button_right) << 7U;
+        snes_upper -= (hoja_button_data.button_up)    << 6U;
+        snes_upper -= (hoja_button_data.trigger_l | hoja_button_data.trigger_zl)    << 5U;
+        snes_upper -= (hoja_button_data.trigger_r | hoja_button_data.trigger_zr)    << 4U;
+
+        //ESP_LOGI("SNES", "%x", (unsigned int) snes_lower);
 
         // Reset HOJA input buttons for next scan sequence.
         hoja_button_reset();
 
-        memset(snes_recvbuf, 0xA5, 129);
+        snes_buffer[0] = snes_lower;
+        snes_buffer[1] = snes_upper;
         snes_slave_transaction.length = 16;
-        uint8_t tmplow = (snes_button_buffer >> 8);
-        uint8_t tmphigh = (snes_button_buffer & 0xFF);
-        uint8_t tmp[2] = {tmplow, tmphigh};
-        snes_slave_transaction.tx_buffer = tmp;
+        snes_slave_transaction.trans_len = 16;
+        snes_slave_transaction.tx_buffer = snes_buffer;
 
-        err = spi_slave_transmit(HSPI_HOST, &snes_slave_transaction, portMAX_DELAY);
+        spi_slave_transmit(SPI2_HOST, &snes_slave_transaction, portMAX_DELAY);
         vTaskDelay(1/portTICK_PERIOD_MS);
     }
 }
@@ -79,15 +84,11 @@ hoja_err_t core_snes_start()
         .spics_io_num   = (int) CONFIG_HOJA_GPIO_NS_LATCH,
         .queue_size     = 1,
         .flags          = 0,
-        .post_setup_cb  = spi_dummy_cb,
-        .post_trans_cb  = spi_dummy_cb
     };
 
     // Initialize SPI slave interface
-    ret=spi_slave_initialize(HSPI_HOST, &buscfg, &slvcfg, 0);
+    ret=spi_slave_initialize(SPI2_HOST, &buscfg, &slvcfg, SPI_DMA_CH_AUTO);
     assert(ret==ESP_OK);
-
-    memset(snes_recvbuf, 0, 33);
     memset(&snes_slave_transaction, 0, sizeof(snes_slave_transaction));
 
     // Check if task is running, delete if so.
@@ -120,7 +121,7 @@ hoja_err_t core_snes_stop()
     
     // Deinitialize SPI slave interface
     esp_err_t err;
-    err = spi_slave_free(HSPI_HOST);
+    err = spi_slave_free(SPI2_HOST);
     assert(err==ESP_OK);
 
     ESP_LOGI(TAG, "SNES Core stopped OK.");

@@ -60,12 +60,7 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
 
         // Just Rumble data
         case COMM_RUMBLE_ONLY:
-            
-            if (loaded_settings.ns_controller_type == NS_CONTROLLER_TYPE_N64CLASSIC)
-            {
-                //ns_comms_n64update();
-            }
-            
+            // Not implemented
 
             break;
 

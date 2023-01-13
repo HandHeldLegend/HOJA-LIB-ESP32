@@ -170,7 +170,14 @@ uint8_t ns_spi_getaddressdata(uint8_t offset_address, uint8_t address)
                 // Returns a bool indicating if color is set.
                 // 0x02 if the controller is SNES
                 case 0x1B:
-                    return 0x02; //NS_COLOR_SET;
+                    if (_ns_subcore == NS_TYPE_SNES)
+                    {
+                        return 0x02;
+                    }
+                    else
+                    {
+                        return 0x01;
+                    }
                     break;
 
                 // TO-DO - Implement factory 6-Axis calibration.
@@ -214,10 +221,18 @@ uint8_t ns_spi_getaddressdata(uint8_t offset_address, uint8_t address)
                 // 0x01 - Japan (Super Famicom)
                 // 0x02 - Europe (Super Nintendo)
                 case 0x5C:
-                    return 0x02;
+                    if (_ns_subcore == NS_TYPE_SNES)
+                    {
+                        return 0x02;
+                    }
+                    else
+                    {
+                        return 0x00;
+                    }
+                    
                     break;
 
-                // TO-DO - Implement factory right grip color.
+                // TO-DO - Implement factory grip (left and right) color.
                 case 0x59 ... 0x5B:
                     return 0xFF;
                     break;

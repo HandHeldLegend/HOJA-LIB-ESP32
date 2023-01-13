@@ -53,17 +53,12 @@ typedef struct
     {
         struct
         {
-            union
-            {
-                uint8_t b_y       : 1;
-                uint8_t c_up      : 1;
-            };
+            // Y and C-Up (N64)
+            uint8_t b_y       : 1;
             
-            union
-            {
-                uint8_t b_x       : 1;
-                uint8_t c_left    : 1;
-            };
+            
+            // X and C-Left (N64)
+            uint8_t b_x       : 1;
             
             uint8_t b_b       : 1;
             uint8_t b_a       : 1;
@@ -71,11 +66,8 @@ typedef struct
             uint8_t t_r_sl    : 1;
             uint8_t t_r       : 1;
 
-            union
-            {
-                uint8_t t_zr      : 1;
-                uint8_t c_down    : 1;
-            }; 
+            // ZR and C-Down (N64)
+            uint8_t t_zr      : 1;
         };
         uint8_t right_buttons;
     };
@@ -83,17 +75,11 @@ typedef struct
     {
         struct
         {
-            union
-            {
-                uint8_t b_minus     : 1;
-                uint8_t c_right     : 1;
-            };  
+            // Minus and C-Right (N64)
+            uint8_t b_minus     : 1; 
             
-            union
-            {
-                uint8_t b_plus      : 1;
-                uint8_t b_start     : 1;
-            };
+            // Plus and Start
+            uint8_t b_plus      : 1;
             
             uint8_t sb_right    : 1;
             uint8_t sb_left     : 1;
@@ -116,11 +102,8 @@ typedef struct
             uint8_t t_l_sl    : 1;
             uint8_t t_l       : 1;
 
-            union
-            {
-                uint8_t t_zl      : 1;
-                uint8_t b_z       : 1;
-            };
+            // ZL and Z (N64)
+            uint8_t t_zl      : 1;
             
         };
         uint8_t left_buttons;

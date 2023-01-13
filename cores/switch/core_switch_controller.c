@@ -2,6 +2,44 @@
 
 ns_controller_data_s ns_controller_data;
 
+// Sets up various aspects of controller memory
+// which is used by SPI emulation. 
+void ns_controller_setup_memory(void)
+{
+    const char* TAG = "ns_controller_setup_memory";
+
+    switch(_ns_subcore)
+    {
+        case NS_TYPE_UNSET:
+        default:
+            ESP_LOGE(TAG, "Invalid core trying to start. Defaulting to ProCon.");
+        case NS_TYPE_PROCON:
+            ns_controller_data.controller_type_primary = 0x03;
+            ns_controller_data.controller_type_secondary = 0x02;
+            break;
+        case NS_TYPE_N64:
+            ns_controller_data.controller_type_primary = 0x0C;
+            ns_controller_data.controller_type_secondary = 0x11;
+            break;
+        case NS_TYPE_SNES:
+            ns_controller_data.controller_type_primary = 0x0B; //11
+            ns_controller_data.controller_type_secondary = 0x2; //2
+            break;
+        case NS_TYPE_FC:
+            ns_controller_data.controller_type_primary = 0x07;
+            ns_controller_data.controller_type_secondary = 0x02;
+            break;
+        case NS_TYPE_NES:
+            ns_controller_data.controller_type_primary = 0x09;
+            ns_controller_data.controller_type_secondary = 0x02;
+            break;
+        case NS_TYPE_GENESIS:
+            ns_controller_data.controller_type_primary = 0x0D;
+            ns_controller_data.controller_type_secondary = 0x02;
+            break;
+    }
+}
+
 void ns_controller_setinputreportmode(uint8_t report_mode)
 {
     char* TAG = "ns_controller_setinputreportmode";

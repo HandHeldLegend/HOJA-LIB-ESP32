@@ -34,16 +34,6 @@
 // and translating it for the RetroBlue API
 //#include "rbc_switch_vibration.h"
 
-/* Define controller types supported */
-#define NS_CONTROLLER_TYPE_JOYCON_L    0x01
-#define NS_CONTROLLER_TYPE_JOYCON_R    0x02
-#define NS_CONTROLLER_TYPE_PROCON      0x03
-#define NS_CONTROLLER_TYPE_NESCLASSIC  0x04
-#define NS_CONTROLLER_TYPE_FCCLASSIC   0x05
-#define NS_CONTROLLER_TYPE_SNESCLASSIC 0x06
-#define NS_CONTROLLER_TYPE_GENESIS     0x07
-#define NS_CONTROLLER_TYPE_N64CLASSIC  0x08
-
 /**
  *  @brief NS Core Controller Types
  */
@@ -97,6 +87,8 @@ extern nscore_param_s ns_core_param;
 extern TaskHandle_t ns_ReportModeHandle;
 
 extern uint8_t ns_currentReportMode;
+
+hoja_err_t core_ns_set_subcore(ns_subcore_t subcore);
 
 // Start the Nintendo Switch controller core
 hoja_err_t core_ns_start(void);

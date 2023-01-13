@@ -206,6 +206,11 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
         }
 }
 
+/** @brief Set the Nintendo Switch sub controller type
+ * Required before starting core.
+ * 
+ * @param subcore Type of ns_subcore_t
+*/
 hoja_err_t core_ns_set_subcore(ns_subcore_t subcore)
 {
     const char* TAG = "core_ns_set_subcore";
@@ -227,6 +232,7 @@ hoja_err_t core_ns_set_subcore(ns_subcore_t subcore)
     return HOJA_OK;
 }
 
+// Attempt start of Nintendo Switch controller core
 hoja_err_t core_ns_start(void)
 {
     const char* TAG = "core_ns_start";
@@ -237,36 +243,7 @@ hoja_err_t core_ns_start(void)
     ns_controller_data.connection_info = 0x00;
 
     // SET UP CONTROLLER TYPE VARS
-    switch(_ns_subcore)
-    {
-        case NS_TYPE_UNSET:
-        default:
-            ESP_LOGE(TAG, "Invalid core trying to start. Defaulting to ProCon.");
-        case NS_CONTROLLER_TYPE_PROCON:
-            ns_controller_data.controller_type_primary = 0x03;
-            ns_controller_data.controller_type_secondary = 0x02;
-            break;
-        case NS_CONTROLLER_TYPE_N64CLASSIC:
-            ns_controller_data.controller_type_primary = 0x0C;
-            ns_controller_data.controller_type_secondary = 0x11;
-            break;
-        case NS_CONTROLLER_TYPE_SNESCLASSIC:
-            ns_controller_data.controller_type_primary = 0x0B; //11
-            ns_controller_data.controller_type_secondary = 0x2; //2
-            break;
-        case NS_CONTROLLER_TYPE_FCCLASSIC:
-            ns_controller_data.controller_type_primary = 0x07;
-            ns_controller_data.controller_type_secondary = 0x02;
-            break;
-        case NS_CONTROLLER_TYPE_NESCLASSIC:
-            ns_controller_data.controller_type_primary = 0x09;
-            ns_controller_data.controller_type_secondary = 0x02;
-            break;
-        case NS_CONTROLLER_TYPE_GENESIS:
-            ns_controller_data.controller_type_primary = 0x0D;
-            ns_controller_data.controller_type_secondary = 0x02;
-            break;
-    }
+    ns_controller_setup_memory();
 
     ns_controller_data.sticks_calibrated = true;
     ns_controller_data.input_report_mode = 0xFF;
@@ -389,6 +366,7 @@ hoja_err_t core_ns_start(void)
     return HOJA_OK;
 }
 
+// Stop Nintendo Switch controller core
 hoja_err_t core_ns_stop()
 {
     const char* TAG = "rbc_core_ns_stop";
@@ -411,6 +389,7 @@ hoja_err_t core_ns_stop()
     return HOJA_OK;
 }
 
+// Save Nintendo Switch bluetooth pairing
 hoja_err_t ns_savepairing(uint8_t* host_addr)
 {
     const char* TAG = "ns_savepairing";
