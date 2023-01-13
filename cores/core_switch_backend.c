@@ -263,34 +263,46 @@ hoja_err_t core_ns_start(void)
     ns_core_param.app_param.desc_list_len = sizeof(procon_hid_descriptor);
     memset(&ns_core_param.both_qos, 0, sizeof(esp_hidd_qos_param_t));
 
-    // Release BT BLE mode memory
-    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
-
-    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK) 
+    if (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_IDLE)
     {
-        ESP_LOGE(TAG, "%s initialize controller failed: %s\n", __func__, esp_err_to_name(ret));
-        return HOJA_FAIL;
+        // Release BT BLE mode memory
+        ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
+
+        esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+        if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK) 
+        {
+            ESP_LOGE(TAG, "%s initialize controller failed: %s\n", __func__, esp_err_to_name(ret));
+            return HOJA_FAIL;
+        }
     }
 
-    if ((ret = esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT)) != ESP_OK) 
+    if (esp_bt_controller_get_status() < ESP_BT_CONTROLLER_STATUS_ENABLED)
     {
-        ESP_LOGE(TAG, "%s enable controller failed: %s\n", __func__, esp_err_to_name(ret));
-        return HOJA_FAIL;
+        if ((ret = esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT)) != ESP_OK) 
+        {
+            ESP_LOGE(TAG, "%s enable controller failed: %s\n", __func__, esp_err_to_name(ret));
+            return HOJA_FAIL;
+        }
     }
 
-    ESP_LOGI(TAG, "Bluedroid initializing...");
-    if ((ret = esp_bluedroid_init()) != ESP_OK) 
+    if (esp_bluedroid_get_status() == ESP_BLUEDROID_STATUS_UNINITIALIZED)
     {
-        ESP_LOGE(TAG, "Bluedroid failed to initialize: %s\n",  esp_err_to_name(ret));
-        return HOJA_FAIL;
+        ESP_LOGI(TAG, "Bluedroid initializing...");
+        if ((ret = esp_bluedroid_init()) != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Bluedroid failed to initialize: %s\n",  esp_err_to_name(ret));
+            return HOJA_FAIL;
+        }
     }
 
-    ESP_LOGI(TAG, "Bluedroid enabling...");
-    if ((ret = esp_bluedroid_enable()) != ESP_OK) 
+    if (esp_bluedroid_get_status() < ESP_BLUEDROID_STATUS_ENABLED)
     {
-        ESP_LOGE(TAG, "Bluedroid failed to enable: %s\n",  esp_err_to_name(ret));
-        return HOJA_FAIL;
+        ESP_LOGI(TAG, "Bluedroid enabling...");
+        if ((ret = esp_bluedroid_enable()) != ESP_OK) 
+        {
+            ESP_LOGE(TAG, "Bluedroid failed to enable: %s\n",  esp_err_to_name(ret));
+            return HOJA_FAIL;
+        }
     }
     
     if ((ret = esp_bt_gap_register_callback(ns_bt_gap_cb)) != ESP_OK) 
