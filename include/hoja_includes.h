@@ -8,6 +8,8 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include "sdkconfig.h"
+
 #include <hal/clk_gate_ll.h>
 #include <hal/rmt_ll.h>
 
@@ -61,13 +63,22 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 
-#include "sdkconfig.h"
+//#include "sdkconfig.h"
 
 // HOJA API includes
 #include "hoja_types.h"
 #include "hoja_backend.h"
 #include "hoja_frontend.h"
 #include "hoja_settings.h"
+
+#include "util_i2c.h"
+#include "util_joybus_rmt.h"
+#include "util_wired_detect.h"
+#include "util_battery.h"
+#include "util_rmt.h"
+#include "util_common.h"
+#include "util_gamepad.h"
+#include "util_bt_hid.h"
 
 #include "core_gamecube_backend.h"
 #include "core_usb_backend.h"
@@ -76,30 +87,11 @@
 #include "core_bt_dinput.h"
 #include "core_bt_xinput.h"
 
-#include "util_i2c.h"
-#include "util_joybus_rmt.h"
-#include "util_rgb.h"
-#include "util_wired_detect.h"
-#include "util_battery.h"
-#include "util_rmt.h"
-#include "util_common.h"
-#include "util_gamepad.h"
-#include "util_bt_hid.h"
-
 #include "esp_hid_gap.h"
-
-#ifndef SDP_MAX_PAD_LEN
-#define SDP_MAX_PAD_LEN 500
-#else
-#undef SDP_MAX_PAD_LEN
-#define SDP_MAX_PAD_LEN 500
-#endif
 
 // ESP libs
 #include "esp_log.h"
 #include "esp_err.h"
-
-
 
 #include "rsc_descriptors.h"
 

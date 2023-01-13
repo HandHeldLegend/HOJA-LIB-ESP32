@@ -56,16 +56,15 @@ typedef struct
     uint8_t     rt_a;
 } __attribute__ ((packed)) usb_input_s;
 
+// Exposed functions
+
 hoja_err_t core_usb_set_subcore(usb_subcore_t subcore);
 
 hoja_err_t core_usb_stop(void);
 
-// Exposed functions
 hoja_err_t core_usb_start(void);
 
 // Private functions
 void usb_sendinput_task(void * parameters);
-
-void usb_init(void);
 
 #endif

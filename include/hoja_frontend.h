@@ -23,7 +23,7 @@ hoja_err_t hoja_start_core(void);
 
 hoja_err_t hoja_stop_core(void);
 
-hoja_err_t hoja_set_color(rgb_s color);
+hoja_err_t hoja_set_color(hoja_rgb_s color);
 
 hoja_err_t hoja_set_analog_calibration(hoja_analog_axis_t axis, uint16_t min, uint16_t max, uint16_t center);
 
@@ -33,8 +33,6 @@ hoja_err_t hoja_reset_pairing(hoja_core_t core);
 
 // NINTENDO SWITCH
 // ----------------
-
-hoja_err_t hoja_ns_set_type(hoja_ns_controller_t controller);
 
 // ----------------
 // -----------------
