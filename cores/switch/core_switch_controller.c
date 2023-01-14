@@ -40,11 +40,61 @@ void ns_controller_setup_memory(void)
     }
 }
 
+// Apply stick calibration params to controller emulated memory.
+void ns_controller_applycalibration(void)
+{
+    const char* TAG = "ns_input_stickcalibration";
+
+    uint16_t tmp_max_x;
+    uint16_t tmp_min_x;
+    uint16_t tmp_max_y;
+    uint16_t tmp_min_y;
+
+    tmp_max_x = loaded_settings.sx_max - loaded_settings.sx_center;
+    tmp_min_x = loaded_settings.sx_center - loaded_settings.sx_min;
+
+    tmp_max_y = loaded_settings.sy_max - loaded_settings.sy_center;
+    tmp_min_y = loaded_settings.sy_center + loaded_settings.sy_min;
+
+    ns_input_stickcaldata.l_stick_cal[0] = 0xB2;
+    ns_input_stickcaldata.l_stick_cal[1] = 0xA1;
+    ns_input_stickcaldata.l_stick_cal[2] = tmp_max_x & 0xFF;
+    ns_input_stickcaldata.l_stick_cal[3] = (tmp_max_x & 0xF00) >> 8;
+    ns_input_stickcaldata.l_stick_cal[3] |= (tmp_max_y & 0xF) >> 4;
+    ns_input_stickcaldata.l_stick_cal[4] = (tmp_max_y & 0xFF0) >> 4;
+    ns_input_stickcaldata.l_stick_cal[5] = loaded_settings.sx_center & 0xFF;
+    ns_input_stickcaldata.l_stick_cal[6] = (loaded_settings.sx_center & 0xF00) >> 8;
+    ns_input_stickcaldata.l_stick_cal[6] |= (loaded_settings.sy_center & 0xF) << 4;
+    ns_input_stickcaldata.l_stick_cal[7] = (loaded_settings.sy_center & 0xFF0) >> 4;
+    ns_input_stickcaldata.l_stick_cal[8] = tmp_min_x & 0xFF;
+    ns_input_stickcaldata.l_stick_cal[9] = (tmp_min_x & 0xF00) >> 8;
+    ns_input_stickcaldata.l_stick_cal[9] |= (tmp_min_y & 0xF) << 4;
+    ns_input_stickcaldata.l_stick_cal[10] = tmp_min_y >> 4;
+
+    ns_input_stickcaldata.r_stick_cal[0] = 0xB2;
+    ns_input_stickcaldata.r_stick_cal[1] = 0xA1;
+    ns_input_stickcaldata.r_stick_cal[2] = tmp_max_x & 0xFF;
+    ns_input_stickcaldata.r_stick_cal[3] = (tmp_max_x & 0xF00) >> 8;
+    ns_input_stickcaldata.r_stick_cal[3] |= (tmp_max_y & 0xF) >> 4;
+    ns_input_stickcaldata.r_stick_cal[4] = (tmp_max_y & 0xFF0) >> 4;
+    ns_input_stickcaldata.r_stick_cal[5] = loaded_settings.sx_center & 0xFF;
+    ns_input_stickcaldata.r_stick_cal[6] = (loaded_settings.sx_center & 0xF00) >> 8;
+    ns_input_stickcaldata.r_stick_cal[6] |= (loaded_settings.sy_center & 0xF) << 4;
+    ns_input_stickcaldata.r_stick_cal[7] = (loaded_settings.sy_center & 0xFF0) >> 4;
+    ns_input_stickcaldata.r_stick_cal[8] = tmp_min_x & 0xFF;
+    ns_input_stickcaldata.r_stick_cal[9] = (tmp_min_x & 0xF00) >> 8;
+    ns_input_stickcaldata.r_stick_cal[9] |= (tmp_min_y & 0xF) << 4;
+    ns_input_stickcaldata.r_stick_cal[10] = tmp_min_y >> 4;
+
+    ESP_LOGI(TAG, "Nintendo Switch Core stick calibration translated.");
+}
+
 void ns_controller_setinputreportmode(uint8_t report_mode)
 {
     char* TAG = "ns_controller_setinputreportmode";
 
     ESP_LOGI(TAG, "Switching to input mode: %04x", report_mode);
+    /*
     ns_currentReportMode = report_mode;
     switch(report_mode)
     {
@@ -99,7 +149,7 @@ void ns_controller_setinputreportmode(uint8_t report_mode)
             // ERROR
             break;
     }
-
+    */
 }
 
 void ns_controller_setshipmode(uint8_t ship_mode)

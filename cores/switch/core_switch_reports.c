@@ -1,12 +1,9 @@
 #include "core_switch_reports.h"
 
 uint8_t ns_input_report_id = 0x00;
-uint8_t ns_input_report[362] = {};
+uint8_t ns_input_report[NS_INPUT_REPORT_BUFFERSIZE] = {};
 uint16_t ns_input_report_size = 50;
 uint16_t ns_report_timer;
-
-uint8_t ns_input_frequency = INPUT_FREQUENCY_SLOW;
-uint8_t ns_input_pause = 0;
 
 // Clear the outgoing report data
 void ns_report_clear(void)
@@ -51,59 +48,53 @@ void ns_report_setbattconn(void)
     ns_input_report[1] = tmp_bat;
 }
 
-// Sets the outgoing report according to the given button mode.
-void ns_report_setbuttons(uint8_t button_mode)
+// Sets the input report for full mode.
+void ns_report_setinputreport_full(void)
 {
-    // Update buttons
-    ns_input_translate(button_mode);
+    // Update buttons and analog
+    ns_input_translate_full();
 
-    switch(button_mode)
-    {
-        // Sets bytes 1 - 11
-        case NS_BM_SHORT:
-            ns_input_report[0] = ns_input_short.buttons_first;
-            ns_input_report[1] = ns_input_short.buttons_second;
-            ns_input_report[2] = 0x8; //ns_input_short.stick_hat;
+    ns_input_report[2] = ns_input_long.right_buttons;
+    ns_input_report[3] = ns_input_long.shared_buttons;
+    ns_input_report[4] = ns_input_long.left_buttons;
 
-            // To-do: Sticks
-            ns_input_report[3] = ns_input_short.l_stick[0];
-            ns_input_report[4] = ns_input_short.l_stick[1];
-            ns_input_report[5] = ns_input_short.l_stick[2];
-            ns_input_report[6] = ns_input_short.l_stick[3];
-            ns_input_report[7] = 0;
-            ns_input_report[8] = 0;
-            ns_input_report[9] = 0;
-            ns_input_report[10] = 0;
+    // To-do: Sticks
+    ns_input_report[5] = (hoja_analog_data.ls_x & 0xFF);
+    ns_input_report[6] = (hoja_analog_data.ls_x & 0xF00) >> 8;
+    //ns_input_report[7] |= (g_stick_data.lsy & 0xF) << 4;
+    ns_input_report[7] = (hoja_analog_data.ls_y & 0xFF0) >> 4;
+    ns_input_report[8] = (hoja_analog_data.rs_x & 0xFF);
+    ns_input_report[9] = (hoja_analog_data.rs_x & 0xF00) >> 8;
+    ns_input_report[10] = (hoja_analog_data.rs_y & 0xFF0) >> 4;
+    ns_input_report[11] = 0x08;
 
-            break;
+}
 
-        // Sets bytes 3 - 11
-        case NS_BM_LONG:
-            ns_input_report[2] = ns_input_long.right_buttons;
-            ns_input_report[3] = ns_input_long.shared_buttons;
-            ns_input_report[4] = ns_input_long.left_buttons;
+// Sets the input report for short mode.
+void ns_report_setinputreport_short(void)
+{
+    // Update buttons and analog
+    ns_input_translate_short();
 
-            // To-do: Sticks
-            ns_input_report[5] = (hoja_analog_data.ls_x & 0xFF);
-            ns_input_report[6] = (hoja_analog_data.ls_x & 0xF00) >> 8;
-            //ns_input_report[7] |= (g_stick_data.lsy & 0xF) << 4;
-            ns_input_report[7] = (hoja_analog_data.ls_y & 0xFF0) >> 4;
-            ns_input_report[8] = (hoja_analog_data.rs_x & 0xFF);
-            ns_input_report[9] = (hoja_analog_data.rs_x & 0xF00) >> 8;
-            ns_input_report[10] = (hoja_analog_data.rs_y & 0xFF0) >> 4;
-            ns_input_report[11] = 0x08;
-            break;
-    }
-    
+    ns_input_report[0] = ns_input_short.buttons_first;
+    ns_input_report[1] = ns_input_short.buttons_second;
+    ns_input_report[2] = 0x8; //ns_input_short.stick_hat;
+
+    // To-do: Sticks
+    ns_input_report[3] = ns_input_short.l_stick[0];
+    ns_input_report[4] = ns_input_short.l_stick[1];
+    ns_input_report[5] = ns_input_short.l_stick[2];
+    ns_input_report[6] = ns_input_short.l_stick[3];
+    ns_input_report[7] = 0;
+    ns_input_report[8] = 0;
+    ns_input_report[9] = 0;
+    ns_input_report[10] = 0;
 }
 
 //This sets a portion of the input report in bulk. Cleaner input report setting
 void ns_report_bulkset(uint8_t start_idx, uint8_t* data, uint8_t len)
 {
-    for(int i = 0; i < len; i++)
-    {
-        ns_input_report[i+start_idx] = data[i];
-    }
+    memcpy(&ns_input_report[start_idx], data, len);
 }
 
 // Set the input report data for the 'Get Device Info' subcommand 0x02.
@@ -151,7 +142,7 @@ void ns_report_sub_triggertime(uint16_t time_10_ms)
     ns_input_report_size += 14;
 }
 
-// 
+// Handle sub command report for set ship mode
 void ns_report_sub_setshipmode(uint8_t ship_mode)
 {
     if (ship_mode != 0x00 || ship_mode != 0x01) return;
@@ -168,16 +159,10 @@ void ns_report_task_sendshort(void * parameters)
 
     for(;;)
     {
-        if (ns_input_pause)
-        {
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-            continue;
-        }
-
         ns_report_clear();
-        ns_report_setid(0x3F);
+        ns_report_setid(NS_REPORT_SHORT);
         ns_input_report_size = 12;
-        ns_report_setbuttons(NS_BM_SHORT);
+        ns_report_setinputreport_short();
         esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, ns_input_report_id, ns_input_report_size, ns_input_report);
         
         vTaskDelay(12 / portTICK_PERIOD_MS); 
@@ -189,24 +174,22 @@ void ns_report_task_sendstandard(void * parameters)
     const char* TAG = "ns_report_task_sendstandard";
     ESP_LOGI(TAG, "Sending standard (0x30) reports on core %d\n", xPortGetCoreID());
 
-    while(1)
+    for(;;)
     {
-        if (ns_input_pause)
-        {
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-            continue;
-        }
-
         // Check the sticks once
         hoja_analog_cb(&hoja_analog_data);
         ns_report_clear();
         ns_report_settimer();
-        ns_report_setid(0x30);
-        ns_report_setbuttons(NS_BM_LONG);
+        ns_report_setid(NS_REPORT_FULL);
+        ns_report_setinputreport_full();
         ns_report_setbattconn();
         ns_input_report_size = 13;
         ns_input_report[12] = 0x70;
-        esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, ns_input_report_id, ns_input_report_size, ns_input_report);
+
+        esp_hidd_dev_input_set(switch_app_params.hid_dev, 0, ns_input_report_id, ns_input_report, ns_input_report_size);
+        //esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, ns_input_report_id, ns_input_report_size, ns_input_report);
+        
+        // Reset HOJA buttons
         hoja_button_reset();
         vTaskDelay(8 / portTICK_PERIOD_MS);
     }
@@ -215,18 +198,16 @@ void ns_report_task_sendstandard(void * parameters)
 void ns_report_task_sendempty(void * parameters)
 {
     const char* TAG = "ns_report_task_sendempty";
-    ESP_LOGI(TAG, "Sending empty (0xFF) reports on core %d\n", xPortGetCoreID());
+    ESP_LOGI(TAG, "Sending empty reports on core %d\n", xPortGetCoreID());
+    uint8_t tmp[2] = {ns_input_report[0], 0x00};
 
-    while(1)
+    for(;;)
     {   
-        if (!ns_input_pause)
-        {
-            uint8_t tmp[2] = {ns_input_report[0], 0x00};
-            // Set report timer
-            ns_report_settimer();
-            esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0xA1, 2, tmp);
-
-        }
+        
+        // Set report timer
+        ns_report_settimer();
+        esp_hidd_dev_input_set(switch_app_params.hid_dev, 0, 0xA1, tmp, 2);
+        //esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0xA1, 2, tmp);
         vTaskDelay(18 / portTICK_PERIOD_MS);
     }
 }

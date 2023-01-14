@@ -29,9 +29,14 @@ typedef struct
 // Public variables
 extern util_bt_hid_status_t util_bt_hid_status;
 
+// App params external
+extern util_bt_app_params_s switch_app_params;
+
 // Public functions
 hoja_err_t util_bluetooth_init(uint8_t *mac_address);
 
 hoja_err_t util_bluetooth_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_device_config_t *hidd_device_config);
+
+void util_bluetooth_stop();
 
 #endif

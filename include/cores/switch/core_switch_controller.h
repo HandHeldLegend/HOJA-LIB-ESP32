@@ -49,9 +49,12 @@ typedef struct
 
 } ns_controller_data_s;
 
+// Virtual controller memory.
 extern ns_controller_data_s ns_controller_data;
 
 void ns_controller_setup_memory(void);
+
+void ns_controller_applycalibration(void);
 
 void ns_controller_setinputreportmode(uint8_t report_mode);
 

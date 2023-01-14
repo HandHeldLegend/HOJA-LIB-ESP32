@@ -87,9 +87,9 @@
 #include "core_bt_dinput.h"
 #include "core_bt_xinput.h"
 
+// ESP libs
 #include "esp_hid_gap.h"
 
-// ESP libs
 #include "esp_log.h"
 #include "esp_err.h"
 

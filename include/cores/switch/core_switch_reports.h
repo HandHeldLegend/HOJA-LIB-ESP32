@@ -9,33 +9,20 @@
  * controller configurations and different response types
  */
 
-/**
- * @brief Used to indicate which type
- * of input response to use. The long form or
- * short form.
- * @param NS_BM_SHORT Short input report - Simple report
- * @param NS_BM_LONG Long input report - Standard report
- */
-// BUTTON MODES
-#define NS_BM_SHORT 0
-#define NS_BM_LONG  1
+// Larger buffer size than we need.
+#define NS_INPUT_REPORT_BUFFERSIZE  60
 
 /**
  * @brief Input report array. Items in this array
  * get set before sending a response report.
  */
-extern uint8_t ns_input_report[362];
+extern uint8_t ns_input_report[NS_INPUT_REPORT_BUFFERSIZE];
+extern uint8_t ns_input_report_id;
 extern uint16_t ns_input_report_size;
-extern uint16_t ns_report_timer;
 
 //#define INPUT_FREQUENCY_FAST    9 //9
 #define INPUT_FREQUENCY_SLOW    20
 #define INPUT_FREQUENCY_FAST    10
-
-extern uint8_t ns_input_frequency;
-extern uint8_t ns_input_pause;
-extern uint8_t ns_timeout_counter;
-
 
 void ns_report_clear(void);
 
@@ -49,7 +36,9 @@ void ns_report_settimer(void);
 
 void ns_report_setbattconn(void);
 
-void ns_report_setbuttons(uint8_t button_mode);
+void ns_report_setinputreport_full(void);
+
+void ns_report_setinputreport_short(void);
 
 void ns_report_bulkset(uint8_t start_idx, uint8_t* data, uint8_t len);
 

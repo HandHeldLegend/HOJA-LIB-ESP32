@@ -1,10 +1,7 @@
 #include "core_switch_backend.h"
 
-nscore_param_s ns_core_param = {0};
+TaskHandle_t switch_bt_task_handle = NULL;
 
-//uint8_t hid_descriptor_ns_core_len = 213;
-
-TaskHandle_t ns_ReportModeHandle = NULL;
 uint8_t ns_currentReportMode = 0xAA;
 bool ns_connected = false;
 
@@ -12,6 +9,140 @@ bool ns_connected = false;
 ns_subcore_t _ns_subcore = NS_TYPE_PROCON;
 ns_core_status_t _ns_status = NS_STATUS_IDLE;
 
+// SWITCH BTC HIDD Callback
+void switch_bt_hidd_cb(void *handler_args, esp_event_base_t base, int32_t id, void *event_data)
+{
+    esp_hidd_event_t event = (esp_hidd_event_t)id;
+    esp_hidd_event_data_t *param = (esp_hidd_event_data_t *)event_data;
+    static const char *TAG = "switch_bt_hidd_cb";
+
+    switch (event) {
+    case ESP_HIDD_START_EVENT: {
+        if (param->start.status == ESP_OK) {
+            ESP_LOGI(TAG, "START OK");
+            ESP_LOGI(TAG, "Setting to connectable, discoverable");
+            esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+        } else {
+            ESP_LOGE(TAG, "START failed!");
+        }
+        break;
+    }
+    case ESP_HIDD_CONNECT_EVENT: {
+        if (param->connect.status == ESP_OK) {
+            ESP_LOGI(TAG, "CONNECT OK");
+            ESP_LOGI(TAG, "Setting to non-connectable, non-discoverable");
+            esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+        } else {
+            ESP_LOGE(TAG, "CONNECT failed!");
+        }
+        break;
+    }
+    case ESP_HIDD_PROTOCOL_MODE_EVENT: {
+        ESP_LOGI(TAG, "PROTOCOL MODE[%u]: %s", param->protocol_mode.map_index, param->protocol_mode.protocol_mode ? "REPORT" : "BOOT");
+        break;
+    }
+    case ESP_HIDD_OUTPUT_EVENT: {
+        // Send interrupt data to command handler
+        ns_comms_handle_command(param->output.data[0], param->output.length, param->output.data[0]);
+        break;
+    }
+    case ESP_HIDD_FEATURE_EVENT: {
+        ESP_LOGI(TAG, "FEATURE[%u]: %8s ID: %2u, Len: %d, Data:", param->feature.map_index, esp_hid_usage_str(param->feature.usage), param->feature.report_id, param->feature.length);
+        //ESP_LOG_BUFFER_HEX(TAG, param->feature.data, param->feature.length);
+        break;
+    }
+    case ESP_HIDD_DISCONNECT_EVENT: {
+        if (param->disconnect.status == ESP_OK) {
+            ESP_LOGI(TAG, "DISCONNECT OK");
+
+            //TODO add NS core stop
+
+            ESP_LOGI(TAG, "Setting to connectable, discoverable again");
+            esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+        } else {
+            ESP_LOGE(TAG, "DISCONNECT failed!");
+        }
+        break;
+    }
+    case ESP_HIDD_STOP_EVENT: {
+        ESP_LOGI(TAG, "STOP");
+        break;
+    }
+    default:
+        break;
+    }
+    return;
+}
+
+// SWITCH BTC GAP Event Callback
+void switch_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
+{
+    const char* TAG = "switch_bt_gap_cb";
+    switch (event) 
+    {
+        case ESP_BT_GAP_DISC_RES_EVT:
+            ESP_LOGI(TAG, "ESP_BT_GAP_DISC_RES_EVT");
+            //esp_log_buffer_hex(TAG, param->disc_res.bda, ESP_BD_ADDR_LEN);
+            break;
+        case ESP_BT_GAP_DISC_STATE_CHANGED_EVT:
+            ESP_LOGI(TAG, "ESP_BT_GAP_DISC_STATE_CHANGED_EVT");
+            break;
+        case ESP_BT_GAP_RMT_SRVCS_EVT:
+            ESP_LOGI(TAG, "ESP_BT_GAP_RMT_SRVCS_EVT");
+            ESP_LOGI(TAG, "%d", param->rmt_srvcs.num_uuids);
+            break;
+        case ESP_BT_GAP_RMT_SRVC_REC_EVT:
+            ESP_LOGI(TAG, "ESP_BT_GAP_RMT_SRVC_REC_EVT");
+            break;
+        case ESP_BT_GAP_AUTH_CMPL_EVT:{
+            if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
+                ESP_LOGI(TAG, "authentication success: %s", param->auth_cmpl.device_name);
+                //esp_log_buffer_hex(TAG, param->auth_cmpl.bda, ESP_BD_ADDR_LEN);
+
+                // TO DO start input task
+
+            } else {
+                ESP_LOGI(TAG, "authentication failed, status:%d", param->auth_cmpl.stat);
+            }
+            break;
+        }
+        case ESP_BT_GAP_MODE_CHG_EVT:{
+            // This is critical for Nintendo Switch to act upon.
+            // If power mode is 0, there should be NO packets sent from the controller until
+            // another power mode is initiated by the Nintendo Switch console.
+            ESP_LOGI(TAG, "power mode change: %d", param->mode_chg.mode);
+            if (param->mode_chg.mode == 0)
+            {
+                /*
+                if (ns_ReportModeHandle != NULL)
+                {
+                    vTaskDelete(ns_ReportModeHandle);
+                    ns_ReportModeHandle = NULL;
+                }*/
+                
+            }
+            else
+            {
+                if (ns_currentReportMode == 0xAA)
+                {
+                    ns_controller_setinputreportmode(0x30);
+                }
+                else
+                {
+                    ns_controller_setinputreportmode(ns_currentReportMode);
+                }
+                
+            }
+            break;
+        }
+        
+        default:
+            ESP_LOGI(TAG, "UNKNOWN GAP EVT: %d", event);
+            break; 
+    }
+}
+
+// DEPRECEATED TO BE REMOVED START
 // Callbacks for GAP bt events
 void ns_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
 {
@@ -49,11 +180,12 @@ void ns_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
             ESP_LOGI(TAG, "power mode change: %d", param->mode_chg.mode);
             if (param->mode_chg.mode == 0)
             {
+                /*
                 if (ns_ReportModeHandle != NULL)
                 {
                     vTaskDelete(ns_ReportModeHandle);
                     ns_ReportModeHandle = NULL;
-                }
+                }*/
                 
             }
             else
@@ -205,6 +337,34 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
             break;
         }
 }
+// DEPRECEATED TO BE REMOVED END
+
+// Switch HID report maps
+const esp_hid_raw_report_map_t switch_report_maps[1] = {
+    {
+        .data = procon_hid_descriptor,
+        .len = (uint16_t) PROCON_HID_REPORT_MAP_LEN,
+    }
+};
+
+// Bluetooth App setup data
+util_bt_app_params_s switch_app_params = {
+    .hidd_cb            = switch_bt_hidd_cb,
+    .gap_cb             = switch_bt_gap_cb,
+    .bt_mode            = ESP_BT_MODE_CLASSIC_BT,
+    .appearance         = ESP_HID_APPEARANCE_GAMEPAD,
+};
+
+const esp_hid_device_config_t switch_hidd_config = {
+    .vendor_id  = HID_VEND_NSPRO,
+    .product_id = HID_PROD_NSPRO,
+    .version    = 0x0000,
+    .device_name = "Pro Controller",
+    .manufacturer_name = "Nintendo",
+    .serial_number = "000000",
+    .report_maps    = switch_report_maps,
+    .report_maps_len = 1,
+};
 
 /** @brief Set the Nintendo Switch sub controller type
  * Required before starting core.
@@ -227,6 +387,7 @@ hoja_err_t core_ns_set_subcore(ns_subcore_t subcore)
         return HOJA_FAIL;
     }
 
+    ESP_LOGI(TAG, "Switch Sub-Core set.");
     _ns_subcore = subcore;
     _ns_status = NS_STATUS_SUBCORESET;
     return HOJA_OK;
@@ -237,6 +398,7 @@ hoja_err_t core_ns_start(void)
 {
     const char* TAG = "core_ns_start";
     esp_err_t ret;
+    hoja_err_t err;
 
     // Load Controller data
     ns_controller_data.battery_level_full = 0x04;
@@ -249,141 +411,43 @@ hoja_err_t core_ns_start(void)
     ns_controller_data.input_report_mode = 0xFF;
 
     // Convert calibration data
-    ns_input_stickcalibration();
+    ns_controller_applycalibration();
 
     // Set MAC address for Switch Bluetooth
     esp_base_mac_addr_set(loaded_settings.ns_client_bt_address);
-    
-    // Set up NS app parameters
-    ns_core_param.app_param.name = "Pro Controller";
-    ns_core_param.app_param.description = "Gamepad";
-    ns_core_param.app_param.provider = "Nintendo";
-    ns_core_param.app_param.subclass = 0x08;
-    ns_core_param.app_param.desc_list = procon_hid_descriptor;
-    ns_core_param.app_param.desc_list_len = sizeof(procon_hid_descriptor);
-    memset(&ns_core_param.both_qos, 0, sizeof(esp_hidd_qos_param_t));
 
-    // Release BT BLE mode memory
-    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
+    err = util_bluetooth_init(loaded_settings.ns_client_bt_address);
+    err = util_bluetooth_register_app(&switch_app_params, &switch_hidd_config);
 
-    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK) 
-    {
-        ESP_LOGE(TAG, "%s initialize controller failed: %s\n", __func__, esp_err_to_name(ret));
-        return HOJA_FAIL;
-    }
+    ESP_LOGI(TAG, "Delaying 10 seconds then shutting down");
+    vTaskDelay(10000/portTICK_PERIOD_MS);
 
-    if ((ret = esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT)) != ESP_OK) 
-    {
-        ESP_LOGE(TAG, "%s enable controller failed: %s\n", __func__, esp_err_to_name(ret));
-        return HOJA_FAIL;
-    }
-
-    ESP_LOGI(TAG, "Bluedroid initializing...");
-    if ((ret = esp_bluedroid_init()) != ESP_OK) 
-    {
-        ESP_LOGE(TAG, "Bluedroid failed to initialize: %s\n",  esp_err_to_name(ret));
-        return HOJA_FAIL;
-    }
-
-    ESP_LOGI(TAG, "Bluedroid enabling...");
-    if ((ret = esp_bluedroid_enable()) != ESP_OK) 
-    {
-        ESP_LOGE(TAG, "Bluedroid failed to enable: %s\n",  esp_err_to_name(ret));
-        return HOJA_FAIL;
-    }
-    
-    if ((ret = esp_bt_gap_register_callback(ns_bt_gap_cb)) != ESP_OK) 
-    {
-        ESP_LOGE(TAG, "GAP callback register failed: %s\n", esp_err_to_name(ret));
-        return HOJA_FAIL;
-    }
-
-    esp_bt_cod_t ns_cod;
-    ns_cod.minor = 0x2;
-    ns_cod.major = 0x5;
-    ns_cod.service = 0x400;
-    esp_bt_gap_set_cod(ns_cod, ESP_BT_SET_COD_MAJOR_MINOR);
-
-    ESP_LOGI(TAG, "Register HID device callback");
-    if ((ret = esp_bt_hid_device_register_callback(ns_bt_hidd_cb)) != ESP_OK)
-    {
-        ESP_LOGE(TAG, "HID Callback register failed: %s\n", esp_err_to_name(ret));
-        return HOJA_FAIL;
-    }
-
-	ESP_LOGI(TAG, "Starting HID Device");
-	if ((ret = esp_bt_hid_device_init()) != ESP_OK)
-    {
-        ESP_LOGE(TAG, "HID device failed to start:");
-        return HOJA_FAIL;
-    }
-
-    esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
-    esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_NONE;
-    esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
-
-    ESP_LOGI(TAG, "Register HID Device app");
-    if ((ret = esp_bt_hid_device_register_app(&ns_core_param.app_param, &ns_core_param.both_qos, &ns_core_param.both_qos)) != ESP_OK)
-    {
-        ESP_LOGE(TAG, "HID device register app failed:");
-        return HOJA_FAIL;
-    }
-
-    esp_bt_dev_set_device_name("Pro Controller");
-
-    ns_connected = false;
-    esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-
-    hoja_event_cb(HOJA_EVT_BT, HEVT_BT_STARTED, 0x00);
-
-    // Delay 1 seconds to see if console initiates connection
-    vTaskDelay(1000/portTICK_PERIOD_MS);
-
-    if (loaded_settings.ns_controller_paired & !ns_connected)
-    {
-        // Connect to paired host device if we haven't connected already
-        if (esp_bt_hid_device_connect(loaded_settings.ns_host_bt_address) != ESP_OK)
-        {
-            ESP_LOGI(TAG, "Failed to connect to paired switch. Setting scannable and discoverable.");
-            esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-        }
-    }
-    else
-    {
-        ESP_LOGI(TAG, "Controller already connected");
-    }
-
-    vTaskDelay(1500/portTICK_PERIOD_MS);
-    if (!ns_connected)
-    {
-        // If still not connected, return failure.
-        ESP_LOGI(TAG, "Not connected to Switch. Fall back to another mode.");
-        core_ns_stop();
-        return HOJA_FAIL;
-    }
+    util_bluetooth_stop();
 
     return HOJA_OK;
+
+    // TODO handle connecting to already paired device
 }
 
 // Stop Nintendo Switch controller core
 hoja_err_t core_ns_stop()
 {
-    const char* TAG = "rbc_core_ns_stop";
+    const char* TAG = "core_ns_stop";
 
-    ns_input_frequency = INPUT_FREQUENCY_SLOW;
-    if (ns_ReportModeHandle != NULL)
+    if (switch_bt_task_handle != NULL)
     {
-        vTaskDelete(ns_ReportModeHandle);
+        vTaskDelete(switch_bt_task_handle);
     }
-    ns_ReportModeHandle = NULL;
+    switch_bt_task_handle = NULL;
 
+    // TODO replace with nice util BT way to stop BT.
     esp_bt_hid_device_disconnect();
     esp_bt_hid_device_unregister_app();
     esp_bt_hid_device_deinit();
     esp_bluedroid_disable();
                     
     ESP_LOGI(TAG, "Nintendo Switch Core stopped OK.");
+    // TODO replace with BT stopped event. At this point disconnect already happened probably.
     hoja_event_cb(HOJA_EVT_BT, HEVT_BT_DISCONNECT, 0x00);
 
     return HOJA_OK;

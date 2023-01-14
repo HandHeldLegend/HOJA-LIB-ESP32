@@ -541,3 +541,13 @@ hoja_err_t util_bluetooth_register_app(util_bt_app_params_s *util_bt_app_params,
     }
     return err;
 }
+
+
+/**
+ * @brief Stops the Bluetooth app
+*/
+void util_bluetooth_stop()
+{
+    esp_bluedroid_disable();
+    esp_bluedroid_deinit();
+}
