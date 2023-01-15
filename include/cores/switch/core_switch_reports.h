@@ -2,6 +2,7 @@
 #define CORE_SWITCH_REPORTS_H
 
 #include "core_switch_backend.h"
+#include "switch/core_switch_types.h"
 
 /** 
  * These functions and parameters are all related
@@ -36,9 +37,9 @@ void ns_report_settimer(void);
 
 void ns_report_setbattconn(void);
 
-void ns_report_setinputreport_full(void);
+void ns_report_setinputreport_full(ns_input_long_s *ns_input_long);
 
-void ns_report_setinputreport_short(void);
+void ns_report_setinputreport_short(ns_input_short_s *ns_input_short);
 
 void ns_report_bulkset(uint8_t start_idx, uint8_t* data, uint8_t len);
 
@@ -49,7 +50,7 @@ void ns_report_sub_triggertime(uint16_t time_10_ms);
 void ns_report_sub_setspidata(uint8_t* data, uint8_t len);
 
 // Input Report Send Tasks
-void ns_report_task_sendshort();
+void ns_report_task_sendshort(void * parameters);
 
 void ns_report_task_sendstandard(void * parameters);
 

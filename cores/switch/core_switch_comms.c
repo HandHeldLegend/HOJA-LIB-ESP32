@@ -15,8 +15,11 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
     // Set battery/connection byte
     ns_report_setbattconn();
 
+    ns_input_long_s input = {0};
+
+    ns_input_translate_full(&input);
     // Set full report response buttons
-    ns_report_setinputreport_full();
+    ns_report_setinputreport_full(&input);
     ns_input_report_size = 14;
 
     switch(report_id)
@@ -34,8 +37,7 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
             ns_comms_handle_subcommand(p_data[9], len, p_data);
             
             // Send input report
-            esp_hidd_dev_input_set(switch_app_params.hid_dev, 0, ns_input_report_id, ns_input_report, ns_input_report_size);
-            //esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0x21, ns_input_report_size, ns_input_report);
+            esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0x21, ns_input_report_size, ns_input_report);
             break;
 
         // Just Rumble data

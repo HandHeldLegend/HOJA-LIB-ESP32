@@ -11,10 +11,16 @@ typedef enum
     UTIL_BT_HID_STATUS_MAX
 } util_bt_hid_status_t;
 
+typedef enum
+{
+    UTIL_BT_MODE_CLASSIC,
+    UTIL_BT_MODE_BLE,
+} util_bt_hid_mode_t;
+
 typedef struct
 {
     // CB for BTC
-    esp_event_handler_t hidd_cb;
+    esp_hd_cb_t     hidd_cb;
     esp_bt_gap_cb_t gap_cb;
 
     // CB for BLE
@@ -28,6 +34,7 @@ typedef struct
 
 // Public variables
 extern util_bt_hid_status_t util_bt_hid_status;
+extern util_bt_hid_mode_t util_bt_hid_mode;
 
 // App params external
 extern util_bt_app_params_s switch_app_params;
@@ -37,6 +44,6 @@ hoja_err_t util_bluetooth_init(uint8_t *mac_address);
 
 hoja_err_t util_bluetooth_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_device_config_t *hidd_device_config);
 
-void util_bluetooth_stop();
+void util_bluetooth_deinit(void);
 
 #endif

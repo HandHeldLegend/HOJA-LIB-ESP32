@@ -49,42 +49,36 @@ void ns_report_setbattconn(void)
 }
 
 // Sets the input report for full mode.
-void ns_report_setinputreport_full(void)
+void ns_report_setinputreport_full(ns_input_long_s *ns_input_long)
 {
-    // Update buttons and analog
-    ns_input_translate_full();
+    ns_input_report[2] = ns_input_long->right_buttons;
+    ns_input_report[3] = ns_input_long->shared_buttons;
+    ns_input_report[4] = ns_input_long->left_buttons;
 
-    ns_input_report[2] = ns_input_long.right_buttons;
-    ns_input_report[3] = ns_input_long.shared_buttons;
-    ns_input_report[4] = ns_input_long.left_buttons;
-
-    // To-do: Sticks
-    ns_input_report[5] = (hoja_analog_data.ls_x & 0xFF);
-    ns_input_report[6] = (hoja_analog_data.ls_x & 0xF00) >> 8;
+    // Set sticks directly from hoja_analog_data
+    // Saves cycles :)
+    ns_input_report[5] = (ns_input_long->ls_x & 0xFF);
+    ns_input_report[6] = (ns_input_long->ls_x & 0xF00) >> 8;
     //ns_input_report[7] |= (g_stick_data.lsy & 0xF) << 4;
-    ns_input_report[7] = (hoja_analog_data.ls_y & 0xFF0) >> 4;
-    ns_input_report[8] = (hoja_analog_data.rs_x & 0xFF);
-    ns_input_report[9] = (hoja_analog_data.rs_x & 0xF00) >> 8;
-    ns_input_report[10] = (hoja_analog_data.rs_y & 0xFF0) >> 4;
+    ns_input_report[7] = (ns_input_long->ls_y & 0xFF0) >> 4;
+    ns_input_report[8] = (ns_input_long->rs_x & 0xFF);
+    ns_input_report[9] = (ns_input_long->rs_x & 0xF00) >> 8;
+    ns_input_report[10] = (ns_input_long->rs_y & 0xFF0) >> 4;
     ns_input_report[11] = 0x08;
-
 }
 
 // Sets the input report for short mode.
-void ns_report_setinputreport_short(void)
+void ns_report_setinputreport_short(ns_input_short_s *ns_input_short)
 {
-    // Update buttons and analog
-    ns_input_translate_short();
-
-    ns_input_report[0] = ns_input_short.buttons_first;
-    ns_input_report[1] = ns_input_short.buttons_second;
+    ns_input_report[0] = ns_input_short->buttons_first;
+    ns_input_report[1] = ns_input_short->buttons_second;
     ns_input_report[2] = 0x8; //ns_input_short.stick_hat;
 
     // To-do: Sticks
-    ns_input_report[3] = ns_input_short.l_stick[0];
-    ns_input_report[4] = ns_input_short.l_stick[1];
-    ns_input_report[5] = ns_input_short.l_stick[2];
-    ns_input_report[6] = ns_input_short.l_stick[3];
+    ns_input_report[3] = ns_input_short->l_stick[0];
+    ns_input_report[4] = ns_input_short->l_stick[1];
+    ns_input_report[5] = ns_input_short->l_stick[2];
+    ns_input_report[6] = ns_input_short->l_stick[3];
     ns_input_report[7] = 0;
     ns_input_report[8] = 0;
     ns_input_report[9] = 0;
@@ -117,6 +111,11 @@ void ns_report_sub_setdevinfo(void)
  * @brief Set the input report data for the 'Triggers elapsed time' subcommand 0x04.
  * This will set the same elapsed time for all relevant buttons since this only seems
  * to be used in connection mode where the L/R buttons need to be pressed to connect.
+ * 
+ * Some technical notes for you nerds out there-- This is used to help set up which player number a controller is.
+ * A controller on Nintendo switch is 'connected' but then nothing happens until the console knows when the L/R
+ * (Or ZL/ZR or SL/SR) buttons have been pressed last. It seems a bit convoluted to me but whatever!
+ * 
  * @param[in] time_10_ms Time of milisecconds divided by 10. Example: 1000ms/10 = 100. 
  */
 void ns_report_sub_triggertime(uint16_t time_10_ms)
@@ -151,43 +150,77 @@ void ns_report_sub_setshipmode(uint8_t ship_mode)
     hoja_event_cb(HOJA_EVT_SYSTEM, HEVT_API_SHUTDOWN, 0x00);
 }
 
-// Set a 0x3F or short input report
+// Length of HID report for short inputs.
+#define NS_REPORT_SHORT_LEN 12
+
+// Task used to send short or simple inputs.
+// Only sends input when data is changed! SOOPER.
 void ns_report_task_sendshort(void * parameters)
 {
     const char* TAG = "ns_report_task_sendshort";
     ESP_LOGI(TAG, "Sending short (0x3F) reports on core %d\n", xPortGetCoreID());
+    ns_input_short_s ns_input_short = {0};
+    ns_input_short_s ns_input_short_last = {0};
 
     for(;;)
     {
         ns_report_clear();
-        ns_report_setid(NS_REPORT_SHORT);
+
+        // TODO remove and replace with defines for all report IDs.
+        // ns_report_setid(NS_REPORT_SHORT);
+
         ns_input_report_size = 12;
-        ns_report_setinputreport_short();
-        esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, ns_input_report_id, ns_input_report_size, ns_input_report);
+        // Update buttons and analog
+        ns_input_translate_short(&ns_input_short);
+        ns_report_setinputreport_short(&ns_input_short);
+
+        esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, NS_REPORT_SHORT, NS_REPORT_SHORT_LEN, ns_input_report);
         
-        vTaskDelay(12 / portTICK_PERIOD_MS); 
+        vTaskDelay(16 / portTICK_PERIOD_MS); 
     }
 }
 
+// Length of HID report for standard or full inputs.
+#define NS_REPORT_STANDARD_LEN  13
+
+// Task used to send standard or "full" inputs.
+// Only sends input when there is a change to the 
+// data! Very nice.
 void ns_report_task_sendstandard(void * parameters)
 {
     const char* TAG = "ns_report_task_sendstandard";
     ESP_LOGI(TAG, "Sending standard (0x30) reports on core %d\n", xPortGetCoreID());
 
+    ns_input_long_s ns_input_long   = {0};
+    ns_input_long_s ns_input_long_last   = {0};
+
     for(;;)
     {
         // Check the sticks once
         hoja_analog_cb(&hoja_analog_data);
-        ns_report_clear();
-        ns_report_settimer();
-        ns_report_setid(NS_REPORT_FULL);
-        ns_report_setinputreport_full();
-        ns_report_setbattconn();
-        ns_input_report_size = 13;
-        ns_input_report[12] = 0x70;
+        ns_input_translate_full(&ns_input_long);
 
-        esp_hidd_dev_input_set(switch_app_params.hid_dev, 0, ns_input_report_id, ns_input_report, ns_input_report_size);
-        //esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, ns_input_report_id, ns_input_report_size, ns_input_report);
+        // Only send an input update if our comparison is different.
+        // Saves power and processing :)
+        if (ns_input_compare_full(&ns_input_long, &ns_input_long_last))
+        {
+            ns_report_clear();
+        
+            // Report ID is const now. REMOVE
+            //ns_report_setid(NS_REPORT_FULL);
+            
+            ns_report_setinputreport_full(&ns_input_long);
+
+            ns_report_settimer();
+            ns_report_setbattconn();
+            //ns_input_report_size = 13;
+            ns_input_report[12] = 0x70;
+
+            esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, NS_REPORT_FULL, NS_REPORT_STANDARD_LEN, ns_input_report);
+
+            // Copy data into "last" buffer for future comparison
+            memcpy(&ns_input_long_last, &ns_input_long, sizeof(ns_input_long_s));
+        }
         
         // Reset HOJA buttons
         hoja_button_reset();
@@ -195,6 +228,10 @@ void ns_report_task_sendstandard(void * parameters)
     }
 }
 
+// Send a stream of empty reports
+// Intended to get the Nintendo Switch console
+// to respond to us because the controller gets lonely when
+// it pairs initially :(
 void ns_report_task_sendempty(void * parameters)
 {
     const char* TAG = "ns_report_task_sendempty";
@@ -203,11 +240,9 @@ void ns_report_task_sendempty(void * parameters)
 
     for(;;)
     {   
-        
         // Set report timer
         ns_report_settimer();
-        esp_hidd_dev_input_set(switch_app_params.hid_dev, 0, 0xA1, tmp, 2);
-        //esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0xA1, 2, tmp);
-        vTaskDelay(18 / portTICK_PERIOD_MS);
+        esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0xA1, 2, tmp);
+        vTaskDelay(8 / portTICK_PERIOD_MS);
     }
 }
