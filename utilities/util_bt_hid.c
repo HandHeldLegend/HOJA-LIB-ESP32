@@ -6,68 +6,112 @@
 
 // BT Classic HID Callbacks
 
-// BTC HIDD Event Callback Template
-void util_bt_hidd_cb(void *handler_args, esp_event_base_t base, int32_t id, void *event_data)
+// Callbacks for HID report events
+void util_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 {
-    esp_hidd_event_t event = (esp_hidd_event_t)id;
-    esp_hidd_event_data_t *param = (esp_hidd_event_data_t *)event_data;
-    static const char *TAG = "util_bt_hidd_cb";
+    static const char* TAG = "ns_bt_hidd_cb";
 
     switch (event) {
-    case ESP_HIDD_START_EVENT: {
-        if (param->start.status == ESP_OK) {
-            ESP_LOGI(TAG, "START OK");
-            ESP_LOGI(TAG, "Setting to connectable, discoverable");
-            esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-        } else {
-            ESP_LOGE(TAG, "START failed!");
+        case ESP_HIDD_INIT_EVT:
+            if (param->init.status == ESP_HIDD_SUCCESS) {
+                ESP_LOGI(TAG, "init hidd success!");
+            } else {
+                ESP_LOGI(TAG, "init hidd failed!");
+            }
+            break;
+        case ESP_HIDD_DEINIT_EVT:
+            break;
+        case ESP_HIDD_REGISTER_APP_EVT:
+            if (param->register_app.status == ESP_HIDD_SUCCESS) {
+                ESP_LOGI(TAG, "Register HIDD app parameters success!");
+                if(param->register_app.bd_addr == NULL)
+                {
+                    ESP_LOGI(TAG, "bd_addr is undefined!");
+                }
+            } else {
+                ESP_LOGI(TAG, "Register HIDD app parameters failed!");
+            }
+            break;
+        case ESP_HIDD_UNREGISTER_APP_EVT:
+            if (param->unregister_app.status == ESP_HIDD_SUCCESS) {
+                ESP_LOGI(TAG, "unregister app success!");
+            } else {
+                ESP_LOGI(TAG, "unregister app failed!");
+            }
+            break;
+        case ESP_HIDD_OPEN_EVT:
+            if (param->open.status == ESP_HIDD_SUCCESS) {
+                if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTING) {
+                    ESP_LOGI(TAG, "connecting...");
+                } else if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTED) {
+                    ESP_LOGI(TAG, "connected to %02x:%02x:%02x:%02x:%02x:%02x", param->open.bd_addr[0],
+                            param->open.bd_addr[1], param->open.bd_addr[2], param->open.bd_addr[3], param->open.bd_addr[4],
+                            param->open.bd_addr[5]);
+                    ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
+                    esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+                } else {
+                    ESP_LOGI(TAG, "unknown connection status");
+                    ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
+                    esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+                }
+            } else {
+                ESP_LOGI(TAG, "open failed!");
+                ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
+                esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+            }
+            break;
+        case ESP_HIDD_CLOSE_EVT:
+            ESP_LOGI(TAG, "ESP_HIDD_CLOSE_EVT");
+            if (param->close.status == ESP_HIDD_SUCCESS) {
+                if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTING) {
+                    ESP_LOGI(TAG, "disconnecting...");
+                } else if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
+                    ESP_LOGI(TAG, "disconnected!");
+                } else {
+                    ESP_LOGI(TAG, "unknown connection status");
+                }
+            } else {
+                ESP_LOGI(TAG, "close failed!");
+                ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
+                esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+            }
+            break;
+        case ESP_HIDD_SEND_REPORT_EVT:
+            break;
+        case ESP_HIDD_REPORT_ERR_EVT:
+            ESP_LOGI(TAG, "ESP_HIDD_REPORT_ERR_EVT");
+            break;
+        case ESP_HIDD_GET_REPORT_EVT:
+            ESP_LOGI(TAG, "ESP_HIDD_GET_REPORT_EVT id:0x%02x, type:%d, size:%d", param->get_report.report_id,
+                    param->get_report.report_type, param->get_report.buffer_size);
+            break;
+        case ESP_HIDD_SET_REPORT_EVT:
+            ESP_LOGI(TAG, "ESP_HIDD_SET_REPORT_EVT");
+            break;
+        case ESP_HIDD_SET_PROTOCOL_EVT:
+            ESP_LOGI(TAG, "ESP_HIDD_SET_PROTOCOL_EVT");
+            break;
+        case ESP_HIDD_INTR_DATA_EVT:
+            break;
+        case ESP_HIDD_VC_UNPLUG_EVT:
+            ESP_LOGI(TAG, "ESP_HIDD_VC_UNPLUG_EVT");
+            if (param->vc_unplug.status == ESP_HIDD_SUCCESS) {
+                if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
+                    ESP_LOGI(TAG, "disconnected!");
+                } else {
+                    ESP_LOGI(TAG, "unknown connection status");
+                }
+            } else {
+                ESP_LOGI(TAG, "close failed!");
+                ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
+                esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+            }
+            break;
+        default:
+            ESP_LOGI(TAG, "UNKNOWN EVENT: %d", event);
+
+            break;
         }
-        break;
-    }
-    case ESP_HIDD_CONNECT_EVENT: {
-        if (param->connect.status == ESP_OK) {
-            ESP_LOGI(TAG, "CONNECT OK");
-            ESP_LOGI(TAG, "Setting to non-connectable, non-discoverable");
-            esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
-            //bt_hid_task_start_up();
-        } else {
-            ESP_LOGE(TAG, "CONNECT failed!");
-        }
-        break;
-    }
-    case ESP_HIDD_PROTOCOL_MODE_EVENT: {
-        ESP_LOGI(TAG, "PROTOCOL MODE[%u]: %s", param->protocol_mode.map_index, param->protocol_mode.protocol_mode ? "REPORT" : "BOOT");
-        break;
-    }
-    case ESP_HIDD_OUTPUT_EVENT: {
-        ESP_LOGI(TAG, "OUTPUT[%u]: %8s ID: %2u, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
-        //ESP_LOG_BUFFER_HEX(TAG, param->output.data, param->output.length);
-        break;
-    }
-    case ESP_HIDD_FEATURE_EVENT: {
-        ESP_LOGI(TAG, "FEATURE[%u]: %8s ID: %2u, Len: %d, Data:", param->feature.map_index, esp_hid_usage_str(param->feature.usage), param->feature.report_id, param->feature.length);
-        //ESP_LOG_BUFFER_HEX(TAG, param->feature.data, param->feature.length);
-        break;
-    }
-    case ESP_HIDD_DISCONNECT_EVENT: {
-        if (param->disconnect.status == ESP_OK) {
-            ESP_LOGI(TAG, "DISCONNECT OK");
-            //bt_hid_task_shut_down();
-            ESP_LOGI(TAG, "Setting to connectable, discoverable again");
-            esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-        } else {
-            ESP_LOGE(TAG, "DISCONNECT failed!");
-        }
-        break;
-    }
-    case ESP_HIDD_STOP_EVENT: {
-        ESP_LOGI(TAG, "STOP");
-        break;
-    }
-    default:
-        break;
-    }
-    return;
 }
 
 // BTC GAP Event Callback Template
@@ -261,6 +305,8 @@ static void util_ble_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t
 
 // Status of BT HID Gamepad Utility
 util_bt_hid_status_t util_bt_hid_status = UTIL_BT_HID_STATUS_IDLE;
+util_bt_hid_mode_t util_bt_hid_mode = UTIL_BT_MODE_CLASSIC;
+
 
 static esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
 
@@ -273,20 +319,17 @@ hoja_err_t bt_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_dev
 
     esp_err_t ret;
 
-    /*
+    util_bt_hid_mode = UTIL_BT_MODE_CLASSIC;
+
     esp_bt_cod_t hid_cod;
     hid_cod.minor = 0x2;
     hid_cod.major = 0x5;
     hid_cod.service = 0x400;
-    esp_bt_gap_set_cod(hid_cod, ESP_BT_SET_COD_MAJOR_MINOR);*/
+    esp_bt_gap_set_cod(hid_cod, ESP_BT_SET_COD_MAJOR_MINOR);
 
-    esp_bt_dev_set_device_name(hidd_device_config->device_name);
-
-    #if CONFIG_BT_SSP_ENABLED
     esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
     esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_NONE;
     esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
-    #endif
 
     if ((ret = esp_bt_gap_register_callback(util_bt_app_params->gap_cb)) != ESP_OK) 
     {
@@ -294,14 +337,41 @@ hoja_err_t bt_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_dev
         return HOJA_FAIL;
     }
 
-    esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-
-    ret = esp_hidd_dev_init(hidd_device_config, ESP_HID_TRANSPORT_BT, util_bt_app_params->hidd_cb, &util_bt_app_params->hid_dev);
-    if (ret != ESP_OK)
+    ESP_LOGI(TAG, "Register HID device callback");
+    if ((ret = esp_bt_hid_device_register_callback(util_bt_app_params->hidd_cb)) != ESP_OK)
     {
-        ESP_LOGE(TAG, "HIDD dev init failed: %s\n", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "HID Callback register failed: %s\n", esp_err_to_name(ret));
         return HOJA_FAIL;
     }
+
+	ESP_LOGI(TAG, "Starting HID Device");
+	if ((ret = esp_bt_hid_device_init()) != ESP_OK)
+    {
+        ESP_LOGE(TAG, "HID device failed to start:");
+        return HOJA_FAIL;
+    }
+
+    esp_hidd_app_param_t app_param = {
+        .desc_list      = hidd_device_config->report_maps[0].data,
+        .desc_list_len  = hidd_device_config->report_maps[0].len,
+        .description    = "Gamepad",
+        .subclass       = 0x08,
+        .name           = hidd_device_config->device_name,
+        .provider       = hidd_device_config->manufacturer_name,
+    };
+
+    esp_hidd_qos_param_t both_qos = {0};
+
+    ESP_LOGI(TAG, "Register HID Device app");
+    if ((ret = esp_bt_hid_device_register_app(&app_param, &both_qos, &both_qos)) != ESP_OK)
+    {
+        ESP_LOGE(TAG, "HID device register app failed:");
+        return HOJA_FAIL;
+    }
+
+    esp_bt_dev_set_device_name(hidd_device_config->device_name);
+
+    esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
 
     return HOJA_OK;
 }
@@ -311,6 +381,8 @@ hoja_err_t ble_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_de
 {
     esp_err_t ret;
     const char* TAG = "ble_register_app";
+
+    util_bt_hid_mode = UTIL_BT_MODE_BLE;
 
     // Register GAP callback
     if ((ret = esp_ble_gap_register_callback(util_bt_app_params->ble_gap_cb)) != ESP_OK) {
@@ -540,4 +612,29 @@ hoja_err_t util_bluetooth_register_app(util_bt_app_params_s *util_bt_app_params,
         }
     }
     return err;
+}
+
+
+/**
+ * @brief Stops the Bluetooth app
+*/
+void util_bluetooth_deinit(void)
+{
+    const char* TAG = "util_bluetooth_stop";
+    switch (util_bt_hid_mode)
+    {   
+        default:
+        case UTIL_BT_MODE_CLASSIC:
+            ESP_LOGI(TAG, "Stopping BT Classic mode...");
+            esp_bt_hid_device_disconnect();
+            esp_bt_hid_device_unregister_app();
+            esp_bt_hid_device_deinit();
+            break;
+
+        case UTIL_BT_MODE_BLE:
+            ESP_LOGI(TAG, "Stopping BT LE mode...");
+            break;
+    }
+    esp_bluedroid_disable();
+    esp_bluedroid_deinit();
 }

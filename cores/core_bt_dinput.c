@@ -188,7 +188,6 @@ void dinput_bt_sendinput_task(void * param)
 
     di_input_s di_input = {0};
     di_input_s di_input_last = {0};
-    di_input_last.stick_left_x = 1;
     uint8_t di_buffer[DI_HID_LEN];
 
     for(;;)

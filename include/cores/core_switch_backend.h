@@ -30,63 +30,9 @@
 // Library for motion controls
 #include "switch/core_switch_imu.h"
 
-// Library for interpreting vibration data
-// and translating it for the RetroBlue API
-//#include "rbc_switch_vibration.h"
-
-/**
- *  @brief NS Core Controller Types
- */
-typedef enum
-{
-    NS_TYPE_UNSET,
-    NS_TYPE_PROCON,
-    NS_TYPE_N64,
-    NS_TYPE_JOYCON_L,
-    NS_TYPE_JOYCON_R,
-    NS_TYPE_SNES,
-    NS_TYPE_NES,
-    NS_TYPE_FC,
-    NS_TYPE_GENESIS,
-    NS_TYPE_MAX,
-} ns_subcore_t;
+#include "switch/core_switch_types.h"
 
 extern ns_subcore_t _ns_subcore;
-
-/**
- * @brief NS Core Status
-*/
-typedef enum
-{
-    NS_STATUS_IDLE,
-    NS_STATUS_SUBCORESET,
-    NS_STATUS_RUNNING,
-} ns_core_status_t;
-
-/* Define controller global elements */
-#define NS_FW_PRIMARY       0x03
-#define NS_FW_SECONDARY     0x80
-
-#define NS_COLOR_SET        true
-
-/* Define color defaults */
-#define NS_COLOR_BLACK      0x00
-
-// Parameters for bluetooth function
-typedef struct 
-{
-    esp_hidd_app_param_t app_param;
-    esp_hidd_qos_param_t both_qos;
-    SemaphoreHandle_t ns_semaphore;
-} nscore_param_s;
-
-// Instance of NS Core parameters
-extern nscore_param_s ns_core_param;
-
-// Handler for vTask for report mode changes.
-extern TaskHandle_t ns_ReportModeHandle;
-
-extern uint8_t ns_currentReportMode;
 
 hoja_err_t core_ns_set_subcore(ns_subcore_t subcore);
 

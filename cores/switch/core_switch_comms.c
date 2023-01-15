@@ -1,19 +1,5 @@
 #include "core_switch_comms.h"
 
-// Handle stick/button updates for controllers
-// that receive vibrate only update streams. N64 classic controller is like this.
-void ns_comms_n64update()
-{
-    vTaskDelay(16 / portTICK_PERIOD_MS);
-    ns_report_clear();
-    ns_report_settimer();
-    ns_report_setid(0x30);
-    ns_report_setbattconn();
-    ns_report_setbuttons(NS_BM_LONG);
-    ns_input_report_size = 14;
-    esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0x30, ns_input_report_size, ns_input_report);
-}
-
 /**
  * @brief Handles incoming commands and sends the data through
  * to the appropriate function handlers.
@@ -29,10 +15,11 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
     // Set battery/connection byte
     ns_report_setbattconn();
 
+    ns_input_long_s input = {0};
+
+    ns_input_translate_full(&input);
     // Set full report response buttons
-    // Update inputs
-    //rb_input_cb();
-    ns_report_setbuttons(NS_BM_LONG);
+    ns_report_setinputreport_full(&input);
     ns_input_report_size = 14;
 
     switch(report_id)
@@ -42,17 +29,12 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
             ESP_LOGI(TAG, "Sub-command with rumble data received.");
 
             // Set input report ID
-            ns_report_setid(COMM_RID_SUBCMDSTANDARD);
+            ns_report_setid(NS_REPORT_SUBCMD);
 
-            // Extract rumble data
-            //vibration_data_s vibration_data = rbc_vibration_parse(p_data);
-
-            // Handle rumble data
-            //rbc_vibration_handle(vibration_data);
+            // TODO parse rumble data
 
             // Pass off to the sub-command handler.
             ns_comms_handle_subcommand(p_data[9], len, p_data);
-
             
             // Send input report
             esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0x21, ns_input_report_size, ns_input_report);
@@ -83,7 +65,7 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
                 }*/
             // Set input report ID
             
-            ns_report_setid(COMM_RID_STANDARDFULL);
+            //ns_report_setid(COMM_RID_STANDARDFULL);
 
             break;
     }

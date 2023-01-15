@@ -1,152 +1,85 @@
 #include "core_switch_input.h"
 
-ns_input_short_s ns_input_short = {};
-ns_input_long_s ns_input_long = {};
 ns_input_stickcaldata_s ns_input_stickcaldata = {};
 
 // Translate the global input from RBC Core to the Switch
 // native core input type for reporting.
-hoja_err_t ns_input_translate(uint8_t button_mode)
+void ns_input_translate_full(ns_input_long_s *ns_input_long)
 {
-    const char* TAG = "ns_input_translate";
+    ns_input_long->ls_x     = hoja_analog_data.ls_x;
+    ns_input_long->ls_y     = hoja_analog_data.ls_y;
+    ns_input_long->rs_x     = hoja_analog_data.rs_x;
+    ns_input_long->rs_y     = hoja_analog_data.rs_y;
 
-    if (button_mode != NS_BM_SHORT && button_mode != NS_BM_LONG) 
+    ns_input_long->d_down    = hoja_button_data.dpad_down;
+    ns_input_long->d_up      = hoja_button_data.dpad_up;
+    ns_input_long->d_left    = hoja_button_data.dpad_left;
+    ns_input_long->d_right   = hoja_button_data.dpad_right;
+
+    ns_input_long->sb_left   = hoja_button_data.button_stick_left;
+    ns_input_long->sb_right  = hoja_button_data.button_stick_right;
+
+    if (_ns_subcore == NS_TYPE_N64)
     {
-        ESP_LOGE(TAG, "No button mode defined.");
-        return HOJA_FAIL;
+        ns_input_long->b_a       = hoja_button_data.button_down;
+        ns_input_long->b_b       = hoja_button_data.button_left;
+        ns_input_long->b_y      = hoja_button_data.button_up;
+        ns_input_long->t_zr    = hoja_button_data.button_right;
+        ns_input_long->b_x    = hoja_button_data.trigger_l;
+        ns_input_long->b_minus   = hoja_button_data.trigger_r;
+        ns_input_long->t_zl       = hoja_button_data.trigger_zl;
+        ns_input_long->t_r      = hoja_button_data.trigger_zr;
+        ns_input_long->t_l       = hoja_button_data.button_select;
     }
-
-    // We perform the translation based on the button mode passed as a parameter.
-    switch(button_mode)
+    else
     {
-        case NS_BM_SHORT:
-            // Clear the data first
-            memset(&ns_input_short, 0, sizeof(ns_input_short_s));
-
-            // TODO short mode implementation (maybe not needed?)
-
-            // Short mode stick data set
-            ns_input_short.l_stick[0] = hoja_analog_data.ls_x & 0xFF;
-            ns_input_short.l_stick[1] = (hoja_analog_data.ls_x & 0xF00) >> 8;
-            ns_input_short.l_stick[2] = hoja_analog_data.ls_y & 0xFF;
-            ns_input_short.l_stick[3] = (hoja_analog_data.ls_y & 0xF00) >> 8;
-
-            ns_input_short.b_right = hoja_button_data.button_right;
-            ns_input_short.b_down = hoja_button_data.button_down;
-            break;
-
-        case NS_BM_LONG:
-
-            // Long mode stick data set
-            ns_input_long.l_stick[0] = hoja_analog_data.ls_x & 0xFF;
-            ns_input_long.l_stick[1] = hoja_analog_data.ls_x >> 8;
-            ns_input_long.l_stick[1] |= (hoja_analog_data.ls_y & 0xF) << 4;
-            ns_input_long.l_stick[2] = hoja_analog_data.ls_y >> 4;
-
-            ns_input_long.r_stick[0] = hoja_analog_data.rs_x & 0xFF;
-            ns_input_long.r_stick[1] = hoja_analog_data.rs_x >> 8;
-            ns_input_long.r_stick[1] |= (hoja_analog_data.rs_y & 0xF) << 4;
-            ns_input_long.r_stick[2] = hoja_analog_data.rs_y >> 4;
-
-            ns_input_long.d_down    = hoja_button_data.dpad_down;
-            ns_input_long.d_up      = hoja_button_data.dpad_up;
-            ns_input_long.d_left    = hoja_button_data.dpad_left;
-            ns_input_long.d_right   = hoja_button_data.dpad_right;
-
-            ns_input_long.sb_left   = hoja_button_data.button_stick_left;
-            ns_input_long.sb_right  = hoja_button_data.button_stick_right;
-
-            if (_ns_subcore == NS_TYPE_N64)
-            {
-                ns_input_long.b_a       = hoja_button_data.button_down;
-                ns_input_long.b_b       = hoja_button_data.button_left;
-
-                ns_input_long.b_y      = hoja_button_data.button_up;
-                ns_input_long.t_zr    = hoja_button_data.button_right;
-                
-                ns_input_long.b_x    = hoja_button_data.trigger_l;
-                ns_input_long.b_minus   = hoja_button_data.trigger_r;
-
-                ns_input_long.t_zl       = hoja_button_data.trigger_zl;
-                ns_input_long.t_r      = hoja_button_data.trigger_zr;
-
-                ns_input_long.t_l       = hoja_button_data.button_select;
-            }
-            else
-            {
-                ns_input_long.b_a       = hoja_button_data.button_right;
-                ns_input_long.b_b       = hoja_button_data.button_down;
-                ns_input_long.b_x       = hoja_button_data.button_up;
-                ns_input_long.b_y       = hoja_button_data.button_left;
-
-                ns_input_long.b_plus    = hoja_button_data.button_start;
-                ns_input_long.b_minus   = hoja_button_data.button_select;
-
-                ns_input_long.b_home    = hoja_button_data.button_home;
-                ns_input_long.b_capture = hoja_button_data.button_capture;
-
-                ns_input_long.t_l       = hoja_button_data.trigger_l;
-                ns_input_long.t_zl      = hoja_button_data.trigger_zl;
-                
-                ns_input_long.t_r       = hoja_button_data.trigger_r;
-                ns_input_long.t_zr      = hoja_button_data.trigger_zr;
-            }
-                
-            break;
-        default:
-            ESP_LOGE(TAG, "Input type invalid!");
-            return HOJA_FAIL;
+        ns_input_long->b_a       = hoja_button_data.button_right;
+        ns_input_long->b_b       = hoja_button_data.button_down;
+        ns_input_long->b_x       = hoja_button_data.button_up;
+        ns_input_long->b_y       = hoja_button_data.button_left;
+        ns_input_long->b_plus    = hoja_button_data.button_start;
+        ns_input_long->b_minus   = hoja_button_data.button_select;
+        ns_input_long->b_home    = hoja_button_data.button_home;
+        ns_input_long->b_capture = hoja_button_data.button_capture;
+        ns_input_long->t_l       = hoja_button_data.trigger_l;
+        ns_input_long->t_zl      = hoja_button_data.trigger_zl;
+        ns_input_long->t_r       = hoja_button_data.trigger_r;
+        ns_input_long->t_zr      = hoja_button_data.trigger_zr;
     }
-
-    return HOJA_OK;
 }
 
-// Translate the global values for RBC stick calibration
-// to values for Nintendo Switch
-void ns_input_stickcalibration()
+void ns_input_translate_short(ns_input_short_s *ns_input_short)
 {
-    const char* TAG = "ns_input_stickcalibration";
+    // TODO short mode implementation (maybe not needed?)
+    
 
-    uint16_t tmp_max_x;
-    uint16_t tmp_min_x;
-    uint16_t tmp_max_y;
-    uint16_t tmp_min_y;
+    // Short mode stick data set
+    ns_input_short->l_stick[0] = hoja_analog_data.ls_x & 0xFF;
+    ns_input_short->l_stick[1] = (hoja_analog_data.ls_x & 0xF00) >> 8;
+    ns_input_short->l_stick[2] = hoja_analog_data.ls_y & 0xFF;
+    ns_input_short->l_stick[3] = (hoja_analog_data.ls_y & 0xF00) >> 8;
+    ns_input_short->b_right = hoja_button_data.button_right;
+    ns_input_short->b_down = hoja_button_data.button_down;
+}
 
-    tmp_max_x = loaded_settings.sx_max - loaded_settings.sx_center;
-    tmp_min_x = loaded_settings.sx_center - loaded_settings.sx_min;
+// Compare two input reports of short type. Return true if there's a difference
+bool ns_input_compare_short(ns_input_short_s *one, ns_input_short_s *two)
+{
+    // TODO implement comparison for short mode.
+    return true;
+}
 
-    tmp_max_y = loaded_settings.sy_max - loaded_settings.sy_center;
-    tmp_min_y = loaded_settings.sy_center + loaded_settings.sy_min;
+// Compare two input reports of full type. Return true if there's a difference
+bool ns_input_compare_full(ns_input_long_s *one, ns_input_long_s *two)
+{
+    bool ret = false;
+    ret |= one->right_buttons   != two->right_buttons;
+    ret |= one->shared_buttons  != two->shared_buttons;
+    ret |= one->left_buttons    != two->left_buttons;
+    ret |= one->ls_x            != two->ls_x;
+    ret |= one->ls_y            != two->ls_y;
+    ret |= one->rs_x            != two->rs_x;
+    ret |= one->rs_y            != two->rs_y;
 
-    ns_input_stickcaldata.l_stick_cal[0] = 0xB2;
-    ns_input_stickcaldata.l_stick_cal[1] = 0xA1;
-    ns_input_stickcaldata.l_stick_cal[2] = tmp_max_x & 0xFF;
-    ns_input_stickcaldata.l_stick_cal[3] = (tmp_max_x & 0xF00) >> 8;
-    ns_input_stickcaldata.l_stick_cal[3] |= (tmp_max_y & 0xF) >> 4;
-    ns_input_stickcaldata.l_stick_cal[4] = (tmp_max_y & 0xFF0) >> 4;
-    ns_input_stickcaldata.l_stick_cal[5] = loaded_settings.sx_center & 0xFF;
-    ns_input_stickcaldata.l_stick_cal[6] = (loaded_settings.sx_center & 0xF00) >> 8;
-    ns_input_stickcaldata.l_stick_cal[6] |= (loaded_settings.sy_center & 0xF) << 4;
-    ns_input_stickcaldata.l_stick_cal[7] = (loaded_settings.sy_center & 0xFF0) >> 4;
-    ns_input_stickcaldata.l_stick_cal[8] = tmp_min_x & 0xFF;
-    ns_input_stickcaldata.l_stick_cal[9] = (tmp_min_x & 0xF00) >> 8;
-    ns_input_stickcaldata.l_stick_cal[9] |= (tmp_min_y & 0xF) << 4;
-    ns_input_stickcaldata.l_stick_cal[10] = tmp_min_y >> 4;
-
-    ns_input_stickcaldata.r_stick_cal[0] = 0xB2;
-    ns_input_stickcaldata.r_stick_cal[1] = 0xA1;
-    ns_input_stickcaldata.r_stick_cal[2] = tmp_max_x & 0xFF;
-    ns_input_stickcaldata.r_stick_cal[3] = (tmp_max_x & 0xF00) >> 8;
-    ns_input_stickcaldata.r_stick_cal[3] |= (tmp_max_y & 0xF) >> 4;
-    ns_input_stickcaldata.r_stick_cal[4] = (tmp_max_y & 0xFF0) >> 4;
-    ns_input_stickcaldata.r_stick_cal[5] = loaded_settings.sx_center & 0xFF;
-    ns_input_stickcaldata.r_stick_cal[6] = (loaded_settings.sx_center & 0xF00) >> 8;
-    ns_input_stickcaldata.r_stick_cal[6] |= (loaded_settings.sy_center & 0xF) << 4;
-    ns_input_stickcaldata.r_stick_cal[7] = (loaded_settings.sy_center & 0xFF0) >> 4;
-    ns_input_stickcaldata.r_stick_cal[8] = tmp_min_x & 0xFF;
-    ns_input_stickcaldata.r_stick_cal[9] = (tmp_min_x & 0xF00) >> 8;
-    ns_input_stickcaldata.r_stick_cal[9] |= (tmp_min_y & 0xF) << 4;
-    ns_input_stickcaldata.r_stick_cal[10] = tmp_min_y >> 4;
-
-    ESP_LOGI(TAG, "Nintendo Switch Core stick calibration translated.");
+    return ret;
 }

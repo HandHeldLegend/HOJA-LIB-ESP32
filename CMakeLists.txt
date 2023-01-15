@@ -1,6 +1,6 @@
 
 idf_component_register(
-    SRCS "esp_hid_gap.c" "hoja_frontend.c" "hoja_backend.c"
+    SRCS "hoja_frontend.c" "hoja_backend.c"
 "hoja_settings.c" "cores/switch/core_switch_spi.c" 
 "cores/switch/core_switch_reports.c" "cores/switch/core_switch_input.c"
 "cores/core_switch_backend.c" "cores/switch/core_switch_controller.c"
