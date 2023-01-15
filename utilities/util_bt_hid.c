@@ -1,5 +1,7 @@
 #include "util_bt_hid.h"
 
+esp_bt_controller_config_t bt_cfg = {0};
+
 // TEMPLATE CALLBACK FUNCTIONS
 // USE THESE TO PASTE INTO YOUR OWN
 // CONTROLLER CORES FOR HANDLING
@@ -307,9 +309,6 @@ static void util_ble_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t
 util_bt_hid_status_t util_bt_hid_status = UTIL_BT_HID_STATUS_IDLE;
 util_bt_hid_mode_t util_bt_hid_mode = UTIL_BT_MODE_CLASSIC;
 
-
-static esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-
 // Private functions
 
 // Register app with BT Classic
@@ -501,20 +500,25 @@ hoja_err_t util_bluetooth_init(uint8_t *mac_address)
         esp_base_mac_addr_set(mac_address);
     }
 
+    esp_bt_mode_t mode = ESP_BT_MODE_BTDM;
+
     #if CONFIG_BTDM_CTRL_MODE_BTDM
         ESP_LOGI(TAG, "BT Dual Mode enabled.");
-        esp_bt_mode_t mode = ESP_BT_MODE_BTDM;
-    #elif CONFIG_BT_HID_DEVICE_ENABLED
+        mode = ESP_BT_MODE_BTDM;
+    #elif (CONFIG_BT_HID_DEVICE_ENABLED && !CONFIG_BT_BLE_ENABLED)
         // Release BT BLE mode memory
         ESP_LOGI(TAG, "BT Classic HID only enabled. Release BLE Memory");
         ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
-        esp_bt_mode_t mode = ESP_BT_MODE_CLASSIC_BT;
-    #elif CONFIG_BT_BLE_ENABLED
+        mode = ESP_BT_MODE_CLASSIC_BT;
+    #elif (CONFIG_BT_BLE_ENABLED && !CONFIG_BT_HID_DEVICE_ENABLED)
         // Release BTC mode memory
         ESP_LOGI(TAG, "BT LE only enabled. Release BTC Memory");
         ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
-        esp_bt_mode_t mode = ESP_BT_MODE_BLE;
+        mode = ESP_BT_MODE_BLE;
     #endif
+
+    esp_bt_controller_config_t def_config = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    memcpy(&bt_cfg, &def_config, sizeof(esp_bt_controller_config_t));
 
     if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK) 
     {
@@ -626,6 +630,7 @@ void util_bluetooth_deinit(void)
         default:
         case UTIL_BT_MODE_CLASSIC:
             ESP_LOGI(TAG, "Stopping BT Classic mode...");
+            esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
             esp_bt_hid_device_disconnect();
             esp_bt_hid_device_unregister_app();
             esp_bt_hid_device_deinit();
@@ -637,4 +642,9 @@ void util_bluetooth_deinit(void)
     }
     esp_bluedroid_disable();
     esp_bluedroid_deinit();
+    
+    esp_bt_controller_disable();
+    esp_bt_controller_deinit();
+
+    util_bt_hid_status = UTIL_BT_HID_STATUS_IDLE;
 }
