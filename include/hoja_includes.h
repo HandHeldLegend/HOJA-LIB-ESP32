@@ -12,6 +12,9 @@
 
 #include <hal/clk_gate_ll.h>
 #include <hal/rmt_ll.h>
+#include <esp32/rom/ets_sys.h>
+#include <esp_cpu.h>
+
 
 // Bluetooth Stuff
 
@@ -47,9 +50,12 @@
 #include "driver/rtc_io.h"
 
 #include "soc/soc.h"
+#include "soc/spi_reg.h"
+#include "soc/spi_struct.h"
 #include "soc/gpio_reg.h"
 #include "soc/gpio_struct.h"
 #include "soc/io_mux_reg.h"
+#include "soc/spi_periph.h"
 
 #include "rom/ets_sys.h"
 #include "rom/gpio.h"
@@ -62,6 +68,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
+#include "freertos/portmacro.h"
+#include "freertos/xtensa_rtos.h"
+
+
 
 //#include "sdkconfig.h"
 

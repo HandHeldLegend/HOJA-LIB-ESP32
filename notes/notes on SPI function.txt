@@ -1,0 +1,83 @@
+gpio_config_t io_conf = {0};
+
+    for (uint32_t i = 0; i < PCFX_PORT_MAX; i++) {
+        struct pcfx_ctrl_port *p = &pcfx_ctrl_ports[i];
+
+        /* Latch */
+        io_conf.mode = GPIO_MODE_INPUT;
+        io_conf.intr_type = GPIO_PIN_INTR_NEGEDGE;
+        io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+        io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+        io_conf.pin_bit_mask = 1ULL << p->latch_pin;
+        gpio_config_iram(&io_conf);
+        gpio_matrix_in(p->latch_pin, p->latch_sig, true); // Invert latch to use as CS
+
+        /* Data */
+        gpio_set_level_iram(p->data_pin, 1);
+        gpio_set_direction_iram(p->data_pin, GPIO_MODE_OUTPUT);
+        gpio_matrix_out(p->data_pin, p->data_sig, true, false); // PCFX data is inverted
+        PIN_FUNC_SELECT(GPIO_PIN_MUX_REG_IRAM[p->data_pin], PIN_FUNC_GPIO);
+
+        /* Clock */
+        io_conf.mode = GPIO_MODE_INPUT;
+        io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
+        io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+        io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+        io_conf.pin_bit_mask = 1ULL << p->clk_pin;
+        gpio_config_iram(&io_conf);
+        gpio_matrix_in(p->clk_pin, p->clk_sig, false);
+
+        periph_ll_enable_clk_clear_rst(p->spi_mod);
+
+        p->hw->clock.val = 0; // All set to 0 for slave Mode
+        p->hw->user.val = 0;    // Clear to 0 before using
+        p->hw->ctrl.val = 0;    // Clear to 0 before using
+        p->hw->slave.wr_rd_buf_en = 1; //no sure if needed
+        p->hw->user.doutdin = 1; //we only support full duplex
+        p->hw->user.sio = 0;    // Disable 3 line half-duplex comms
+        p->hw->slave.slave_mode = 1; // Enable slave mode
+        p->hw->dma_conf.val |= SPI_LL_RST_MASK; //(SPI_OUT_RST | SPI_IN_RST | SPI_AHBM_RST | SPI_AHBM_FIFO_RST)
+        
+        // .out_rst resets out data pointer (tx)
+        // .in_rst resets in data pointer (rx)
+        // .ahbm_fifo_rst resets ahb master fifo pointer
+        // .ahbm_rst resets the SPI dma ahb master
+        
+        p->hw->dma_out_link.start = 0; // Disable outlink descriptor
+        p->hw->dma_in_link.start = 0; // Disable inlink descriptor
+        p->hw->dma_conf.val &= ~SPI_LL_RST_MASK; // Clear bits from above that were set
+        p->hw->slave.sync_reset = 1; // Reset SPI clock line, CS line, and data line
+        p->hw->slave.sync_reset = 0; // Clear bit
+
+        //use all 64 bytes of the buffer
+        p->hw->user.usr_miso_highpart = 0;
+        p->hw->user.usr_mosi_highpart = 0;
+
+        //Disable unneeded ints
+        p->hw->slave.val &= ~SPI_LL_UNUSED_INT_MASK;
+
+        /* SNES is MSB first */
+        p->hw->ctrl.wr_bit_order = 0;
+        p->hw->ctrl.rd_bit_order = 0;
+
+        /* Set Mode 0 as per ESP32 TRM, cause that work well for PCFX! */
+        p->hw->pin.ck_idle_edge = 1;
+        p->hw->user.ck_i_edge = 0;
+        p->hw->ctrl2.miso_delay_mode = 0;
+        p->hw->ctrl2.miso_delay_num = 0;
+        p->hw->ctrl2.mosi_delay_mode = 2;
+        p->hw->ctrl2.mosi_delay_num = 2;
+
+        p->hw->slave.sync_reset = 1;
+        p->hw->slave.sync_reset = 0;
+
+        p->hw->slv_wrbuf_dlen.bit_len = 0;
+        p->hw->slv_rdbuf_dlen.bit_len = 33 - 1; // Extra bit to remove small gitch on packet end
+
+        p->hw->user.usr_miso = 1;
+        p->hw->user.usr_mosi = 1;
+
+        p->hw->slave.trans_inten = 0;
+        p->hw->slave.trans_done = 0;
+        p->hw->cmd.usr = 1;
+    }
