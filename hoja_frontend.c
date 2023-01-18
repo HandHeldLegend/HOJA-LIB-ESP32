@@ -67,7 +67,7 @@ if (hoja_settings_init() != HOJA_OK)
     }
     
     // We need to start the button scan task.
-    xTaskCreatePinnedToCore(hoja_button_task, "HOJA Button Task", 2048, NULL, 0, &hoja_button_taskhandle, 1);
+    xTaskCreatePinnedToCore(hoja_button_task, "HOJA Button Task", 2048, NULL, 0, &hoja_button_taskhandle, HOJA_INPUT_CPU);
     
     hoja_current_status = HOJA_STATUS_INITIALIZED;
 

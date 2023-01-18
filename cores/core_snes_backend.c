@@ -1,7 +1,7 @@
 #include "core_snes_backend.h"
 
 volatile uint16_t snes_button_buffer= 0x5555;
-volatile bool done = false;
+volatile bool  done = false;
 TaskHandle_t snes_TaskHandle = NULL;
 #define LATCH_MASK (1ULL << CONFIG_HOJA_GPIO_NS_LATCH)
 #define CLOCK_MASK (1ULL << CONFIG_HOJA_GPIO_NS_CLOCK)
@@ -25,7 +25,7 @@ hoja_err_t core_snes_start()
 
     // Start SNES task.
     xTaskCreatePinnedToCore(snes_task, "SNES/NES Task Loop", 2024,
-                            NULL, 0, &snes_TaskHandle, 1);
+                            NULL, 0, &snes_TaskHandle, HOJA_CORE_CPU);
     
     ESP_LOGI(TAG, "SNES Core started OK.");
 
@@ -191,7 +191,7 @@ void snes_task(void * parameters)
 
     for(;;)
     {
-        if (done && (GPIO.in & LATCH_MASK))
+        if (done)
         // What do we do when an interrupt is received and this is unblocked?
         // First, delay 200 microseconds
         {
@@ -203,28 +203,6 @@ void snes_task(void * parameters)
             GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].func_sel = 0x38;
             
             SPI2.slave.sync_reset = 0;
-            // set up spi TX
-
-            // The data is set up all weird?
-            // Byte order 0xF0 0xF0
-            //  Bits 8-13  <||   ||
-            //               |   ||
-            //       14-17<--|   ||
-            //                   ||
-            //             0-3<--||
-            //                    |
-            //              4-7<--|
-            SPI2.data_buf[0] = (0xFFFFFFFF) & ~(snes_button_buffer);
-            snes_button_buffer = 0;
-
-            // OK the transaction.
-            SPI2.cmd.usr = 0;
-
-            // Next, set the input to the internal latch line as low
-            GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].func_sel = 0x30;
-            
-            // OK the transaction.
-            SPI2.cmd.usr = 1;
 
             // Set up our SPI TX
             // SNES bits button order
@@ -249,8 +227,29 @@ void snes_task(void * parameters)
             snes_button_buffer |= (hoja_button_data.trigger_l        << 13U   );
             snes_button_buffer |= (hoja_button_data.trigger_r        << 12U   );
 
+            // The data is set up all weird?
+            // Byte order 0xF0 0xF0
+            //  Bits 8-13  <||   ||
+            //               |   ||
+            //       14-17<--|   ||
+            //                   ||
+            //             0-3<--||
+            //                    |
+            //              4-7<--|
+            SPI2.data_buf[0] = (0xFFFFFFFF) & ~(snes_button_buffer);
+            snes_button_buffer = 0;
+
+            // OK the transaction.
+            SPI2.cmd.usr = 0;
+
+            // Next, set the input to the internal latch line as low
+            GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].func_sel = 0x30;
+            
+            // OK the transaction.
+            SPI2.cmd.usr = 1;
+
             // Reset HOJA input buttons for next scan sequence.
-            hoja_button_reset();
+            // hoja_button_reset();
             done = false;
         }
         vTaskDelay(0.2/portTICK_PERIOD_MS);

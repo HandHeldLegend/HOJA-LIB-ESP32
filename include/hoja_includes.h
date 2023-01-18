@@ -1,6 +1,9 @@
 #ifndef HOJA_INCLUDES_H
 #define HOJA_INCLUDES_H
 
+#define HOJA_INPUT_CPU 1
+#define HOJA_CORE_CPU 0
+
 #include <string.h>
 #include <stdbool.h>
 #include <inttypes.h>

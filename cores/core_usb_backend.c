@@ -210,7 +210,7 @@ hoja_err_t core_usb_start(void)
 
             // Start USB Send Input I2C task.
             xTaskCreatePinnedToCore(usb_sendinput_task, "USB I2C Task Loop", 2024,
-                                    NULL, 0, &usb_TaskHandle, 0);
+                                    NULL, 0, &usb_TaskHandle, HOJA_CORE_CPU);
             
             ESP_LOGI(TAG, "USB Core started OK.");
 
