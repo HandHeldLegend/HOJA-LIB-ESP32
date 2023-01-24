@@ -37,15 +37,16 @@ void ns_input_translate_full(ns_input_long_s *ns_input_long)
         ns_input_long->b_b       = hoja_button_data.button_down;
         ns_input_long->b_x       = hoja_button_data.button_up;
         ns_input_long->b_y       = hoja_button_data.button_left;
-        ns_input_long->b_plus    = hoja_button_data.button_start;
         ns_input_long->b_minus   = hoja_button_data.button_select;
-        ns_input_long->b_home    = hoja_button_data.button_home;
-        ns_input_long->b_capture = hoja_button_data.button_capture;
         ns_input_long->t_l       = hoja_button_data.trigger_l;
         ns_input_long->t_zl      = hoja_button_data.trigger_zl;
         ns_input_long->t_r       = hoja_button_data.trigger_r;
         ns_input_long->t_zr      = hoja_button_data.trigger_zr;
     }
+    
+    ns_input_long->b_plus    = hoja_button_data.button_start;
+    ns_input_long->b_home    = hoja_button_data.button_home;
+    ns_input_long->b_capture = hoja_button_data.button_capture;
 }
 
 void ns_input_translate_short(ns_input_short_s *ns_input_short)
