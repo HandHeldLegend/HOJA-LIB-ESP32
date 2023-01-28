@@ -33,10 +33,31 @@ void gamecube_input_translate(void)
     gcmd_poll_rmt[GC_BUTTON_DDOWN]  = hoja_button_data.dpad_down   ? JB_HIGH : JB_LOW;
     gcmd_poll_rmt[GC_BUTTON_DLEFT]  = hoja_button_data.dpad_left   ? JB_HIGH : JB_LOW;
     gcmd_poll_rmt[GC_BUTTON_DRIGHT] = hoja_button_data.dpad_right  ? JB_HIGH : JB_LOW;
+    hoja_analog_data.ls_x >>= 4;
+    hoja_analog_data.ls_y >>= 4;
+    hoja_analog_data.rs_x >>= 4;
+    hoja_analog_data.rs_y >>= 4;
+
+    // Copy analog data
+    // Nice clean code to do it :)
+    for(int i = 7; i >= 0; i--)
+    {
+        gcmd_poll_rmt[GC_ADC_LEFTX + i] = (hoja_analog_data.ls_x & 1) ? JB_HIGH : JB_LOW;
+        hoja_analog_data.ls_x >>= 1;
+
+        gcmd_poll_rmt[GC_ADC_LEFTY + i] = (hoja_analog_data.ls_y & 1) ? JB_HIGH : JB_LOW;
+        hoja_analog_data.ls_y >>= 1;
+
+        gcmd_poll_rmt[GC_ADC_RIGHTX + i] = (hoja_analog_data.rs_x & 1) ? JB_HIGH : JB_LOW;
+        hoja_analog_data.rs_x >>= 1;
+
+        gcmd_poll_rmt[GC_ADC_RIGHTY + i] = (hoja_analog_data.rs_y & 1) ? JB_HIGH : JB_LOW;
+        hoja_analog_data.rs_y >>= 1;
+    }
 
     memcpy(JB_POLL_MEM, gcmd_poll_rmt, sizeof(rmt_item32_t) * GC_POLL_RMT_LEN);
 
-    hoja_button_reset();
+    //hoja_button_reset();
 }
 
 volatile uint32_t raw = 0x00;

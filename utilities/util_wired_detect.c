@@ -1,19 +1,22 @@
 #include "util_wired_detect.h"
 
-QueueHandle_t pcnt_evt_queue;   // A queue to handle pulse counter events
 TaskHandle_t util_wired_loop_task = NULL;
+
+#define PCNT_HIGH_LIMIT 64
+#define PCNT_LOW_LIMIT -64
+
+#define PCNT_SNES_COUNT 15
+#define PCNT_NS_COUNT   4
 
 // PRIVATE FUNCTIONS
 // -----------------
-static void IRAM_ATTR pcnt_intr_handler(void *arg)
+static bool wired_pcnt_on_reach(pcnt_unit_handle_t unit, const pcnt_watch_event_data_t *edata, void *user_ctx)
 {
-    int pcnt_unit = (int)arg;
-    pcnt_evt_t evt;
-    evt.unit = pcnt_unit;
-    /* Save the PCNT event type that caused an interrupt
-       to pass it to the main program */
-    pcnt_get_event_status(pcnt_unit, &evt.status);
-    xQueueSendFromISR(pcnt_evt_queue, &evt, NULL);
+    BaseType_t high_task_wakeup;
+    QueueHandle_t queue = (QueueHandle_t)user_ctx;
+    // send event data to queue, from this interrupt callback
+    xQueueSendFromISR(queue, &(edata->watch_point_value), &high_task_wakeup);
+    return (high_task_wakeup == pdTRUE);
 }
 
 util_wire_det_t util_wired_get(void)
@@ -22,95 +25,109 @@ util_wire_det_t util_wired_get(void)
 
     util_wire_det_t detected_type = DETECT_NONE;
 
-    /* Initialize PCNT event queue and PCNT functions */
-    pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));
+    QueueHandle_t pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));   // A queue to handle pulse counter events
 
-    // Set up Counter
-    pcnt_config_t pcnt_config = {
-        .pulse_gpio_num = CONFIG_HOJA_GPIO_NS_SERIAL,
-        .ctrl_gpio_num = -1,
-        .unit = PCNT_UNIT_0,
-        .channel = PCNT_CHANNEL_0,
-        .pos_mode = PCNT_COUNT_DIS,
-        .neg_mode = PCNT_COUNT_INC, 
-        .lctrl_mode = PCNT_MODE_KEEP,
-        .hctrl_mode = PCNT_MODE_KEEP,
-        .counter_h_lim = 64,
-        .counter_l_lim = -10,
+    pcnt_unit_config_t unit_config = {
+        .high_limit = PCNT_HIGH_LIMIT,
+        .low_limit = PCNT_LOW_LIMIT,
+    };
+    pcnt_unit_handle_t joybus_pcnt_unit = NULL;
+    pcnt_unit_handle_t nes_pcnt_unit = NULL;
+    ESP_ERROR_CHECK(pcnt_new_unit(&unit_config, &joybus_pcnt_unit));
+    ESP_ERROR_CHECK(pcnt_new_unit(&unit_config, &nes_pcnt_unit));
+
+    pcnt_glitch_filter_config_t filter_config = {
+        .max_glitch_ns = 500,
+    };
+    ESP_ERROR_CHECK(pcnt_unit_set_glitch_filter(joybus_pcnt_unit, &filter_config));
+    ESP_ERROR_CHECK(pcnt_unit_set_glitch_filter(nes_pcnt_unit, &filter_config));
+
+    // First, set up for Joybus detect.
+    pcnt_chan_config_t chan_a_config = {
+        .edge_gpio_num = CONFIG_HOJA_GPIO_NS_SERIAL,
+        .level_gpio_num = -1,
     };
 
-    pcnt_unit_config(&pcnt_config);
+    pcnt_chan_config_t chan_b_config = {
+        .edge_gpio_num = CONFIG_HOJA_GPIO_NS_CLOCK,
+        .level_gpio_num = -1,
+    };
 
-    pcnt_set_event_value(PCNT_UNIT_0, PCNT_EVT_THRES_0, PULSE_MAX_WIRED);
-    pcnt_event_enable(PCNT_UNIT_0, PCNT_EVT_THRES_0);
-    pcnt_counter_pause(PCNT_UNIT_0);
-    pcnt_counter_clear(PCNT_UNIT_0);
+    pcnt_channel_handle_t pcnt_chan_a = NULL;
+    pcnt_channel_handle_t pcnt_chan_b = NULL;
+    ESP_ERROR_CHECK(pcnt_new_channel(joybus_pcnt_unit, &chan_a_config, &pcnt_chan_a));
+    ESP_ERROR_CHECK(pcnt_new_channel(nes_pcnt_unit, &chan_b_config, &pcnt_chan_b));
 
-    /* Install interrupt service and add isr callback handler */
-    pcnt_isr_service_install(0);
-    pcnt_isr_handler_add(PCNT_UNIT_0, pcnt_intr_handler, (void *)PCNT_UNIT_0);
-    pcnt_counter_resume(PCNT_UNIT_0);
+    ESP_ERROR_CHECK(pcnt_channel_set_edge_action(pcnt_chan_a, PCNT_CHANNEL_EDGE_ACTION_HOLD, PCNT_CHANNEL_EDGE_ACTION_INCREASE));
+    ESP_ERROR_CHECK(pcnt_channel_set_edge_action(pcnt_chan_b, PCNT_CHANNEL_EDGE_ACTION_HOLD, PCNT_CHANNEL_EDGE_ACTION_INCREASE));
 
-    int done = 0;
-    pcnt_evt_t evt;
-    portBASE_TYPE res;
-    int16_t count_out = 0;
+    ESP_ERROR_CHECK(pcnt_unit_add_watch_point(joybus_pcnt_unit, PCNT_NS_COUNT));
+    ESP_ERROR_CHECK(pcnt_unit_add_watch_point(nes_pcnt_unit, PCNT_NS_COUNT));
 
-    vTaskDelay(100/portTICK_PERIOD_MS);
+    pcnt_event_callbacks_t cbs = {
+        .on_reach = wired_pcnt_on_reach,
+    };
 
-    while (!done)
+    ESP_ERROR_CHECK(pcnt_unit_register_event_callbacks(joybus_pcnt_unit, &cbs, pcnt_evt_queue));
+    ESP_ERROR_CHECK(pcnt_unit_register_event_callbacks(nes_pcnt_unit, &cbs, pcnt_evt_queue));
+
+    gpio_pullup_en(CONFIG_HOJA_GPIO_NS_SERIAL);
+
+    ESP_LOGI(TAG, "enable pcnt unit");
+    ESP_ERROR_CHECK(pcnt_unit_enable(joybus_pcnt_unit));
+    ESP_ERROR_CHECK(pcnt_unit_enable(nes_pcnt_unit));
+
+    ESP_LOGI(TAG, "clear pcnt unit");
+    ESP_ERROR_CHECK(pcnt_unit_clear_count(joybus_pcnt_unit));
+    ESP_ERROR_CHECK(pcnt_unit_clear_count(nes_pcnt_unit));
+
+    ESP_LOGI(TAG, "start pcnt unit");
+    ESP_ERROR_CHECK(pcnt_unit_start(joybus_pcnt_unit));
+    ESP_ERROR_CHECK(pcnt_unit_start(nes_pcnt_unit));
+
+    int joybus_pulse_count = 0;
+    int nes_pulse_count = 0;
+    int event_count = 0;
+    bool done = false;
+
+    while(!done)
     {
-        /* Wait for the event information passed from PCNT's interrupt handler.
-         * Once received, decode the event type and print it on the serial monitor.
-         */
-        res = xQueueReceive(pcnt_evt_queue, &evt, 300 / portTICK_PERIOD_MS);
-        if (res == pdTRUE) {
-            pcnt_get_counter_value(PCNT_UNIT_0, &count_out);
-            ESP_LOGI(TAG, "JOYBUS Event PCNT unit[%d]; cnt: %d", evt.unit, count_out);
-            if (evt.status & PCNT_EVT_THRES_0) {
-                ESP_LOGI(TAG, "THRES1 EVT");
+        if (xQueueReceive(pcnt_evt_queue, &event_count, pdMS_TO_TICKS(1000))) {
+            pcnt_unit_get_count(joybus_pcnt_unit, &joybus_pulse_count);
+            pcnt_unit_get_count(nes_pcnt_unit, &nes_pulse_count);
+            if (joybus_pulse_count >= PCNT_NS_COUNT)
+            {
+                ESP_LOGI(TAG, "Joybus Detected with counts: %d", joybus_pulse_count);
+                done = true;
                 detected_type = DETECT_JOYBUS;
             }
-            done = 1;
-        }
-        else{
-            ESP_LOGI(TAG, "No Counts detected. Not Joybus");
-            done = 1;
-        }
-    }
-    xQueueReset(pcnt_evt_queue);
-    pcnt_counter_pause(PCNT_UNIT_0);
-    pcnt_counter_clear(PCNT_UNIT_0);
-    done = 0;
-    count_out = 0;
-    pcnt_config.pulse_gpio_num = CONFIG_HOJA_GPIO_NS_CLOCK;
-    pcnt_unit_config(&pcnt_config);
-
-    pcnt_counter_clear(PCNT_UNIT_0);
-    pcnt_counter_resume(PCNT_UNIT_0);
-
-    while (!done && !detected_type)
-    {
-        /* Wait for the event information passed from PCNT's interrupt handler.
-         * Once received, decode the event type and print it on the serial monitor.
-         */
-        res = xQueueReceive(pcnt_evt_queue, &evt, 300 / portTICK_PERIOD_MS);
-        if (res == pdTRUE) {
-            pcnt_get_counter_value(PCNT_UNIT_0, &count_out);
-            ESP_LOGI(TAG, "SNES DETECT Event PCNT unit[%d]; cnt: %d", evt.unit, count_out);
-            if (evt.status & PCNT_EVT_THRES_0) {
-                ESP_LOGI(TAG, "THRES1 EVT");
+            else if (nes_pulse_count >= PCNT_NS_COUNT)
+            {
+                ESP_LOGI(TAG, "SNES Detected with counts: %d", nes_pulse_count);
+                done = true;
                 detected_type = DETECT_SNES;
             }
-            done = 1;
-        }
-        else{
-            ESP_LOGI(TAG, "No Counts detected. Not SNES");
-            done = 1;
+        } else {
+            ESP_LOGI(TAG, "Retro not detected.");
+            done = true;
         }
     }
+    
 
-    pcnt_isr_service_uninstall();
+    pcnt_unit_clear_count(joybus_pcnt_unit);
+    pcnt_unit_clear_count(nes_pcnt_unit);
+
+    pcnt_unit_stop(joybus_pcnt_unit);
+    pcnt_unit_stop(nes_pcnt_unit);
+
+    pcnt_unit_disable(joybus_pcnt_unit);
+    pcnt_unit_disable(nes_pcnt_unit);
+
+    pcnt_del_channel(pcnt_chan_a);
+    pcnt_del_channel(pcnt_chan_b);
+
+    pcnt_del_unit(joybus_pcnt_unit);
+    pcnt_del_unit(nes_pcnt_unit);
 
     return detected_type;
 }
@@ -184,7 +201,7 @@ hoja_err_t util_wired_detect_loop(void)
         util_wired_loop_task = NULL;
     }
 
-    xTaskCreatePinnedToCore(util_wired_detect_task, "Wired Utility Detect Loop", 2048, NULL, 2, util_wired_loop_task, 1);
+    xTaskCreatePinnedToCore(util_wired_detect_task, "Wired Utility Detect Loop", 4048, NULL, 2, util_wired_loop_task, HOJA_CORE_CPU);
 
     return HOJA_OK;
 }

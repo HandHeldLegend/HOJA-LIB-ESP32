@@ -48,7 +48,7 @@
 #include "driver/gpio.h"
 #include "driver/i2c.h"
 #include "driver/adc.h"
-#include "driver/pcnt.h"
+#include "driver/pulse_cnt.h"
 #include "driver/rmt.h"
 #include "driver/rtc_io.h"
 

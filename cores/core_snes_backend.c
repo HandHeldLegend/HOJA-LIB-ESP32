@@ -7,13 +7,20 @@ TaskHandle_t snes_TaskHandle = NULL;
 #define CLOCK_MASK (1ULL << CONFIG_HOJA_GPIO_NS_CLOCK)
 #define DATA_MASK   (1ULL << CONFIG_HOJA_GPIO_NS_SERIAL)
 
+#define VIRTUAL_HIGH 0x38
+#define VIRTUAL_LOW 0x30
+
 static QueueHandle_t snes_evt_queue = NULL;
 
-// This interrupt triggers when the latch line goes high.
+// This interrupt triggers when the latch line goes high or low.
 static void IRAM_ATTR snes_isr_handler(void* arg)
 {
-    uint32_t gpio_num = (uint32_t) arg;
+    
+    //uint32_t gpio_num = (uint32_t) arg;
+    
+    // Toggle done so we can reset our SPI transaction for next
     done = true;
+    
 }
 
 hoja_err_t core_snes_start()
@@ -58,7 +65,7 @@ hoja_err_t core_snes_stop()
 
 #define SPI_LL_RST_MASK (SPI_OUT_RST | SPI_IN_RST | SPI_AHBM_RST | SPI_AHBM_FIFO_RST)
 #define SPI_LL_UNUSED_INT_MASK  (SPI_INT_EN | SPI_SLV_WR_STA_DONE | SPI_SLV_RD_STA_DONE | SPI_SLV_WR_BUF_DONE | SPI_SLV_RD_BUF_DONE)
-#define SNES_DELAY_US 210
+#define SNES_DELAY_US 250
 
 void snes_task(void * parameters)
 {
@@ -67,9 +74,8 @@ void snes_task(void * parameters)
     //zero-initialize the config structure.
     gpio_config_t io_conf = {};
 
-    // Interrupt on falling edge of actual
-    // CS line because this will improve compatibility
-    // between adapters and real console.
+    // Interrupt on rising edge since we can use that to our advantage
+    // Start 
     io_conf.intr_type = GPIO_INTR_NEGEDGE;
 
     io_conf.mode = GPIO_MODE_INPUT;
@@ -111,11 +117,12 @@ void snes_task(void * parameters)
     // Enable input to peripheral from GPIO matrix
     // Set data output
     gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, HSPIQ_OUT_IDX, false, false);
+    // Set data output to be enabled with bit
+    GPIO.func_out_sel_cfg[CONFIG_HOJA_GPIO_NS_SERIAL].oen_sel = 1;
+    GPIO.enable_w1ts = DATA_MASK;
 
     // CS latch input setup
-    // Next, set the input to the internal latch line as high
-    GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].sig_in_sel = 1;
-    GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].func_sel = 0x38;
+    gpio_matrix_in(CONFIG_HOJA_GPIO_NS_LATCH, HSPICS0_IN_IDX, false);
 
     // CLOCK input setup
     gpio_matrix_in(CONFIG_HOJA_GPIO_NS_CLOCK, HSPICLK_IN_IDX, false);
@@ -160,8 +167,9 @@ void snes_task(void * parameters)
     SPI2.ctrl2.setup_time = 0;
     SPI2.ctrl2.hold_time = 0;
 
-    SPI2.slv_wrbuf_dlen.bit_len = 0;
-    SPI2.slv_rdbuf_dlen.bit_len = 16 - 1;
+    SPI2.slv_wrbuf_dlen.bit_len = 32 - 1;
+    SPI2.slv_rdbuf_dlen.bit_len = 32 - 1;
+    SPI2.slv_rd_bit.val = 32-1;
 
     SPI2.user.usr_miso = 1;
     SPI2.user.usr_mosi = 0;
@@ -169,7 +177,7 @@ void snes_task(void * parameters)
     SPI2.slave.trans_inten = 0;
     SPI2.slave.trans_done = 0;
 
-    SPI2.data_buf[0] = 0xFFFFFFFF;
+    SPI2.data_buf[0] = 0x0000FFFF;
     SPI2.data_buf[1] = 0xFFFFFFFF;
 
     uint8_t flip = 0;
@@ -193,16 +201,32 @@ void snes_task(void * parameters)
     {
         if (done)
         // What do we do when an interrupt is received and this is unblocked?
-        // First, delay 200 microseconds
+        // First, delay x microseconds to ensure the SPI transaction is completed.
         {
             ets_delay_us(SNES_DELAY_US);
+            // At this point, the transction should be over. Load our next transaction.
+            
+            // Set data GPIO to low
+            GPIO.out_w1tc = DATA_MASK;
+            GPIO.func_out_sel_cfg[CONFIG_HOJA_GPIO_NS_SERIAL].func_sel = 256;
+
+            // Disable data out
+            //GPIO.enable_w1tc = DATA_MASK;
+
+            // Reset and start
             SPI2.slave.trans_done = 0;
             SPI2.slave.sync_reset = 1;
-
-            // Reconnect Latch line to GPIO to pull it up
-            GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].func_sel = 0x38;
-            
             SPI2.slave.sync_reset = 0;
+
+            // CS latch input setup
+            // 0x38 is high, 0x30 is low
+            // Next, set the input to the internal latch line as high
+            GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].sig_in_sel = 1;
+            GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].func_sel = VIRTUAL_HIGH;
+
+            // Set clock as virtual input and high
+            //GPIO.func_in_sel_cfg[HSPICLK_IN_IDX].sig_in_sel = 1;
+            GPIO.func_in_sel_cfg[HSPICLK_IN_IDX].func_sel = VIRTUAL_HIGH;
 
             // Set up our SPI TX
             // SNES bits button order
@@ -214,6 +238,12 @@ void snes_task(void * parameters)
 
             // Go through each bit and set accordingly.
             snes_button_buffer |= (hoja_button_data.button_down << 7U);
+
+            //DEBUG
+            //snes_button_buffer |= 1 << 7;
+            //snes_button_buffer |= 1 << 7;
+            //snes_button_buffer |= (hoja_button_data.trigger_r << 7U);
+
             snes_button_buffer |= (hoja_button_data.button_left     << 6U  );
             snes_button_buffer |= (hoja_button_data.button_select   << 5U  );
             snes_button_buffer |= (hoja_button_data.button_start    << 4U  );
@@ -236,20 +266,45 @@ void snes_task(void * parameters)
             //             0-3<--||
             //                    |
             //              4-7<--|
-            SPI2.data_buf[0] = (0xFFFFFFFF) & ~(snes_button_buffer);
+
+            // Set last bit as low to hold the line low on idle
+            //snes_button_buffer |= (1 << 8U);
+
+            SPI2.data_buf[0] = (0x0000FFFF) & ~(snes_button_buffer);
+            //SPI2.data_buf[0] |= 0xFFFF0000;
             snes_button_buffer = 0;
 
-            // OK the transaction.
-            SPI2.cmd.usr = 0;
-
-            // Next, set the input to the internal latch line as low
-            GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].func_sel = 0x30;
-            
-            // OK the transaction.
             SPI2.cmd.usr = 1;
 
-            // Reset HOJA input buttons for next scan sequence.
-            // hoja_button_reset();
+            // Set CS virtual low
+            GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].func_sel = VIRTUAL_LOW;
+
+            // wait 50us
+            ets_delay_us(50);
+
+            // Pulse clock 16x
+            for (uint8_t i = 0; i < 16; i++)
+            {
+                GPIO.func_in_sel_cfg[HSPICLK_IN_IDX].func_sel = VIRTUAL_LOW;
+                ets_delay_us(6);
+
+                GPIO.func_in_sel_cfg[HSPICLK_IN_IDX].func_sel = VIRTUAL_HIGH;
+                ets_delay_us(6);
+            }
+
+            // Set CLK back to normal
+            GPIO.func_in_sel_cfg[HSPICLK_IN_IDX].func_sel = CONFIG_HOJA_GPIO_NS_CLOCK;
+            GPIO.func_in_sel_cfg[HSPICLK_IN_IDX].sig_in_sel = 1;
+
+            // Set clock source to latch pin
+            GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].func_sel = CONFIG_HOJA_GPIO_NS_LATCH;
+            GPIO.func_in_sel_cfg[HSPICS0_IN_IDX].sig_in_sel = 1;
+
+            // Set GPIO data to SPI output source
+            GPIO.func_out_sel_cfg[CONFIG_HOJA_GPIO_NS_SERIAL].func_sel = HSPIQ_OUT_IDX;
+
+            //GPIO.enable_w1ts = DATA_MASK;
+
             done = false;
         }
         vTaskDelay(0.2/portTICK_PERIOD_MS);
