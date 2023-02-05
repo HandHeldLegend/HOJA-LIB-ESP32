@@ -155,12 +155,17 @@ static esp_hid_raw_report_map_t xinput_report_maps[1] = {
     }
 };
 
+uint8_t xinput_hidd_service_uuid128[] = {
+        0xEC, 0x67, 0x63, 0x03, 0x3D, 0x9A, 0x42, 0x64, 0xB8, 0x95, 0xAC, 0x1B, 0xE9, 0x9D, 0x63, 0x79,
+    };
+
 // Bluetooth App setup data
 static util_bt_app_params_s xinput_app_params = {
     .ble_hidd_cb        = xinput_ble_hidd_cb,
     .ble_gap_cb         = xinput_ble_gap_cb,
     .bt_mode            = ESP_BT_MODE_BLE,
     .appearance         = ESP_HID_APPEARANCE_GAMEPAD,
+    .uuid128            = xinput_hidd_service_uuid128,
 };
 
 // Takes in both XINPUT structs and returns if they match.
@@ -194,7 +199,7 @@ void xinput_bt_sendinput_task(void * param)
 
     for(;;)
     {
-        hoja_analog_cb(&hoja_analog_data);
+        hoja_analog_cb();
         xi_input.stick_left_x       = hoja_analog_data.ls_x << 4;
         xi_input.stick_left_y       = hoja_analog_data.ls_y << 4;
         xi_input.stick_right_x      = hoja_analog_data.rs_x << 4;
@@ -214,7 +219,6 @@ void xinput_bt_sendinput_task(void * param)
         uint8_t lr = (1 - hoja_button_data.dpad_left) + hoja_button_data.dpad_right;
         uint8_t ud = (1 - hoja_button_data.dpad_down) + hoja_button_data.dpad_up;
         xi_input.dpad_hat = util_get_dpad_hat(HAT_MODE_XINPUT, lr, ud);
-        hoja_button_reset();
 
         if (xinput_compare(&xi_input, &xi_input_last))
         {
@@ -264,6 +268,14 @@ hoja_err_t core_bt_xinput_start(void)
     hoja_err_t err = HOJA_OK;
 
     err = util_bluetooth_init(loaded_settings.xinput_client_bt_address);
-    err = util_bluetooth_register_app(&xinput_app_params, &xinput_hidd_config);
+    err = util_bluetooth_register_app(&xinput_app_params, &xinput_hidd_config, true);
     return err;
+}
+
+void core_bt_xinput_stop(void)
+{
+    const char* TAG = "core_bt_xinput_stop";
+
+    ESP_LOGI(TAG, "Stopping core...");
+    util_bluetooth_deinit();
 }

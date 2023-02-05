@@ -60,7 +60,7 @@ typedef struct
 
 hoja_err_t core_usb_set_subcore(usb_subcore_t subcore);
 
-hoja_err_t core_usb_stop(void);
+void core_usb_stop(void);
 
 hoja_err_t core_usb_start(void);
 

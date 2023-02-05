@@ -64,12 +64,12 @@ void switch_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
 // Callbacks for HID report events
 void switch_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 {
-    static const char* TAG = "ns_bt_hidd_cb";
+    const char* TAG = "ns_bt_hidd_cb";
 
     switch (event) {
         case ESP_HIDD_INIT_EVT:
             if (param->init.status == ESP_HIDD_SUCCESS) {
-                ESP_LOGI(TAG, "init hidd success!");
+                //ESP_LOGI(TAG, "init hidd success!");
             } else {
                 ESP_LOGI(TAG, "init hidd failed!");
             }
@@ -245,9 +245,6 @@ hoja_err_t core_ns_start(void)
     // SET UP CONTROLLER TYPE VARS
     ns_controller_setup_memory();
 
-    ns_controller_data.sticks_calibrated = true;
-    ns_controller_data.input_report_mode = 0xFF;
-
     // Convert calibration data
     ns_controller_applycalibration();
 
@@ -255,28 +252,33 @@ hoja_err_t core_ns_start(void)
     esp_base_mac_addr_set(loaded_settings.ns_client_bt_address);
 
     err = util_bluetooth_init(loaded_settings.ns_client_bt_address);
-    err = util_bluetooth_register_app(&switch_app_params, &switch_hidd_config);
+    
+    loaded_settings.ns_controller_paired = false;
 
-    /*
-    ESP_LOGI(TAG, "Delaying 10 seconds then shutting down");
-    vTaskDelay(10000/portTICK_PERIOD_MS);
-
-    util_bluetooth_stop();*/
+    // If we are already paired, attempt connection
+    if (loaded_settings.ns_controller_paired)
+    {
+        ESP_LOGI(TAG, "NS Paired, attempting to connect...");
+        err = util_bluetooth_register_app(&switch_app_params, &switch_hidd_config, false);
+        util_bluetooth_connect(loaded_settings.ns_host_bt_address);
+    }
+    else
+    {
+        // Not paired, await pairing connection
+        ESP_LOGI(TAG, "NS Paired, put into advertise mode...");
+        err = util_bluetooth_register_app(&switch_app_params, &switch_hidd_config, true);
+    }
 
     return HOJA_OK;
-
-    // TODO handle connecting to already paired device
 }
 
 // Stop Nintendo Switch controller core
-hoja_err_t core_ns_stop()
+void core_ns_stop(void)
 {
     const char* TAG = "core_ns_stop";
 
     ns_controller_input_task_set(NS_REPORT_MODE_IDLE);
     util_bluetooth_deinit();
-
-    return HOJA_OK;
 }
 
 // Save Nintendo Switch bluetooth pairing
@@ -300,7 +302,6 @@ hoja_err_t ns_savepairing(uint8_t* host_addr)
     if (hoja_settings_saveall() == HOJA_OK)
     {
         ESP_LOGI(TAG, "Pairing info saved.");
-        hoja_event_cb(HOJA_EVT_BT, HEVT_BT_PAIRED, 0x00);
         return HOJA_OK;
     } 
     else

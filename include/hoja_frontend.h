@@ -21,7 +21,7 @@ hoja_err_t hoja_set_core(hoja_core_t core);
 
 hoja_err_t hoja_start_core(void);
 
-hoja_err_t hoja_stop_core(void);
+void hoja_stop_core(void);
 
 hoja_err_t hoja_set_color(hoja_rgb_s color);
 
@@ -38,18 +38,22 @@ hoja_err_t hoja_reset_pairing(hoja_core_t core);
 // -----------------
 
 // Vars for callbacks
-typedef void (*hoja_button_callback_t) (hoja_button_data_s *);
-typedef void (*hoja_analog_callback_t) (hoja_analog_data_s *);
+typedef void (*hoja_button_callback_t) (void);
+typedef void (*hoja_analog_callback_t) (void);
 typedef void (*hoja_event_callback_t) (hoja_event_type_t, uint8_t, uint8_t);
 extern hoja_button_callback_t hoja_button_cb;
 extern hoja_analog_callback_t hoja_analog_cb;
 extern hoja_event_callback_t hoja_event_cb;
 
+void hoja_set_force_wired(bool enable);
+
+bool hoja_get_force_wired(void);
+
 // Function for button callback must be as follows (function name can change)
-// Ex: void local_button_cb(hoja_button_data_s *button_data)
+// Ex: void local_button_cb(void)
 hoja_err_t hoja_register_button_callback(hoja_button_callback_t func);
 
-// Ex: void local_analog_cb(hoja_analog_data_s *analog_data)
+// Ex: void local_analog_cb(void)
 hoja_err_t hoja_register_analog_callback(hoja_analog_callback_t func);
 
 // Ex: void local_event_cb(hoja_event_type_t type, uint8_t evt, uint8_t param)

@@ -90,6 +90,9 @@ typedef struct
     // Button for sleeping the controller
     uint8_t button_sleep;
 
+    // Button for pairing the controller
+    uint8_t button_pair;
+
 } __attribute__ ((packed)) hoja_button_data_s;
 
 
@@ -115,20 +118,12 @@ typedef enum
  */
 typedef enum
 {
-    HEVT_BT_STARTED     = 0,
-    HEVT_BT_CONNECTING  = 1,
-    HEVT_BT_PAIRED      = 2,
-    HEVT_BT_DISCONNECT  = 3,
+    HEVT_BT_STARTED,
+    HEVT_BT_CONNECTING,
+    HEVT_BT_PAIRING,
+    HEVT_BT_CONNECTED,
+    HEVT_BT_DISCONNECTED,
 } hoja_bt_event_t;
-
-/**
- *  @brief Nintendo Switch Core events
- */
-typedef enum
-{
-    HEVT_NS_RUMBLE,
-    HEVT_NS_PLAYERSET,
-} hoja_ns_event_t;
 
 /**
  *  @brief USB Core(s) events
@@ -140,14 +135,6 @@ typedef enum
 } hoja_usb_event_t;
 
 /**
- *  @brief GameCube Core events
- */
-typedef enum
-{
-    HEVT_GC_RUMBLE
-} hoja_gc_event_t;
-
-/**
  *  @brief System events
  */
 typedef enum
@@ -155,6 +142,8 @@ typedef enum
     HEVT_API_INIT_OK,
     HEVT_API_SHUTDOWN,
     HEVT_API_REBOOT,
+    HEVT_API_PLAYERNUM,
+    HEVT_API_RUMBLE,
 } hoja_system_event_t;
 
 /**

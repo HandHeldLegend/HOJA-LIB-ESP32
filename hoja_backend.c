@@ -19,11 +19,17 @@ void hoja_button_task(void * parameters)
     // Buttons update at a 2000hz rate.
     for(;;)
     {
-        hoja_button_cb(&hoja_button_data);
+        hoja_button_cb();
+        
         if (hoja_button_data.button_sleep)
         {
             sleep_timer += 1;
-            if (sleep_timer >= SLEEP_BUTTON_TIME)
+
+            if (sleep_timer >= SLEEP_BUTTON_TIME && hoja_button_data.button_pair)
+            {
+                // Call function to enable pairing mode
+            }
+            else if (sleep_timer >= SLEEP_BUTTON_TIME)
             {
                 ESP_LOGI(TAG, "Sleep triggered by select button!");
                 // Send shutdown event if sleep timer is confirmed overflow.

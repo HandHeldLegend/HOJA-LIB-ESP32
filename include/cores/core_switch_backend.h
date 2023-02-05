@@ -40,7 +40,7 @@ hoja_err_t core_ns_set_subcore(ns_subcore_t subcore);
 hoja_err_t core_ns_start(void);
 
 // Stop the Nintendo Switch controller core
-hoja_err_t core_ns_stop(void);
+void core_ns_stop(void);
 
 hoja_err_t ns_savepairing(uint8_t* host_addr);
 

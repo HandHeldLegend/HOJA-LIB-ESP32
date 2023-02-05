@@ -4,6 +4,8 @@
 #define GC_PROBE_RMT_LEN   26
 #define GC_ORIGIN_RMT_LEN  82
 
+rmt_isr_handle_t gc_rmt_isr_handle;
+
 void gamecube_input_translate(void)
 {
     rmt_item32_t gcmd_poll_rmt[GC_POLL_RMT_LEN] = {
@@ -18,7 +20,7 @@ void gamecube_input_translate(void)
         JB_STOP, JB_ZERO
     };
 
-    hoja_analog_cb(&hoja_analog_data);
+    hoja_analog_cb();
 
     gcmd_poll_rmt[GC_BUTTON_START]  = hoja_button_data.button_start  ? JB_HIGH : JB_LOW;
     gcmd_poll_rmt[GC_BUTTON_Y]      = hoja_button_data.button_left   ? JB_HIGH : JB_LOW;
@@ -266,7 +268,7 @@ void gamecube_init(void)
     gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + RMT_TX_CHANNEL_PROBE, 0, 0);
     gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + RMT_RX_CHANNEL, 0);
 
-    rmt_isr_register(gamecube_rmt_isr, NULL, 3, NULL);
+    rmt_isr_register(gamecube_rmt_isr, NULL, 3, &gc_rmt_isr_handle);
 }
 
 hoja_err_t core_gamecube_start()
@@ -284,10 +286,10 @@ hoja_err_t core_gamecube_start()
     return HOJA_OK;
 }
 
-hoja_err_t core_gamecube_stop()
+void core_gamecube_stop()
 {
     const char* TAG = "core_gamecube_stop";
     periph_ll_enable_clk_clear_rst(PERIPH_RMT_MODULE);
 
-    return HOJA_OK;
+    rmt_isr_deregister(gc_rmt_isr_handle);
 }

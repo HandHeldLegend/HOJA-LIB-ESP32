@@ -1,6 +1,7 @@
 #include "util_bt_hid.h"
 
 esp_bt_controller_config_t bt_cfg = {0};
+TaskHandle_t _util_bt_timeout_task = NULL;
 
 // TEMPLATE CALLBACK FUNCTIONS
 // USE THESE TO PASTE INTO YOUR OWN
@@ -312,7 +313,7 @@ util_bt_hid_mode_t util_bt_hid_mode = UTIL_BT_MODE_CLASSIC;
 // Private functions
 
 // Register app with BT Classic
-hoja_err_t bt_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_device_config_t *hidd_device_config)
+hoja_err_t bt_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_device_config_t *hidd_device_config, bool advertise)
 {
     const char* TAG = "bt_register_app";
 
@@ -350,7 +351,9 @@ hoja_err_t bt_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_dev
         return HOJA_FAIL;
     }
 
-    esp_hidd_app_param_t app_param = {
+    const char* desc = "Gamepad";
+
+    const esp_hidd_app_param_t app_param = {
         .desc_list      = hidd_device_config->report_maps[0].data,
         .desc_list_len  = hidd_device_config->report_maps[0].len,
         .description    = "Gamepad",
@@ -370,8 +373,15 @@ hoja_err_t bt_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_dev
 
     esp_bt_dev_set_device_name(hidd_device_config->device_name);
 
-    esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-
+    if (advertise)
+    {
+        esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+    }
+    else
+    {
+        esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+    }
+    
     return HOJA_OK;
 }
 
@@ -395,9 +405,10 @@ hoja_err_t ble_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_de
         return HOJA_FAIL;
     }
 
-    const uint8_t hidd_service_uuid128[] = {
+    /*
+    const uint8_t hidd_service_uuid128_old[] = {
         0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80, 0x00, 0x10, 0x00, 0x00, 0x12, 0x18, 0x00, 0x00,
-    };
+    };*/
 
     esp_ble_adv_data_t ble_adv_data = {
         .set_scan_rsp = false,
@@ -410,8 +421,8 @@ hoja_err_t ble_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_de
         .p_manufacturer_data =  NULL,
         .service_data_len = 0,
         .p_service_data = NULL,
-        .service_uuid_len = sizeof(hidd_service_uuid128),
-        .p_service_uuid = (uint8_t *)hidd_service_uuid128,
+        .service_uuid_len = 16 * sizeof(uint8_t),
+        .p_service_uuid = util_bt_app_params->uuid128,
         .flag = 0x6,
     };
 
@@ -497,6 +508,7 @@ hoja_err_t util_bluetooth_init(uint8_t *mac_address)
     else
     {
         ESP_LOGI(TAG, "Setting mac address...");
+        esp_log_buffer_hex(TAG, mac_address, 8);
         esp_base_mac_addr_set(mac_address);
     }
 
@@ -554,8 +566,10 @@ hoja_err_t util_bluetooth_init(uint8_t *mac_address)
  * @brief Takes in an app params struct and starts the HID Gamepad
  * 
  * @param util_bt_app_params Pointer to type of util_bt_app_params_s
+ * @param hidd_device_config Pointer to type of esp_hid_device_config_t
+ * @param advertise Whether the Bluetooth app should advertise. Only set this to true if your device is not yet paired. No impact in BLE mode.
 */
-hoja_err_t util_bluetooth_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_device_config_t *hidd_device_config)
+hoja_err_t util_bluetooth_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_device_config_t *hidd_device_config, bool advertise)
 {
     const char* TAG = "util_bluetooth_register_app";
     esp_err_t ret;
@@ -583,7 +597,7 @@ hoja_err_t util_bluetooth_register_app(util_bt_app_params_s *util_bt_app_params,
             #if CONFIG_BT_HID_DEVICE_ENABLED
             bt_cfg.bt_max_acl_conn = 3;
             bt_cfg.bt_max_sync_conn = 3;
-            err = bt_register_app(util_bt_app_params, hidd_device_config);
+            err = bt_register_app(util_bt_app_params, hidd_device_config, advertise);
             #else
             ESP_LOGE(TAG, "BT Classic HID disabled. Enable in SDK settings. Also enable BT Dual mode.");
             return HOJA_FAIL;
@@ -612,12 +626,11 @@ hoja_err_t util_bluetooth_register_app(util_bt_app_params_s *util_bt_app_params,
         // Send callback event saying BT is started.
         if (hoja_event_cb)
         {
-            hoja_event_cb(HOJA_EVT_BT, HEVT_BT_STARTED, 0x00);
+            //hoja_event_cb(HOJA_EVT_BT, HEVT_BT_STARTED, 0x00);
         }
     }
     return err;
 }
-
 
 /**
  * @brief Stops the Bluetooth app
@@ -647,4 +660,38 @@ void util_bluetooth_deinit(void)
     esp_bt_controller_deinit();
 
     util_bt_hid_status = UTIL_BT_HID_STATUS_IDLE;
+}
+
+/**
+ * @brief Starts a bluetooth connection attempt.
+*/
+void util_bluetooth_connect(uint8_t *mac_address)
+{
+    const char* TAG = "util_bluetooth_connect";
+
+    if(util_bt_hid_status != UTIL_BT_HID_STATUS_RUNNING)
+    {
+        ESP_LOGE(TAG, "Bluetooth Util needs to be initialized, registered, and disconnected before attempting connection.");
+        return;
+    }
+
+    switch(util_bt_hid_mode)
+    {
+        case UTIL_BT_MODE_CLASSIC:
+        {
+            esp_err_t  err = esp_bt_hid_device_connect(mac_address);
+            if (err != ESP_OK)
+            {
+                // If connection directly failed, set discoverable.
+                esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+            }
+        }
+        break;
+
+        case UTIL_BT_MODE_BLE:
+        {
+            ESP_LOGI(TAG, "Bluetooth Connect function not needed for Gamepad as BLE Server.");
+        }
+        break;
+    }
 }

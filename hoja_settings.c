@@ -108,14 +108,10 @@ hoja_err_t hoja_settings_default(void)
     loaded_settings.ns_controller_type = NS_TYPE_PROCON;
 
     // Dinput Core stuff
-    memset(loaded_settings.dinput_host_bt_address, 0, 6);
     hoja_settings_generate_btmac(loaded_settings.dinput_client_bt_address);
-    loaded_settings.dinput_controller_paired = false;
 
     // Xinput Core stuff
-    memset(loaded_settings.xinput_host_bt_address, 0, 6);
     hoja_settings_generate_btmac(loaded_settings.xinput_client_bt_address);
-    loaded_settings.xinput_controller_paired = false;
 
     // Default color greenish
     loaded_settings.color_r = 0x38;
@@ -137,8 +133,6 @@ hoja_err_t hoja_settings_default(void)
     loaded_settings.cy_min = 0xFA;
     loaded_settings.cy_center = 0x740;
     loaded_settings.cy_max = 0xF47;
-
-    loaded_settings.snes_stick_dpad = false;
 
     // Set blob
     nvs_set_blob(my_handle, "hoja_settings", &loaded_settings, sizeof(hoja_settings_s));

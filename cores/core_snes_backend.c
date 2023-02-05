@@ -39,7 +39,7 @@ hoja_err_t core_snes_start()
     return HOJA_OK;
 }
 
-hoja_err_t core_snes_stop()
+void core_snes_stop()
 {
     const char* TAG = "core_snes_stop";
 
@@ -57,8 +57,6 @@ hoja_err_t core_snes_stop()
     assert(err==ESP_OK);
 
     ESP_LOGI(TAG, "SNES Core stopped OK.");
-
-    return HOJA_OK;
 }
 
 // Thanks to DarthCloud for some insight into the register workings for the SPI peripheral :)

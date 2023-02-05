@@ -4,6 +4,7 @@
 TaskHandle_t hoja_button_taskhandle = NULL;
 hoja_core_t hoja_current_core = HOJA_CORE_NULL;
 hoja_status_t hoja_current_status = HOJA_STATUS_IDLE;
+bool _hoja_force_wired = false;
 
 /**
  * @brief Initialize HOJA library. Register any callbacks before calling this function.
@@ -162,48 +163,53 @@ hoja_err_t hoja_start_core(void)
 /**
  * @brief Attempt to stop the core that is currently running.
 */
-hoja_err_t hoja_stop_core(void)
+void hoja_stop_core(void)
 {
     const char* TAG = "hoja_stop_core";
 
     if (hoja_current_status != HOJA_STATUS_RUNNING)
     {
         ESP_LOGE(TAG, "Core needs to be running before you can stop it!");
-        return HOJA_FAIL;
+        return;
     }
-
-    hoja_err_t err = HOJA_FAIL;
 
     switch(hoja_current_core)
     {
         case HOJA_CORE_NS:
             ESP_LOGI(TAG, "Attempting Nintendo Switch Core stop...");
-            err = core_ns_stop();
+            core_ns_stop();
             break;
         case HOJA_CORE_SNES:
             ESP_LOGI(TAG, "Attempting SNES/NES Core stop...");
-            err = core_snes_stop();
+            core_snes_stop();
             break;
         case HOJA_CORE_GC:
-            ESP_LOGI(TAG, "Attempting GameCube Core start...");
-            err = core_gamecube_stop();
+            ESP_LOGI(TAG, "Attempting GameCube Core stop...");
+            core_gamecube_stop();
             break;
+
+        case HOJA_CORE_BT_DINPUT:
+            ESP_LOGI(TAG, "Attempting BT Dinput Core stop...");
+            core_bt_dinput_stop();
+            break;
+
+        case HOJA_CORE_BT_XINPUT:
+            ESP_LOGI(TAG, "Attempting BT Xinput Core stop...");
+            core_bt_xinput_stop();
+            break;
+
         case HOJA_CORE_USB:
             ESP_LOGI(TAG, "Attempting USB Core stop...");
-            err = core_usb_stop();
+            core_usb_stop();
             break;
         default:
             // No core matches!
             ESP_LOGE(TAG, "Specified core does not exist or isn't implemented yet.");
-            return HOJA_FAIL;
+            return;
             break;
     }
 
-    if (err == HOJA_OK)
-    {
-        hoja_current_status = HOJA_STATUS_INITIALIZED;
-    }
-    return err;
+    hoja_current_status = HOJA_STATUS_INITIALIZED;
 }
 
 /**
@@ -230,6 +236,23 @@ hoja_analog_callback_t hoja_analog_cb = NULL;
  * @param param uint8_t type of data related to the event that occurred.
 */
 hoja_event_callback_t hoja_event_cb = NULL;
+
+/**
+ * @brief This will force the HOJA api to override the boot event for unplugged.
+ * This allows you to boot into wired modes even when you are in a wireless mode.
+*/
+void hoja_set_force_wired(bool enable)
+{
+    _hoja_force_wired = enable;
+}
+
+/**
+ * @brief return the force wired status.
+*/
+bool hoja_get_force_wired(void)
+{
+    return _hoja_force_wired;
+}
 
 /**
  * @brief Register HOJA callback function for button input.

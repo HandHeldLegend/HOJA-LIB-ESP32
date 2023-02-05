@@ -127,4 +127,6 @@ void xinput_stop_task(void);
 // Start the XInput controller core
 hoja_err_t core_bt_xinput_start(void);
 
+void core_bt_xinput_stop(void);
+
 #endif

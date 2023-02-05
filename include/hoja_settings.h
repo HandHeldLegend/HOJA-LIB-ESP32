@@ -7,7 +7,7 @@ the onboard flash storage for later loading. */
 
 // Magic byte for determining if settings are up to date.
 // "rb01" -> 0x72623031
-#define SETTINGS_MAGIC 0x72623037
+#define SETTINGS_MAGIC 0x72623035
 #define SETTINGS_NAMESPACE "hoja_settings"
 
 typedef enum
@@ -80,21 +80,23 @@ typedef struct
     // Bluetooth DInput Core Settings
     //------------------------------------
     uint8_t dinput_client_bt_address[8];
-    uint8_t dinput_host_bt_address[6];
-    bool    dinput_controller_paired;
+    //uint8_t dinput_host_bt_address[6];
+    //bool    dinput_controller_paired;
     //------------------------------------
     //------------------------------------
 
     // Bluetooth XInput Core Settings
     uint8_t xinput_client_bt_address[8];
-    uint8_t xinput_host_bt_address[6];
-    bool    xinput_controller_paired;
+    //uint8_t xinput_host_bt_address[6];
+    //bool    xinput_controller_paired;
     //------------------------------------
     //------------------------------------
 
-    // SNES Core Settings
+    // Analog to DPad Setting
+    // Determines how cores with only analog OR dpad should handle input
+    // At this time only the SNES core is supported.
     //------------------------------------
-    bool snes_stick_dpad;
+    uint8_t stick_dpad_mode;
     //------------------------------------
     //------------------------------------
 

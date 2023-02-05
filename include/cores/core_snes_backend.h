@@ -10,7 +10,7 @@
 hoja_err_t core_snes_start(void);
 
 // Stop the SNES core
-hoja_err_t core_snes_stop(void);
+void core_snes_stop(void);
 
 // End exposed functions
 //--------------------

@@ -1,6 +1,5 @@
 #include "core_switch_controller.h"
 
-
 ns_controller_data_s ns_controller_data;
 ns_report_mode_t _ns_reporting_mode = NS_REPORT_MODE_IDLE;
 ns_power_handle_t _ns_power_handle;

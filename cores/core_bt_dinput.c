@@ -154,12 +154,17 @@ const esp_hid_raw_report_map_t dinput_report_maps[1] = {
     }
 };
 
+uint8_t dinput_hidd_service_uuid128[] = {
+        0xED, 0x67, 0x63, 0x03, 0x3D, 0x9A, 0x42, 0x64, 0xB8, 0x95, 0xAC, 0x1B, 0xE9, 0x9D, 0x63, 0x79,
+    };
+
 // Bluetooth App setup data
 static util_bt_app_params_s dinput_app_params = {
     .ble_hidd_cb        = dinput_ble_hidd_cb,
     .ble_gap_cb         = dinput_ble_gap_cb,
     .bt_mode            = ESP_BT_MODE_BLE,
     .appearance         = ESP_HID_APPEARANCE_GAMEPAD,
+    .uuid128            = dinput_hidd_service_uuid128,
 };
 
 bool dinput_compare(di_input_s *one, di_input_s *two)
@@ -192,7 +197,7 @@ void dinput_bt_sendinput_task(void * param)
 
     for(;;)
     {
-        hoja_analog_cb(&hoja_analog_data);
+        hoja_analog_cb();
         di_input.stick_left_x       = hoja_analog_data.ls_x >> 4;
         di_input.stick_left_y       = hoja_analog_data.ls_y >> 4;
         di_input.stick_right_x      = hoja_analog_data.rs_x >> 4;
@@ -262,7 +267,7 @@ const esp_hid_device_config_t dinput_hidd_config = {
     .vendor_id  = HID_VEND_DINPUT,
     .product_id = HID_PROD_DINPUT,
     .version    = 0x0000,
-    .device_name = "DInput BLE Gamepad",
+    .device_name = "DInput Gamepad",
     .manufacturer_name = "HHL",
     .serial_number = "000000",
     .report_maps    = dinput_report_maps,
@@ -277,7 +282,15 @@ hoja_err_t core_bt_dinput_start(void)
     hoja_err_t err = HOJA_OK;
 
     err = util_bluetooth_init(loaded_settings.dinput_client_bt_address);
-    err = util_bluetooth_register_app(&dinput_app_params, &dinput_hidd_config);
+    err = util_bluetooth_register_app(&dinput_app_params, &dinput_hidd_config, true);
     return err;
+}
+
+void core_bt_dinput_stop(void)
+{
+    const char* TAG = "core_bt_dinput_stop";
+
+    ESP_LOGI(TAG, "Stopping core...");
+    util_bluetooth_deinit();
 }
 

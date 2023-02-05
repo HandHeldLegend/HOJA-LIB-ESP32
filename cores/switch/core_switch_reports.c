@@ -197,7 +197,7 @@ void ns_report_task_sendstandard(void * parameters)
     for(;;)
     {
         // Check the sticks once
-        hoja_analog_cb(&hoja_analog_data);
+        hoja_analog_cb();
         ns_input_translate_full(&ns_input_long);
 
         // Only send an input update if our comparison is different.

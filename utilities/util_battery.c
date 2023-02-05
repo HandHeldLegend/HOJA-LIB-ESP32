@@ -234,7 +234,14 @@ hoja_err_t util_battery_boot_status(void)
             hoja_event_cb(HOJA_EVT_BOOT, HEVT_BOOT_PLUGGED, 0x00);
             break;
         case BATCABLE_UNPLUGGED:
-            hoja_event_cb(HOJA_EVT_BOOT, HEVT_BOOT_UNPLUGGED, 0x00);
+            if (hoja_get_force_wired())
+            {
+                hoja_event_cb(HOJA_EVT_BOOT, HEVT_BOOT_PLUGGED, 0x00);
+            }
+            else
+            {
+                hoja_event_cb(HOJA_EVT_BOOT, HEVT_BOOT_UNPLUGGED, 0x00);
+            }
             break;
     }
     return HOJA_OK;

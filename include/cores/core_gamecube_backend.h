@@ -52,6 +52,6 @@ hoja_err_t gamecube_respond_command(uint8_t cmd, uint8_t rumble);
 
 hoja_err_t core_gamecube_start(void);
 
-hoja_err_t core_gamecube_stop(void);
+void core_gamecube_stop(void);
 
 #endif

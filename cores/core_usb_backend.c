@@ -26,7 +26,7 @@ hoja_err_t core_usb_set_subcore(usb_subcore_t subcore)
     return HOJA_OK;
 }
 
-hoja_err_t core_usb_stop(void)
+void core_usb_stop(void)
 {
     const char* TAG = "core_usb_start";
 
@@ -38,7 +38,7 @@ hoja_err_t core_usb_stop(void)
     if (util_i2c_status != UTIL_I2C_STATUS_AVAILABLE)
     {
         ESP_LOGE(TAG, "Cannot stop USB core. Required I2C utility initialize first.");
-        return HOJA_I2C_NOTINIT;
+        return;
     }
     ESP_LOGI(TAG, "USB Core okay to stop as I2C is set up.");
 
@@ -59,19 +59,19 @@ hoja_err_t core_usb_stop(void)
     {
         ESP_LOGE(TAG, "USB Core Command: USB Service Stop: Transmit Fail.");
         ESP_LOGE(esp_err_to_name(err), "");
-        return HOJA_I2C_FAIL;
+        return;
     }
     ESP_LOGI(TAG, "USB Core Command: USB Service Stop: Transmit OK.");
 
     vTaskDelete(usb_TaskHandle);
     usb_TaskHandle = NULL;
 
-    return HOJA_OK;
+    core_usb_status = USB_STATUS_IDLE;
     
     // If EFM8UB1 Companion is not enabled...
     #else
     ESP_LOGE(TAG, "USB not enabled. Enable EFM8UB1 Companion in SDK settings.");
-    return HOJA_FAIL;
+    return;
     #endif
 }
 
@@ -95,7 +95,6 @@ hoja_err_t core_usb_start(void)
         ESP_LOGE(TAG, "Cannot start USB core. Required I2C utility initialize first.");
         return HOJA_FAIL;
     }
-    ESP_LOGI(TAG, "USB Core okay to start as I2C is set up.");
 
     // BUILD USB START COMMAND
     i2c_cmd_handle_t tmpcmd = i2c_cmd_link_create();
@@ -116,7 +115,6 @@ hoja_err_t core_usb_start(void)
         ESP_LOGE(esp_err_to_name(err), "");
         return HOJA_FAIL;
     }
-    ESP_LOGI(TAG, "USB Core Command: USB Service Start: Transmit OK.");
 
     // DELAY 500MS BEFORE CHECKING STATUS
     vTaskDelay(500/portTICK_PERIOD_MS);
@@ -141,88 +139,108 @@ hoja_err_t core_usb_start(void)
         ESP_LOGE(esp_err_to_name(err), "");
         return HOJA_FAIL;
     }
-    ESP_LOGI(TAG, "USB Core Read: Transmit OK.");
 
     // CHECK USB START RESPONSE STATUS
     if ( response[0] == USB_MSG_OK )
     {
 
-        ESP_LOGI(TAG, "USB Core Status: USB Service Started OK.");
-
-        tosend[0] = USB_CMD_CHECKREADY;
-
-        // BUILD USB STATUS GET COMMAND
-        tmpcmd = i2c_cmd_link_create();
-        i2c_master_start(tmpcmd);
-        i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_write(tmpcmd, tosend, 1, true);
-        i2c_master_stop(tmpcmd);    
-
-        // TRANSMIT USB STATUS COMMAND
-        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
-        i2c_cmd_link_delete(tmpcmd);
-
-        // CHECK IF USB STATUS COMMAND WENT OK
-        if (err != ESP_OK)
+        // Standby is OK with force wired
+        if (hoja_get_force_wired())
         {
-            ESP_LOGE(TAG, "USB Core Command: Get USB Serivce Status: Transmit Fail.");
-            ESP_LOGE(esp_err_to_name(err), "");
-            return HOJA_FAIL;
-        }
-        ESP_LOGI(TAG, "USB Core Command: Get USB Service Status: Transmit OK.");
-
-        // READ USB STATUS
-        tmpcmd = i2c_cmd_link_create();
-        uint8_t response[2] = {0};
-        response[0] = 0xFF;
-        response[1] = 0xFF;
-        i2c_master_start(tmpcmd);
-        i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_READ, true);
-        i2c_master_read_byte(tmpcmd, &response[0], I2C_MASTER_ACK);
-        i2c_master_read_byte(tmpcmd, &response[1], I2C_MASTER_LAST_NACK);
-        i2c_master_stop(tmpcmd);
-
-        // DELAY 500MS BEFORE CHECKING STATUS
-        vTaskDelay(500/portTICK_PERIOD_MS);
-
-        // Start transmission with 1 second timeout
-        err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
-        i2c_cmd_link_delete(tmpcmd);
-
-        if (err != ESP_OK)
-        {
-            ESP_LOGE(TAG, "USB Core Read: Transmit Fail.");
-            ESP_LOGE(esp_err_to_name(err), "");
-            return HOJA_I2C_FAIL;
-        }
-        ESP_LOGI(TAG, "USB Core Read: Transmit OK.");
-
-        if ( (response[0] == USB_CMD_CHECKREADY) && (response[1] == USB_MSG_OK) )
-        {
-            ESP_LOGI(TAG, "USB Core Command: Get Bus Status: Bus OK.");
-
             // Check if task is running, delete if so.
-            if (usb_TaskHandle != NULL)
-            {
-                vTaskDelete(usb_TaskHandle);
-                usb_TaskHandle = NULL;
-            }
+                if (usb_TaskHandle != NULL)
+                {
+                    vTaskDelete(usb_TaskHandle);
+                    usb_TaskHandle = NULL;
+                }
 
-            // Start USB Send Input I2C task.
-            xTaskCreatePinnedToCore(usb_sendinput_task, "USB I2C Task Loop", 2024,
-                                    NULL, 0, &usb_TaskHandle, HOJA_CORE_CPU);
-            
-            ESP_LOGI(TAG, "USB Core started OK.");
+                // Start USB Send Input I2C task.
+                xTaskCreatePinnedToCore(usb_sendinput_task, "USB I2C Task Loop", 2024,
+                                        NULL, 0, &usb_TaskHandle, HOJA_CORE_CPU);
+                
+                ESP_LOGI(TAG, "USB Core Idle mode started OK.");
 
-            hoja_event_cb(HOJA_EVT_USB, HEVT_USB_CONNECTED, 0x00);
+                hoja_event_cb(HOJA_EVT_USB, HEVT_USB_CONNECTED, 0x00);
 
-            return HOJA_OK;
-
-        }   
+                return HOJA_OK;
+        }
+        // If we are here, do not standby, fail if USB bus is not ready
         else
         {
-            ESP_LOGE(TAG, "USB Core Command: Get Bus Status: Bus Unplugged.");
-            return HOJA_USB_NODET;
+            // Standby is disabled, so let's check the bus status.
+            tosend[0] = USB_CMD_CHECKREADY;
+
+            // BUILD USB BUS STATUS GET COMMAND
+            tmpcmd = i2c_cmd_link_create();
+            i2c_master_start(tmpcmd);
+            i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
+            i2c_master_write(tmpcmd, tosend, 1, true);
+            i2c_master_stop(tmpcmd);    
+
+            // TRANSMIT USB STATUS COMMAND
+            err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
+            i2c_cmd_link_delete(tmpcmd);
+
+            // CHECK IF USB STATUS COMMAND WENT OK
+            if (err != ESP_OK)
+            {
+                ESP_LOGE(TAG, "USB Core Command: Get USB Serivce Status: Transmit Fail.");
+                ESP_LOGE(esp_err_to_name(err), "");
+                return HOJA_FAIL;
+            }
+
+            // READ USB STATUS
+            tmpcmd = i2c_cmd_link_create();
+            uint8_t response[2] = {0};
+            response[0] = 0xFF;
+            response[1] = 0xFF;
+            i2c_master_start(tmpcmd);
+            i2c_master_write_byte(tmpcmd, (USB_I2C_ADDR << 1) | I2C_MASTER_READ, true);
+            i2c_master_read_byte(tmpcmd, &response[0], I2C_MASTER_ACK);
+            i2c_master_read_byte(tmpcmd, &response[1], I2C_MASTER_LAST_NACK);
+            i2c_master_stop(tmpcmd);
+
+            // DELAY 500MS BEFORE CHECKING STATUS
+            vTaskDelay(500/portTICK_PERIOD_MS);
+
+            // Start transmission with 1 second timeout
+            err = i2c_master_cmd_begin(I2C_NUM_0, tmpcmd, 1000/portTICK_PERIOD_MS);
+            i2c_cmd_link_delete(tmpcmd);
+
+            if (err != ESP_OK)
+            {
+                ESP_LOGE(TAG, "USB Core Read: Transmit Fail.");
+                ESP_LOGE(esp_err_to_name(err), "");
+                return HOJA_I2C_FAIL;
+            }
+
+            if ( (response[0] == USB_CMD_CHECKREADY) && (response[1] == USB_MSG_OK) )
+            {
+                ESP_LOGI(TAG, "USB Core Command: Get Bus Status: Bus OK.");
+
+                // Check if task is running, delete if so.
+                if (usb_TaskHandle != NULL)
+                {
+                    vTaskDelete(usb_TaskHandle);
+                    usb_TaskHandle = NULL;
+                }
+
+                // Start USB Send Input I2C task.
+                xTaskCreatePinnedToCore(usb_sendinput_task, "USB I2C Task Loop", 2024,
+                                        NULL, 0, &usb_TaskHandle, HOJA_CORE_CPU);
+                
+                ESP_LOGI(TAG, "USB Core started OK.");
+
+                hoja_event_cb(HOJA_EVT_USB, HEVT_USB_CONNECTED, 0x00);
+
+                return HOJA_OK;
+
+            }   
+            else
+            {
+                ESP_LOGE(TAG, "USB Core Command: Get Bus Status: Bus Unplugged.");
+                return HOJA_USB_NODET;
+            }
         }
 
     }
@@ -272,7 +290,7 @@ void usb_sendinput_task(void * parameters)
         }
 
         // Scan the analogs using the callback defined by user.
-        hoja_analog_cb(&hoja_analog_data);
+        hoja_analog_cb();
 
         usb_input.buttons_all    = hoja_button_data.buttons_all;
         usb_input.buttons_system = hoja_button_data.buttons_system;
