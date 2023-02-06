@@ -6,40 +6,73 @@
 typedef enum
 {
     USB_STATUS_IDLE,
-    USB_STATUS_STARTED,
-    USB_STATUS_CONNECTED,
+    USB_STATUS_INITIALIZED,
 } usb_status_t;
 
 typedef enum
 {
-    USB_CMD_CHECKREADY  = 0,
-    USB_CMD_SYSTEMSET   = 1,
-    USB_CMD_INPUT       = 2,
-    USB_CMD_USBCHANGE   = 3,
-} usb_core_commands_t;
+  I2C_CMD_IDLE = 0,    // No command
+  I2C_CMD_STATUS = 1,  // Returns the current USB status and gamepadStatus
+  I2C_CMD_SETMODE, // Start, stop, or reset USB function
+  I2C_CMD_SETUSB,  // Set the current USB input mode
+  I2C_CMD_INPUT,   // Sends an Input report over USB
+  I2C_CMD_CONFIG,  // Sends a configuration report over USB
+
+} ui2c_cmd_t;
 
 typedef enum
 {
-    USB_SYSTEM_START    = 0,
-    USB_SYSTEM_STOP     = 1,
-    USB_SYSTEM_RESET    = 2,
-} usb_system_commands_t;
+  I2C_RETURN_CMD_IDLE,  // No return data
+  I2C_RETURN_CMD_STATUS,// Return status data of USB and Gamepad
+  I2C_RETURN_CMD_RUMBLE,// Return any rumble status if it's changed
+  I2C_RETURN_CMD_CONFIG,// Return any configuration request
+} ui2c_return_cmd_t;
 
 typedef enum
 {
-    USB_MSG_OK      = 0,
-    USB_MSG_FAIL    = 1,
-    USB_MSG_NOSTART = 2,
-    USB_MSG_NOSTOP  = 3,
-} usb_core_respons_msg_t;
+  I2C_CONFIG_SAVERESET,
+  I2C_CONFIG_GETALL,
+  I2C_CONFIG_ANALOG_CALIBRATION,
+  I2C_CONFIG_TRIGGER_SENSITIVITY,
+  I2C_CONFIG_TRIGGER_MODE,
+  I2C_CONFIG_CALIBRATE_SET,
+} ui2c_config_t;
+
+// System set commands
+typedef enum
+{
+  I2C_SETMODE_START = 0,
+  I2C_SETMODE_STOP  = 1,
+  I2C_SETMODE_RESET = 2
+} ui2c_setmode_t;
+
+// I2C Response Status Messages
+typedef enum
+{
+  I2C_OK       = 0,  // Message and command executed OK
+  I2C_FAIL     = 1,  // Message and command did not execute OK
+} ui2c_response_t;
 
 typedef enum
 {
-    USB_SUBCORE_DINPUT  = 0,
-    USB_SUBCORE_NS      = 1,
-    USB_SUBCORE_XINPUT  = 2,
-    USB_SUBCORE_GCINPUT = 3,
-    USB_SUBCORE_MAX
+  GAMEPAD_STATUS_IDLE,
+  GAMEPAD_STATUS_INITIALIZED,
+} ui2c_gamepad_status_t;
+
+typedef enum
+{
+  USB_STATUS_NOBUS,
+  USB_STATUS_BUSOK,
+} ui2c_usb_status_t;
+
+typedef enum
+{
+  USB_SUBCORE_IDLE    = 0,
+  USB_SUBCORE_DINPUT  = 1,
+  USB_SUBCORE_NS      = 2,
+  USB_SUBCORE_XINPUT  = 3,
+  USB_SUBCORE_GCINPUT = 4,
+  USB_SUBCORE_MAX,
 } usb_subcore_t;
 
 // USB gamepad struct format
