@@ -238,4 +238,79 @@ typedef struct
     
 } __attribute__ ((packed)) hoja_rgb_s;
 
+typedef enum
+{
+    HOJA_CONTROLLER_MODE_NS,
+    HOJA_CONTROLLER_MODE_RETRO,
+    HOJA_CONTROLLER_MODE_XINPUT,
+    HOJA_CONTROLLER_MODE_DINPUT,
+} hoja_controller_mode_t;
+
+// Map code is used during remap
+// operations and configuration
+typedef enum
+{
+    MAPCODE_DUP = 0,
+    MAPCODE_DDOWN,
+    MAPCODE_DLEFT,
+    MAPCODE_DRIGHT,
+
+    MAPCODE_B_UP,
+    MAPCODE_B_DOWN,
+    MAPCODE_B_LEFT,
+    MAPCODE_B_RIGHT,
+
+    MAPCODE_T_L,
+    MAPCODE_T_ZL,
+    MAPCODE_T_R,
+    MAPCODE_T_ZR,
+
+    MAPCODE_B_START,
+    MAPCODE_B_SELECT,
+    MAPCODE_B_STICKL,
+    MAPCODE_B_STICKR,
+} hoja_mapcode_t;
+
+typedef struct
+{
+    union
+    {
+        struct
+        {
+            hoja_mapcode_t dpad_up     : 4;
+            hoja_mapcode_t dpad_down   : 4;
+            hoja_mapcode_t dpad_left   : 4;
+            hoja_mapcode_t dpad_right  : 4;
+
+            hoja_mapcode_t button_up       : 4;
+            hoja_mapcode_t button_down     : 4;
+            hoja_mapcode_t button_left     : 4;
+            hoja_mapcode_t button_right    : 4;
+
+            hoja_mapcode_t trigger_l       : 4;
+            hoja_mapcode_t trigger_zl      : 4;
+            hoja_mapcode_t trigger_r       : 4;
+            hoja_mapcode_t trigger_zr      : 4;
+
+            hoja_mapcode_t button_start    : 4;
+            hoja_mapcode_t button_select   : 4;
+            hoja_mapcode_t button_stick_left : 4;
+            hoja_mapcode_t button_stick_right : 4;
+        };
+        uint64_t val;
+    };
+} button_remap_s;
+
+typedef enum
+{
+    // Behaves as dpad only
+    DPAD_MODE_STANDARD = 0,
+    // Behaves as left analog only
+    DPAD_MODE_ANALOGONLY,
+    // Behaves as right analog only
+    DPAD_MODE_RIGHTANALOGONLY,
+    // Behaves as dpad and left analog
+    DPAD_MODE_DUAL,
+} hoja_dpadmode_t;
+
 #endif

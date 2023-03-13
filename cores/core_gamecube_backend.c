@@ -20,21 +20,22 @@ void gamecube_input_translate(void)
         JB_STOP, JB_ZERO
     };
 
+    hoja_button_remap_process();
     hoja_analog_cb();
 
-    gcmd_poll_rmt[GC_BUTTON_START]  = hoja_button_data.button_start  ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_Y]      = hoja_button_data.button_left   ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_X]      = hoja_button_data.button_up     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_B]      = hoja_button_data.button_down   ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_A]      = hoja_button_data.button_right  ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_START]  = hoja_processed_buttons.button_start  ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_Y]      = hoja_processed_buttons.button_left   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_X]      = hoja_processed_buttons.button_up     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_B]      = hoja_processed_buttons.button_down   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_A]      = hoja_processed_buttons.button_right  ? JB_HIGH : JB_LOW;
 
-    gcmd_poll_rmt[GC_BUTTON_LB]     = hoja_button_data.trigger_zl     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_RB]     = hoja_button_data.trigger_zr     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_Z]      = (hoja_button_data.trigger_l | hoja_button_data.trigger_r)    ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_DUP]    = hoja_button_data.dpad_up     ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_DDOWN]  = hoja_button_data.dpad_down   ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_DLEFT]  = hoja_button_data.dpad_left   ? JB_HIGH : JB_LOW;
-    gcmd_poll_rmt[GC_BUTTON_DRIGHT] = hoja_button_data.dpad_right  ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_LB]     = hoja_processed_buttons.trigger_zl     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_RB]     = hoja_processed_buttons.trigger_zr     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_Z]      = (hoja_processed_buttons.trigger_l | hoja_processed_buttons.trigger_r)    ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DUP]    = hoja_processed_buttons.dpad_up     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DDOWN]  = hoja_processed_buttons.dpad_down   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DLEFT]  = hoja_processed_buttons.dpad_left   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DRIGHT] = hoja_processed_buttons.dpad_right  ? JB_HIGH : JB_LOW;
     hoja_analog_data.ls_x >>= 4;
     hoja_analog_data.ls_y >>= 4;
     hoja_analog_data.rs_x >>= 4;

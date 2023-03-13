@@ -7,16 +7,8 @@ the onboard flash storage for later loading. */
 
 // Magic byte for determining if settings are up to date.
 // "rb01" -> 0x72623031
-#define SETTINGS_MAGIC 0x72623035
+#define SETTINGS_MAGIC 0x72623036
 #define SETTINGS_NAMESPACE "hoja_settings"
-
-typedef enum
-{
-    HOJA_CONTROLLER_MODE_NS,
-    HOJA_CONTROLLER_MODE_RETRO,
-    HOJA_CONTROLLER_MODE_XINPUT,
-    HOJA_CONTROLLER_MODE_DINPUT,
-} hoja_controller_mode_t;
 
 /**
  * @brief This is a struct which contains all of the
@@ -96,9 +88,12 @@ typedef struct
     // Determines how cores with only analog OR dpad should handle input
     // At this time only the SNES core is supported.
     //------------------------------------
-    uint8_t stick_dpad_mode;
+    hoja_dpadmode_t stick_dpad_mode;
     //------------------------------------
     //------------------------------------
+
+    uint64_t button_remaps;
+    
 
 } __attribute__ ((packed)) hoja_settings_s;
 

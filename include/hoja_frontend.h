@@ -4,6 +4,7 @@
 #include "hoja_includes.h"
 
 extern hoja_status_t hoja_current_status;
+extern hoja_core_t hoja_current_core;
 
 // This struct type is used to
 // set up HOJA API before runtime.

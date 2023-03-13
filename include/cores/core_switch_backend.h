@@ -33,6 +33,7 @@
 #include "switch/core_switch_types.h"
 
 extern ns_subcore_t _ns_subcore;
+extern uint8_t ns_hostAddress[6];
 
 hoja_err_t core_ns_set_subcore(ns_subcore_t subcore);
 
@@ -43,5 +44,7 @@ hoja_err_t core_ns_start(void);
 void core_ns_stop(void);
 
 hoja_err_t ns_savepairing(uint8_t* host_addr);
+
+hoja_err_t ns_startpairing(void);
 
 #endif

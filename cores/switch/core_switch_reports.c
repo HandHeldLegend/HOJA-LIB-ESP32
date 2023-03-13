@@ -198,6 +198,7 @@ void ns_report_task_sendstandard(void * parameters)
     {
         // Check the sticks once
         hoja_analog_cb();
+        hoja_button_remap_process();
         ns_input_translate_full(&ns_input_long);
 
         // Only send an input update if our comparison is different.

@@ -17,6 +17,8 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
 
     ns_input_long_s input = {0};
 
+    hoja_analog_cb();
+    hoja_button_remap_process();
     ns_input_translate_full(&input);
     // Set full report response buttons
     ns_report_setinputreport_full(&input);
@@ -57,12 +59,12 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
         default:
             ESP_LOGI(TAG, "Unrecognized request received: %X, %X", report_id, p_data[9]);
 
-            /*
+
             ESP_LOGI(TAG, "FULL DUMP:\n");
-                for(uint8_t i = 0; i < len; i++)
-                {
-                    ESP_LOGI("%d: ", "%X", p_data[i]);
-                }*/
+            for(uint8_t i = 0; i < len; i++)
+            {
+                ESP_LOGI("%d: ", "%X", p_data[i]);
+            }
             // Set input report ID
             
             //ns_report_setid(COMM_RID_STANDARDFULL);
@@ -146,6 +148,10 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
 
         case SUBC_SET_PLAYER:
             ESP_LOGI(TAG, "SUBC - Set player number/lights:");
+            if (!loaded_settings.ns_controller_paired)
+            {
+                ns_savepairing(ns_hostAddress);
+            }
             ns_report_setack(0x80);
             break;
 

@@ -234,26 +234,23 @@ void snes_task(void * parameters)
             // We subtract the button value as it's inverted. Unpressed trailing bits need to
             // remain HIGH as well.
 
+            // Process conversion of button data
+            hoja_button_remap_process();
+
             // Go through each bit and set accordingly.
-            snes_button_buffer |= (hoja_button_data.button_down << 7U);
+            snes_button_buffer |= (hoja_processed_buttons.button_down << 7U);
+            snes_button_buffer |= (hoja_processed_buttons.button_left     << 6U  );
+            snes_button_buffer |= (hoja_processed_buttons.button_select   << 5U  );
+            snes_button_buffer |= (hoja_processed_buttons.button_start    << 4U  );
+            snes_button_buffer |= (hoja_processed_buttons.dpad_up       << 3U  );
+            snes_button_buffer |= (hoja_processed_buttons.dpad_down     << 2U  );
+            snes_button_buffer |= (hoja_processed_buttons.dpad_left     << 1U   );
+            snes_button_buffer |= (hoja_processed_buttons.dpad_right);
 
-            //DEBUG
-            //snes_button_buffer |= 1 << 7;
-            //snes_button_buffer |= 1 << 7;
-            //snes_button_buffer |= (hoja_button_data.trigger_r << 7U);
-
-            snes_button_buffer |= (hoja_button_data.button_left     << 6U  );
-            snes_button_buffer |= (hoja_button_data.button_select   << 5U  );
-            snes_button_buffer |= (hoja_button_data.button_start    << 4U  );
-            snes_button_buffer |= (hoja_button_data.dpad_up       << 3U  );
-            snes_button_buffer |= (hoja_button_data.dpad_down     << 2U  );
-            snes_button_buffer |= (hoja_button_data.dpad_left     << 1U   );
-            snes_button_buffer |= (hoja_button_data.dpad_right);
-
-            snes_button_buffer |= (hoja_button_data.button_right    << 15U   );
-            snes_button_buffer |= (hoja_button_data.button_up       << 14U   );
-            snes_button_buffer |= (hoja_button_data.trigger_l        << 13U   );
-            snes_button_buffer |= (hoja_button_data.trigger_r        << 12U   );
+            snes_button_buffer |= (hoja_processed_buttons.button_right    << 15U   );
+            snes_button_buffer |= (hoja_processed_buttons.button_up       << 14U   );
+            snes_button_buffer |= (hoja_processed_buttons.trigger_l        << 13U   );
+            snes_button_buffer |= (hoja_processed_buttons.trigger_r        << 12U   );
 
             // The data is set up all weird?
             // Byte order 0xF0 0xF0

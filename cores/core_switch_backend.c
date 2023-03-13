@@ -3,6 +3,7 @@
 TaskHandle_t switch_bt_task_handle = NULL;
 
 uint8_t ns_currentReportMode = 0xAA;
+uint8_t ns_hostAddress[6] = {0};
 bool ns_connected = false;
 
 // Private variables
@@ -33,6 +34,7 @@ void switch_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
             if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
                 ESP_LOGI(TAG, "authentication success: %s", param->auth_cmpl.device_name);
                 //esp_log_buffer_hex(TAG, param->auth_cmpl.bda, ESP_BD_ADDR_LEN);
+                memcpy(ns_hostAddress, param->auth_cmpl.bda, ESP_BD_ADDR_LEN);
                 ns_controller_input_task_set(NS_REPORT_MODE_BLANK);
             } else {
                 ESP_LOGI(TAG, "authentication failed, status:%d", param->auth_cmpl.stat);
@@ -99,7 +101,7 @@ void switch_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                 if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTING) {
                     ESP_LOGI(TAG, "connecting...");
                 } else if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTED) {
-                    ns_connected = true;
+                    //ns_connected = true;
                     ESP_LOGI(TAG, "connected to %02x:%02x:%02x:%02x:%02x:%02x", param->open.bd_addr[0],
                             param->open.bd_addr[1], param->open.bd_addr[2], param->open.bd_addr[3], param->open.bd_addr[4],
                             param->open.bd_addr[5]);
@@ -178,7 +180,7 @@ void switch_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 
 
 // Switch HID report maps
-const esp_hid_raw_report_map_t switch_report_maps[1] = {
+esp_hid_raw_report_map_t switch_report_maps[1] = {
     {
         .data = procon_hid_descriptor,
         .len = (uint16_t) PROCON_HID_REPORT_MAP_LEN,
@@ -193,7 +195,7 @@ util_bt_app_params_s switch_app_params = {
     .appearance         = ESP_HID_APPEARANCE_GAMEPAD,
 };
 
-const esp_hid_device_config_t switch_hidd_config = {
+esp_hid_device_config_t switch_hidd_config = {
     .vendor_id  = HID_VEND_NSPRO,
     .product_id = HID_PROD_NSPRO,
     .version    = 0x0000,
@@ -252,20 +254,23 @@ hoja_err_t core_ns_start(void)
     esp_base_mac_addr_set(loaded_settings.ns_client_bt_address);
 
     err = util_bluetooth_init(loaded_settings.ns_client_bt_address);
-    
-    loaded_settings.ns_controller_paired = false;
 
     // If we are already paired, attempt connection
     if (loaded_settings.ns_controller_paired)
     {
         ESP_LOGI(TAG, "NS Paired, attempting to connect...");
         err = util_bluetooth_register_app(&switch_app_params, &switch_hidd_config, false);
-        util_bluetooth_connect(loaded_settings.ns_host_bt_address);
+        if (err == HOJA_OK)
+        {
+            vTaskDelay(1500/portTICK_PERIOD_MS);
+            util_bluetooth_connect(loaded_settings.ns_host_bt_address);
+        }
+        
     }
     else
     {
         // Not paired, await pairing connection
-        ESP_LOGI(TAG, "NS Paired, put into advertise mode...");
+        ESP_LOGI(TAG, "NS not Paired, put into advertise mode...");
         err = util_bluetooth_register_app(&switch_app_params, &switch_hidd_config, true);
     }
 
@@ -309,4 +314,22 @@ hoja_err_t ns_savepairing(uint8_t* host_addr)
         ESP_LOGE(TAG, "Failed to save pairing settings.");
         return HOJA_FAIL;
     }
+}
+
+// This function is used when you are already paired and/or connected
+// and you wish to pair to another Nintendo Switch console
+hoja_err_t ns_startpairing(void)
+{
+    // First, stop the NS core.
+    core_ns_stop();
+
+    // Set the setting of paired to false.
+    loaded_settings.ns_controller_paired = false;
+
+    // Start the NS core again
+    // If a new pairing is done on this session
+    // it will save to memory.
+    core_ns_start();
+
+    return HOJA_OK;
 }

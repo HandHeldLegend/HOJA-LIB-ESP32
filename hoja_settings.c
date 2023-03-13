@@ -42,6 +42,7 @@ hoja_err_t hoja_settings_init(void)
         else
         {
             ESP_LOGI(TAG, "Settings loaded with magic byte 0x%08X", (unsigned int) loaded_settings.magic_bytes);
+            hoja_remaps.val = loaded_settings.button_remaps;
             nvs_close(my_handle);
         }
         
@@ -107,16 +108,16 @@ hoja_err_t hoja_settings_default(void)
     loaded_settings.ns_controller_paired = false;
     loaded_settings.ns_controller_type = NS_TYPE_PROCON;
 
-    // Dinput Core stuff
+    // Generate bt mac address for DInput
     hoja_settings_generate_btmac(loaded_settings.dinput_client_bt_address);
 
-    // Xinput Core stuff
+    // Generate bt mac address for XInput
     hoja_settings_generate_btmac(loaded_settings.xinput_client_bt_address);
 
     // Default color greenish
-    loaded_settings.color_r = 0x38;
+    loaded_settings.color_r = 0xFF;
     loaded_settings.color_g = 0xFF;
-    loaded_settings.color_b = 0x59;
+    loaded_settings.color_b = 0xFF;
 
     loaded_settings.sx_min = 0xFA;
     loaded_settings.sx_center = 0x740;
@@ -133,6 +134,31 @@ hoja_err_t hoja_settings_default(void)
     loaded_settings.cy_min = 0xFA;
     loaded_settings.cy_center = 0x740;
     loaded_settings.cy_max = 0xF47;
+
+    button_remap_s default_hoja_remaps = {
+        .dpad_up    = MAPCODE_DUP,
+        .dpad_down  = MAPCODE_DDOWN,
+        .dpad_left  = MAPCODE_DLEFT,
+        .dpad_right = MAPCODE_DRIGHT,
+
+        .button_up      = MAPCODE_B_UP,
+        .button_down    = MAPCODE_B_DOWN,
+        .button_left    = MAPCODE_B_LEFT,
+        .button_right   = MAPCODE_B_RIGHT,
+
+        .trigger_l      = MAPCODE_T_L,
+        .trigger_zl     = MAPCODE_T_ZL,
+        .trigger_r      = MAPCODE_T_R,
+        .trigger_zr     = MAPCODE_T_ZR,
+
+        .button_start       = MAPCODE_B_START,
+        .button_select      = MAPCODE_B_SELECT,
+        .button_stick_left  = MAPCODE_B_STICKL,
+        .button_stick_right = MAPCODE_B_STICKR,
+    };
+
+    loaded_settings.button_remaps = default_hoja_remaps.val;
+    hoja_remaps.val = default_hoja_remaps.val;
 
     // Set blob
     nvs_set_blob(my_handle, "hoja_settings", &loaded_settings, sizeof(hoja_settings_s));

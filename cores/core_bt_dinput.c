@@ -198,6 +198,8 @@ void dinput_bt_sendinput_task(void * param)
     for(;;)
     {
         hoja_analog_cb();
+        hoja_button_remap_process();
+
         di_input.stick_left_x       = hoja_analog_data.ls_x >> 4;
         di_input.stick_left_y       = hoja_analog_data.ls_y >> 4;
         di_input.stick_right_x      = hoja_analog_data.rs_x >> 4;
@@ -206,27 +208,27 @@ void dinput_bt_sendinput_task(void * param)
         di_input.analog_trigger_l   = hoja_analog_data.lt_a >> 4;
         di_input.analog_trigger_r   = hoja_analog_data.rt_a >> 4;
 
-        di_input.trigger_l           = hoja_button_data.trigger_l;
-        di_input.trigger_r           = hoja_button_data.trigger_r;
+        di_input.trigger_l           = hoja_processed_buttons.trigger_l;
+        di_input.trigger_r           = hoja_processed_buttons.trigger_r;
 
-        di_input.trigger_zl         = hoja_button_data.trigger_zl;
-        di_input.trigger_zr         = hoja_button_data.trigger_zr;
+        di_input.trigger_zl         = hoja_processed_buttons.trigger_zl;
+        di_input.trigger_zr         = hoja_processed_buttons.trigger_zr;
 
-        di_input.button_a           = hoja_button_data.button_right;
-        di_input.button_b           = hoja_button_data.button_down;
-        di_input.button_x           = hoja_button_data.button_up;
-        di_input.button_y           = hoja_button_data.button_left;
+        di_input.button_a           = hoja_processed_buttons.button_right;
+        di_input.button_b           = hoja_processed_buttons.button_down;
+        di_input.button_x           = hoja_processed_buttons.button_up;
+        di_input.button_y           = hoja_processed_buttons.button_left;
 
-        di_input.button_minus       = hoja_button_data.button_select;
-        di_input.button_plus        = hoja_button_data.button_start;
-        di_input.button_home        = hoja_button_data.button_home;
-        di_input.button_capture     = hoja_button_data.button_capture;
+        di_input.button_minus       = hoja_processed_buttons.button_select;
+        di_input.button_plus        = hoja_processed_buttons.button_start;
+        di_input.button_home        = hoja_processed_buttons.button_home;
+        di_input.button_capture     = hoja_processed_buttons.button_capture;
 
-        di_input.stick_left         = hoja_button_data.button_stick_left;
-        di_input.stick_right        = hoja_button_data.button_stick_right;
+        di_input.stick_left         = hoja_processed_buttons.button_stick_left;
+        di_input.stick_right        = hoja_processed_buttons.button_stick_right;
         
-        uint8_t lr = (1 - hoja_button_data.dpad_left) + hoja_button_data.dpad_right;
-        uint8_t ud = (1 - hoja_button_data.dpad_down) + hoja_button_data.dpad_up;
+        uint8_t lr = (1 - hoja_processed_buttons.dpad_left) + hoja_processed_buttons.dpad_right;
+        uint8_t ud = (1 - hoja_processed_buttons.dpad_down) + hoja_processed_buttons.dpad_up;
 
         di_input.dpad_hat = util_get_dpad_hat(HAT_MODE_DINPUT, lr, ud);
         hoja_button_reset();

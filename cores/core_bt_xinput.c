@@ -200,6 +200,7 @@ void xinput_bt_sendinput_task(void * param)
     for(;;)
     {
         hoja_analog_cb();
+        hoja_button_remap_process();
         xi_input.stick_left_x       = hoja_analog_data.ls_x << 4;
         xi_input.stick_left_y       = hoja_analog_data.ls_y << 4;
         xi_input.stick_right_x      = hoja_analog_data.rs_x << 4;
@@ -208,16 +209,16 @@ void xinput_bt_sendinput_task(void * param)
         xi_input.analog_trigger_l   = hoja_analog_data.lt_a << 4;
         xi_input.analog_trigger_r   = hoja_analog_data.rt_a << 4;
 
-        xi_input.bumper_l           = hoja_button_data.trigger_l;
-        xi_input.bumper_r           = hoja_button_data.trigger_r;
+        xi_input.bumper_l           = hoja_processed_buttons.trigger_l;
+        xi_input.bumper_r           = hoja_processed_buttons.trigger_r;
 
-        xi_input.button_a           = hoja_button_data.button_down;
-        xi_input.button_b           = hoja_button_data.button_right;
-        xi_input.button_x           = hoja_button_data.button_left;
-        xi_input.button_y           = hoja_button_data.button_up;
+        xi_input.button_a           = hoja_processed_buttons.button_down;
+        xi_input.button_b           = hoja_processed_buttons.button_right;
+        xi_input.button_x           = hoja_processed_buttons.button_left;
+        xi_input.button_y           = hoja_processed_buttons.button_up;
         
-        uint8_t lr = (1 - hoja_button_data.dpad_left) + hoja_button_data.dpad_right;
-        uint8_t ud = (1 - hoja_button_data.dpad_down) + hoja_button_data.dpad_up;
+        uint8_t lr = (1 - hoja_processed_buttons.dpad_left) + hoja_processed_buttons.dpad_right;
+        uint8_t ud = (1 - hoja_processed_buttons.dpad_down) + hoja_processed_buttons.dpad_up;
         xi_input.dpad_hat = util_get_dpad_hat(HAT_MODE_XINPUT, lr, ud);
 
         if (xinput_compare(&xi_input, &xi_input_last))

@@ -3,6 +3,8 @@
 esp_bt_controller_config_t bt_cfg = {0};
 TaskHandle_t _util_bt_timeout_task = NULL;
 
+esp_hidd_app_param_t hid_app_param = {0};
+
 // TEMPLATE CALLBACK FUNCTIONS
 // USE THESE TO PASTE INTO YOUR OWN
 // CONTROLLER CORES FOR HANDLING
@@ -353,7 +355,7 @@ hoja_err_t bt_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_dev
 
     const char* desc = "Gamepad";
 
-    const esp_hidd_app_param_t app_param = {
+    esp_hidd_app_param_t app_param = {
         .desc_list      = hidd_device_config->report_maps[0].data,
         .desc_list_len  = hidd_device_config->report_maps[0].len,
         .description    = "Gamepad",
@@ -362,10 +364,12 @@ hoja_err_t bt_register_app(util_bt_app_params_s *util_bt_app_params, esp_hid_dev
         .provider       = hidd_device_config->manufacturer_name,
     };
 
+    memcpy(&hid_app_param, &app_param, sizeof(esp_hidd_app_param_t));
+
     esp_hidd_qos_param_t both_qos = {0};
 
     ESP_LOGI(TAG, "Register HID Device app");
-    if ((ret = esp_bt_hid_device_register_app(&app_param, &both_qos, &both_qos)) != ESP_OK)
+    if ((ret = esp_bt_hid_device_register_app(&hid_app_param, &both_qos, &both_qos)) != ESP_OK)
     {
         ESP_LOGE(TAG, "HID device register app failed:");
         return HOJA_FAIL;
@@ -606,7 +610,7 @@ hoja_err_t util_bluetooth_register_app(util_bt_app_params_s *util_bt_app_params,
 
         case ESP_BT_MODE_BLE:
             #if CONFIG_BT_BLE_ENABLED
-            err = ble_register_app(util_bt_app_params, hidd_device_config);
+            err = ble_register_app(&util_bt_app_params, hidd_device_config);
             #else
             ESP_LOGE(TAG, "BLE is disabled. Enable in SDK settings. Also enable BT Dual mode.");
             return HOJA_FAIL;
