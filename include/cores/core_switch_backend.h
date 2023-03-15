@@ -34,6 +34,7 @@
 
 extern ns_subcore_t _ns_subcore;
 extern uint8_t ns_hostAddress[6];
+extern bool ns_connected;
 
 hoja_err_t core_ns_set_subcore(ns_subcore_t subcore);
 

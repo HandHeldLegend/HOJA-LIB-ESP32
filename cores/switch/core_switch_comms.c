@@ -119,7 +119,7 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
         case SUBC_SET_SHIPMODE:
             ESP_LOGI(TAG, "SUBC - Set ship mode.");
             ns_report_setack(0x80);
-            //ns_controller_setshipmode(p_data[SUB_C_DATA_IDX]);
+            ns_controller_setshipmode(p_data[SUB_C_DATA_IDX]);
             break;
 
         case SUBC_READ_SPI:
@@ -147,17 +147,48 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
             break;
 
         case SUBC_SET_PLAYER:
-            ESP_LOGI(TAG, "SUBC - Set player number/lights:");
+            ESP_LOGI(TAG, "SUBC - Set player number/lights: %X", p_data[SUB_C_DATA_IDX]);
             if (!loaded_settings.ns_controller_paired)
             {
                 ns_savepairing(ns_hostAddress);
             }
+            
+            uint8_t player = p_data[SUB_C_DATA_IDX] & 0xF;
+
+            switch(player)
+            {
+                default:
+                case 1:
+                    hoja_event_cb(HOJA_EVT_SYSTEM, HEVT_API_PLAYERNUM, 1);
+                    break;
+
+                case 3:
+                    hoja_event_cb(HOJA_EVT_SYSTEM, HEVT_API_PLAYERNUM, 2);
+                    break;
+
+                case 7:
+                    hoja_event_cb(HOJA_EVT_SYSTEM, HEVT_API_PLAYERNUM, 3);
+                    break;
+
+                case 15:
+                    hoja_event_cb(HOJA_EVT_SYSTEM, HEVT_API_PLAYERNUM, 4);
+                    break;
+            }
+
             ns_report_setack(0x80);
             break;
 
         case SUBC_SET_MCUCONFIG:
             ESP_LOGI(TAG, "SUBC - Set MCU configuration.");
             ns_report_setack(0x80);
+            break;
+
+        case SUBC_SET_HCI_STATE:
+            ESP_LOGI(TAG, "SUBC - Set HCI state.");
+
+            // This sub-command shuts down the controller. Send our
+            // callback accordingly!
+            hoja_event_cb(HOJA_EVT_SYSTEM, HEVT_API_SHUTDOWN, 0x00);
             break;
         
         default:

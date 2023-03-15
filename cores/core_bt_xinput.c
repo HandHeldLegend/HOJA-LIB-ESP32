@@ -106,6 +106,7 @@ void xinput_ble_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
         } else {
             ESP_LOGI(TAG, "BLE GAP AUTH SUCCESS");
             //ble_hid_task_start_up();//todo: this should be on auth_complete (in GAP)
+            hoja_event_cb(HOJA_EVT_BT, HEVT_BT_CONNECTED, 0x00);
             xinput_start_task();
         }
         break;
@@ -148,7 +149,7 @@ void xinput_ble_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
 }
 
 // XInput HID report maps
-static esp_hid_raw_report_map_t xinput_report_maps[1] = {
+esp_hid_raw_report_map_t xinput_report_maps[1] = {
     {
         .data = xinput_hid_report_descriptor,
         .len = (uint16_t) XINPUT_HID_REPORT_MAP_LEN
@@ -160,7 +161,7 @@ uint8_t xinput_hidd_service_uuid128[] = {
     };
 
 // Bluetooth App setup data
-static util_bt_app_params_s xinput_app_params = {
+util_bt_app_params_s xinput_app_params = {
     .ble_hidd_cb        = xinput_ble_hidd_cb,
     .ble_gap_cb         = xinput_ble_gap_cb,
     .bt_mode            = ESP_BT_MODE_BLE,
@@ -238,7 +239,7 @@ void xinput_start_task(void)
         vTaskDelete(xinput_bt_task_handle);
         xinput_bt_task_handle = NULL;
     }
-    xTaskCreatePinnedToCore(xinput_bt_sendinput_task, "xinput_bt_task", 2048, NULL, 0, &xinput_bt_task_handle, 0);
+    xTaskCreatePinnedToCore(xinput_bt_sendinput_task, "xinput_bt_task", 2048, NULL, 0, &xinput_bt_task_handle, HOJA_CORE_CPU);
 }
 
 void xinput_stop_task(void)
@@ -250,7 +251,7 @@ void xinput_stop_task(void)
     }
 }
 
-static esp_hid_device_config_t xinput_hidd_config = {
+esp_hid_device_config_t xinput_hidd_config = {
     .vendor_id  = HID_VEND_XINPUT,
     .product_id = HID_PROD_XINPUT,
     .version    = 0x0000,

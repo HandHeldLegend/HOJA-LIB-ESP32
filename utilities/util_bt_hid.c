@@ -610,7 +610,7 @@ hoja_err_t util_bluetooth_register_app(util_bt_app_params_s *util_bt_app_params,
 
         case ESP_BT_MODE_BLE:
             #if CONFIG_BT_BLE_ENABLED
-            err = ble_register_app(&util_bt_app_params, hidd_device_config);
+            err = ble_register_app(util_bt_app_params, hidd_device_config);
             #else
             ESP_LOGE(TAG, "BLE is disabled. Enable in SDK settings. Also enable BT Dual mode.");
             return HOJA_FAIL;

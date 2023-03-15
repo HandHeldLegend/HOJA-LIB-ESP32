@@ -4,7 +4,7 @@ TaskHandle_t switch_bt_task_handle = NULL;
 
 uint8_t ns_currentReportMode = 0xAA;
 uint8_t ns_hostAddress[6] = {0};
-bool ns_connected = false;
+bool    ns_connected = false;
 
 // Private variables
 ns_subcore_t _ns_subcore = NS_TYPE_PROCON;
@@ -101,13 +101,14 @@ void switch_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                 if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTING) {
                     ESP_LOGI(TAG, "connecting...");
                 } else if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTED) {
-                    //ns_connected = true;
+
                     ESP_LOGI(TAG, "connected to %02x:%02x:%02x:%02x:%02x:%02x", param->open.bd_addr[0],
                             param->open.bd_addr[1], param->open.bd_addr[2], param->open.bd_addr[3], param->open.bd_addr[4],
                             param->open.bd_addr[5]);
                     ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
                     esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
 
+                    hoja_event_cb(HOJA_EVT_BT, HEVT_BT_CONNECTED, 0x00);
                     ns_controller_input_task_set(NS_REPORT_MODE_SIMPLE);
 
                 } else {
@@ -264,6 +265,12 @@ hoja_err_t core_ns_start(void)
         {
             vTaskDelay(1500/portTICK_PERIOD_MS);
             util_bluetooth_connect(loaded_settings.ns_host_bt_address);
+            vTaskDelay(3000/portTICK_PERIOD_MS);
+            if (!ns_connected)
+            {
+                ESP_LOGI(TAG, "No Switch connection, enter pairing mode...");
+                return ns_startpairing();
+            }
         }
         
     }
@@ -281,7 +288,7 @@ hoja_err_t core_ns_start(void)
 void core_ns_stop(void)
 {
     const char* TAG = "core_ns_stop";
-
+    ns_connected = false;
     ns_controller_input_task_set(NS_REPORT_MODE_IDLE);
     util_bluetooth_deinit();
 }

@@ -105,6 +105,8 @@ void dinput_ble_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             ESP_LOGE(TAG, "BLE GAP AUTH ERROR: 0x%x", param->ble_security.auth_cmpl.fail_reason);
         } else {
             ESP_LOGI(TAG, "BLE GAP AUTH SUCCESS");
+
+            hoja_event_cb(HOJA_EVT_BT, HEVT_BT_CONNECTED, 0x00);
             dinput_start_task();
         }
         break;

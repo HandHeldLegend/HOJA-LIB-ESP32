@@ -102,6 +102,7 @@ void ns_controller_setinputreportmode(uint8_t report_mode)
         // Standard
         case 0x30:
             ESP_LOGI(TAG, "Starting standard report mode.");
+            ns_connected = true;
             ns_controller_input_task_set(NS_REPORT_MODE_FULL);
             break;
 
@@ -205,7 +206,7 @@ void ns_controller_input_task_set(ns_report_mode_t report_mode_type)
             _ns_reporting_mode = NS_REPORT_MODE_SIMPLE;
             xTaskCreatePinnedToCore(ns_report_task_sendshort, 
                             "Standard Send Task", 2048,
-                            NULL, 0, &ns_bt_task_handle, 0);
+                            NULL, 0, &ns_bt_task_handle, HOJA_CORE_CPU);
 
             break;
     }
