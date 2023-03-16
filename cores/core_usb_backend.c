@@ -86,10 +86,12 @@ void usb_handle_cmd(uint8_t *data)
         if ((_ui2c_usb_status == USB_STATUS_BUSOK) && (_ui2c_gamepad_status == GAMEPAD_STATUS_INITIALIZED))
         {
             ESP_LOGI(TAG, "USB Plugged and running OK.");
+            hoja_event_cb(HOJA_EVT_USB, HEVT_USB_CONNECTED, 0x00);
         }
         else
         {
             ESP_LOGI(TAG, "USB detached.");
+            hoja_event_cb(HOJA_EVT_USB, HEVT_USB_DISCONNECTED, 0x00);
             //usb_cmd_stop();
         }
     }

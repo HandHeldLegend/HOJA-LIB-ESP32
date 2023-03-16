@@ -189,6 +189,8 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
             // This sub-command shuts down the controller. Send our
             // callback accordingly!
             hoja_event_cb(HOJA_EVT_SYSTEM, HEVT_API_SHUTDOWN, 0x00);
+            // Stop input loop
+            core_ns_stop();
             break;
         
         default:
