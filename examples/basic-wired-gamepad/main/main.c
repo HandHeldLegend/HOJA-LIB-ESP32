@@ -37,9 +37,7 @@
 // this function will be repeatedly called, thus scanning the buttons.
 // This allows flexibility to scan buttons as you see fit, and you don't
 // really have to worry about anything else :)
-
-// The callback function takes one parameter, which is a pointer to the HOJA button data.
-void local_button_cb(hoja_button_data_s *button_data)
+void local_button_cb()
 {
     // First we scan the GPIO. We can do this with register reads
     // though this isn't quite the place to learn how to use this
@@ -63,27 +61,27 @@ void local_button_cb(hoja_button_data_s *button_data)
     // There are some utilities provided by this API that can be useful. In this demo
     // we use the util_getbit demo function which simply returns the bit value from
     // a 32 bit unsigned int. The result is cleaner code that is easier to read :)
-    button_data->dpad_down      |= !util_getbit(register_read_low, GPIO_BTN_DPAD_D);
-    button_data->dpad_left      |= !util_getbit(register_read_low, GPIO_BTN_DPAD_L);
-    button_data->dpad_right     |= !util_getbit(register_read_low, GPIO_BTN_DPAD_R);
-    button_data->dpad_up        |= !util_getbit(register_read_low, GPIO_BTN_DPAD_U);
+    hoja_button_data.dpad_down      |= !util_getbit(register_read_low, GPIO_BTN_DPAD_D);
+    hoja_button_data.dpad_left      |= !util_getbit(register_read_low, GPIO_BTN_DPAD_L);
+    hoja_button_data.dpad_right     |= !util_getbit(register_read_low, GPIO_BTN_DPAD_R);
+    hoja_button_data.dpad_up        |= !util_getbit(register_read_low, GPIO_BTN_DPAD_U);
 
     // ABXY buttons are not labelled as such in the HOJA backend.
     // This is because this core supports many controller types ranging from N64 to XInput.
     // The position of the buttons is more important than the lettering here. 
-    button_data->button_right   |= !util_getbit(register_read_low, GPIO_BTN_A);
-    button_data->button_down    |= !util_getbit(register_read_low, GPIO_BTN_B);
-    button_data->button_up      |= !util_getbit(register_read_low, GPIO_BTN_X);
-    button_data->button_left    |= !util_getbit(register_read_low, GPIO_BTN_Y);
+    hoja_button_data.button_right   |= !util_getbit(register_read_low, GPIO_BTN_A);
+    hoja_button_data.button_down    |= !util_getbit(register_read_low, GPIO_BTN_B);
+    hoja_button_data.button_up      |= !util_getbit(register_read_low, GPIO_BTN_X);
+    hoja_button_data.button_left    |= !util_getbit(register_read_low, GPIO_BTN_Y);
 
     // Intellisense in VS Code with the ESP-IDF extension is very useful if you are
     // unsure of some types and want to quickly get more information on a function
     // or unknown type. Simply right click and select "Go to definition"!
-    button_data->trigger_l      |= !util_getbit(register_read_low, GPIO_BTN_L);
-    button_data->trigger_r      |= !util_getbit(register_read_low, GPIO_BTN_R);
+    hoja_button_data.trigger_l      |= !util_getbit(register_read_low, GPIO_BTN_L);
+    hoja_button_data.trigger_r      |= !util_getbit(register_read_low, GPIO_BTN_R);
 
-    button_data->button_select  |= !util_getbit(register_read_low, GPIO_BTN_SELECT);
-    button_data->button_start   |= !util_getbit(register_read_low, GPIO_BTN_START);
+    hoja_button_data.button_select  |= !util_getbit(register_read_low, GPIO_BTN_SELECT);
+    hoja_button_data.button_start   |= !util_getbit(register_read_low, GPIO_BTN_START);
 
     // There is a special button which is button_sleep.
     // This is can be set by any button of your choosing as shown.
@@ -93,16 +91,16 @@ void local_button_cb(hoja_button_data_s *button_data)
 
     // The sleep button callback event will execute when you press and hold the select button 
     // for about 3 seconds. Useful for putting the controller to sleep on a battery etc. 
-    button_data->button_sleep   |= !util_getbit(register_read_low, GPIO_BTN_SELECT);
+    hoja_button_data.button_sleep   |= !util_getbit(register_read_low, GPIO_BTN_SELECT);
 }
 
 // This is what the callback function looks like to read the analog stick data.
 // This is read once per poll across each controller core. The analog values MUST be
 // 12 bit values. If you are getting 8 bit readings, simply bitshift them to the proper resolution.
-void local_analog_cb(hoja_analog_data_s *analog_data)
+void local_analog_cb()
 {
     // In this example, this function isn't used.
-    // analog_data->ls_x = 2048; Center value example for an axis.
+    // hoja_analog_data.ls_x = 2048; Center value example for an axis.
 }
 
 // The event system callback function is needed, even if you do not use it.
