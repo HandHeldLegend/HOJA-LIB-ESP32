@@ -136,8 +136,9 @@ void util_battery_monitor_task(void * params)
                     break;
                 }
             }
+
             // Check if charging status changed if we're plugged in.
-            else if ( (current_battery_status != s.charge_status) && (current_battery_plugged == BATCABLE_PLUGGED) )
+            if (current_battery_status != s.charge_status)
             {
                 current_battery_status = s.charge_status;
                 switch(current_battery_status)
@@ -156,8 +157,6 @@ void util_battery_monitor_task(void * params)
                 }
             }
 
-            // To-Do, perform a measurement of battery voltage and call back if threshold change is met.
-
             // Refresh every 1 second
             vTaskDelay(1000/portTICK_PERIOD_MS);
         }
@@ -166,6 +165,26 @@ void util_battery_monitor_task(void * params)
 
 
 // Public functions
+
+util_battery_status_t util_get_battery_charging_status(void)
+{
+    return current_battery_status;
+}
+
+/**
+ * @brief Returns a bool indicating whether external power is connected.
+ * 
+*/
+bool util_battery_external_power(void)
+{
+    if (current_battery_plugged == BATCABLE_PLUGGED)
+    {
+        return true;
+    }
+    return false;
+}
+
+
 
 /**
  * @brief Set the type of battery so the API knows how to interface with

@@ -5,11 +5,37 @@
 hoja_button_data_s hoja_button_data = {};
 hoja_button_data_s hoja_processed_buttons = {};
 hoja_analog_data_s hoja_analog_data = {};
+uint8_t _hoja_battery_level = 128;
+bool _hoja_external_power = false;
 
 button_remap_s hoja_remaps = {};
 
 bool _hoja_remap_enable = false;
 uint16_t sleep_timer = 0;
+
+// Used to update the battery level. 
+// This requires user responsibility to measure and
+// report battery level.
+void hoja_set_battery_lvl(uint8_t level)
+{
+    
+    _hoja_battery_level = level;
+}
+
+void hoja_set_external_power(bool plugged)
+{
+    _hoja_external_power = plugged;
+}
+
+bool hoja_get_external_power()
+{
+    return _hoja_external_power;
+}
+
+uint8_t hoja_get_battery_lvl()
+{
+    return _hoja_battery_level;
+}
 
 // Resets all button data set
 void hoja_button_reset()

@@ -45,6 +45,10 @@ typedef struct
 
 // PUBLIC FUNCTIONS
 // -----------------
+bool util_battery_external_power(void);
+
+util_battery_status_t util_get_battery_charging_status(void);
+
 hoja_err_t util_battery_set_type(util_battery_type_t type);
 
 hoja_err_t util_battery_boot_status(void);
