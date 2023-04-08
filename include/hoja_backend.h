@@ -20,4 +20,10 @@ void hoja_button_remap_enable(bool enable);
 // Task to scan buttons periodically.
 void hoja_button_task(void * parameters);
 
+void hoja_set_battery_level(uint8_t level);
+
+void hoja_set_external_power(bool plugged);
+
+bool hoja_get_external_power();
+
 #endif

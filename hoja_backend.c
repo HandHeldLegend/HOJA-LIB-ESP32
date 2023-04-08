@@ -6,9 +6,12 @@ hoja_button_data_s hoja_button_data = {};
 hoja_button_data_s hoja_processed_buttons = {};
 hoja_analog_data_s hoja_analog_data = {};
 
+bool _hoja_external_power_plugged = false;
+
 button_remap_s hoja_remaps = {};
 
 bool _hoja_remap_enable = false;
+uint8_t _hoja_battery_level = 255;
 uint16_t sleep_timer = 0;
 
 // Resets all button data set
@@ -97,4 +100,28 @@ void hoja_button_task(void * parameters)
         }
         vTaskDelay(0.5/portTICK_PERIOD_MS);
     }
+}
+
+void hoja_set_battery_level(uint8_t level)
+{
+    _hoja_battery_level = level;
+}
+
+uint8_t hoja_get_battery_level()
+{
+    return _hoja_battery_level;
+}
+
+// Migrating backend functions to prefix hbe_xyz()
+
+// Sets whether external power is connected.
+void hoja_set_external_power(bool plugged)
+{
+    _hoja_external_power_plugged = plugged;
+}
+
+// Gets whether external power is connected.
+bool hoja_get_external_power(void)
+{
+    return _hoja_external_power_plugged;
 }
