@@ -57,6 +57,10 @@ hoja_err_t util_battery_start_monitor(void);
 
 void util_battery_stop_monitor(void);
 
+uint8_t util_battery_is_charging(void);
+
+bool util_battery_is_connected(void);
+
 hoja_err_t util_battery_set_charge_rate(uint16_t rate_ma);
 
 void util_battery_enable_ship_mode(void);

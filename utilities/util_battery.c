@@ -1,9 +1,9 @@
 #include "util_battery.h"
 
 // Private variables
-util_battery_type_t current_battery_type = BATTYPE_UNDEFINED;
-util_battery_status_t current_battery_status = BATSTATUS_UNDEFINED;
-util_battery_plugged_t current_battery_plugged = BATCABLE_UNDEFINED;
+util_battery_type_t _current_battery_type = BATTYPE_UNDEFINED;
+util_battery_status_t _current_battery_status = BATSTATUS_UNDEFINED;
+util_battery_plugged_t _current_battery_plugged = BATCABLE_UNDEFINED;
 
 TaskHandle_t util_battery_monitor_taskhandle = NULL;
 
@@ -13,7 +13,7 @@ hoja_err_t util_battery_get_status_byte(uint8_t *status_byte)
     const char* TAG = "util_battery_get_status_byte";
 
     // Check our current battery type
-    if (current_battery_type == BATTYPE_BQ25180)
+    if (_current_battery_type == BATTYPE_BQ25180)
     {
         if (util_i2c_status != UTIL_I2C_STATUS_AVAILABLE)
         {
@@ -63,7 +63,7 @@ hoja_err_t util_battery_write(uint8_t offset, uint8_t byte)
     uint8_t ret = 0x00;
 
     // Write to battery PMIC for BQ25180
-    if (current_battery_type == BATTYPE_BQ25180)
+    if (_current_battery_type == BATTYPE_BQ25180)
     {
         if (util_i2c_status != UTIL_I2C_STATUS_AVAILABLE)
         {
@@ -122,16 +122,18 @@ void util_battery_monitor_task(void * params)
             s.status = status_byte;
 
             // Prioritize charger plug/unplug status.
-            if (current_battery_plugged != s.plug_status)
+            if (_current_battery_plugged != s.plug_status)
             {
-                current_battery_plugged = s.plug_status;
-                switch(current_battery_plugged)
+                _current_battery_plugged = s.plug_status;
+                switch(_current_battery_plugged)
                 {
                     default:
                     case BATCABLE_UNPLUGGED:
+                    hoja_set_external_power(false);
                     hoja_event_cb(HOJA_EVT_CHARGER, HEVT_CHARGER_UNPLUGGED, 0x00);
                     break;
                     case BATCABLE_PLUGGED:
+                    hoja_set_external_power(true);
                     hoja_event_cb(HOJA_EVT_CHARGER, HEVT_CHARGER_PLUGGED, 0x00);
                     break;
                 }
@@ -140,8 +142,8 @@ void util_battery_monitor_task(void * params)
             // Check if charging status changed if we're plugged in.
             if (current_battery_status != s.charge_status)
             {
-                current_battery_status = s.charge_status;
-                switch(current_battery_status)
+                _current_battery_status = s.charge_status;
+                switch(_current_battery_status)
                 {
                     default:
                     case BATSTATUS_NOTCHARGING:
@@ -205,7 +207,7 @@ hoja_err_t util_battery_set_type(util_battery_type_t type)
             return HOJA_FAIL;
             break;
         case BATTYPE_BQ25180:
-            current_battery_type = type;
+            _current_battery_type = type;
             break;
     }
     return HOJA_OK;
@@ -220,13 +222,13 @@ hoja_err_t util_battery_boot_status(void)
     const char* TAG = "util_battery_boot_status";
     ESP_LOGI(TAG, "Getting boot status.");
 
-    if (current_battery_type == BATTYPE_UNDEFINED)
+    if (_current_battery_type == BATTYPE_UNDEFINED)
     {
         ESP_LOGI(TAG, "Must set battery type before calling this.");
         return HOJA_FAIL;
     }
 
-    if ((current_battery_status != BATSTATUS_UNDEFINED) || (current_battery_plugged != BATCABLE_UNDEFINED))
+    if ((_current_battery_status != BATSTATUS_UNDEFINED) || (_current_battery_plugged != BATCABLE_UNDEFINED))
     {
         ESP_LOGI(TAG, "Boot event can only be called once per power cycle.");
         return HOJA_FAIL;
@@ -237,8 +239,8 @@ hoja_err_t util_battery_boot_status(void)
     hoja_err_t err = util_battery_get_status_byte(&status);
     batstat.status = status;
 
-    current_battery_status  = batstat.charge_status;
-    current_battery_plugged = batstat.plug_status;
+    _current_battery_status  = batstat.charge_status;
+    _current_battery_plugged = batstat.plug_status;
 
     if (err == HOJA_I2C_FAIL)
     {
@@ -246,13 +248,15 @@ hoja_err_t util_battery_boot_status(void)
         return HOJA_OK;
     }
 
-    switch(current_battery_plugged)
+    switch(_current_battery_plugged)
     {
         default:
         case BATCABLE_PLUGGED:
+            hoja_set_external_power(true);
             hoja_event_cb(HOJA_EVT_BOOT, HEVT_BOOT_PLUGGED, 0x00);
             break;
         case BATCABLE_UNPLUGGED:
+            hoja_set_external_power(false);
             if (hoja_get_force_wired())
             {
                 hoja_event_cb(HOJA_EVT_BOOT, HEVT_BOOT_PLUGGED, 0x00);
@@ -280,7 +284,7 @@ hoja_err_t util_battery_start_monitor(void)
         util_battery_monitor_taskhandle = NULL;
     }
 
-    if (current_battery_type == BATTYPE_UNDEFINED)
+    if (_current_battery_type == BATTYPE_UNDEFINED)
     {
         ESP_LOGE(TAG, "Must set battery type (util_battery_set_type) before starting monitor!");
         return HOJA_FAIL;
@@ -308,6 +312,51 @@ void util_battery_stop_monitor(void)
 }
 
 /**
+ * @brief Returns whether or not the battery is charging currently.
+ * Value of 1 means it is charging.
+ * Value of 2 means it is done charging.
+*/
+uint8_t util_battery_is_charging(void)
+{
+    switch(_current_battery_status)
+    {
+        default:
+        case BATSTATUS_UNDEFINED:
+        case BATSTATUS_NOTCHARGING:
+            return 0;
+            break;
+
+        case BATSTATUS_TRICKLEFAST:
+        case BATSTATUS_CONSTANT:
+            return 1;
+            break;
+
+        case BATSTATUS_COMPLETED:
+            return 2;
+            break;
+    }
+}
+
+/**
+ * @brief Returns whether or not the PMIC is connected currently.
+*/
+bool util_battery_is_connected(void)
+{
+    switch (_current_battery_plugged)
+    {
+        default:
+        case BATCABLE_UNDEFINED:
+        case BATCABLE_UNPLUGGED:
+            return false;
+            break;
+
+        case BATCABLE_PLUGGED:
+            return true;
+            break;
+    }
+}
+
+/**
  * @brief Set the PMIC charge rate in mA
  * 
  * @param rate_ma Rate of charging in mA
@@ -316,7 +365,7 @@ hoja_err_t util_battery_set_charge_rate(uint16_t rate_ma)
 {
     const char* TAG = "util_battery_set_charge_rate";
 
-    if (current_battery_type == BATTYPE_BQ25180)
+    if (_current_battery_type == BATTYPE_BQ25180)
     {
         // Default is 0x5
         uint8_t code = 0x5;
@@ -360,7 +409,7 @@ void util_battery_enable_ship_mode(void)
 {
     const char* TAG = "util_battery_enable_ship_mode";
 
-    if (current_battery_type == BATTYPE_BQ25180)
+    if (_current_battery_type == BATTYPE_BQ25180)
     {
         util_battery_write(0x9, 0x41);
     }
