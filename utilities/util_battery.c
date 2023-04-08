@@ -140,7 +140,7 @@ void util_battery_monitor_task(void * params)
             }
 
             // Check if charging status changed if we're plugged in.
-            if (current_battery_status != s.charge_status)
+            if (_current_battery_status != s.charge_status)
             {
                 _current_battery_status = s.charge_status;
                 switch(_current_battery_status)
@@ -167,19 +167,13 @@ void util_battery_monitor_task(void * params)
 
 
 // Public functions
-
-util_battery_status_t util_get_battery_charging_status(void)
-{
-    return current_battery_status;
-}
-
 /**
  * @brief Returns a bool indicating whether external power is connected.
  * 
 */
 bool util_battery_external_power(void)
 {
-    if (current_battery_plugged == BATCABLE_PLUGGED)
+    if (_current_battery_plugged == BATCABLE_PLUGGED)
     {
         return true;
     }
