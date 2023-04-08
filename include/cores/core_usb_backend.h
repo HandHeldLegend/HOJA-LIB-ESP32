@@ -24,6 +24,8 @@ typedef enum
 {
     USB_STATUS_IDLE,
     USB_STATUS_INITIALIZED,
+    USB_STATUS_PLUGGED,
+    USB_STATUS_UNPLUGGED,
 } usb_status_t;
 
 typedef enum
@@ -91,6 +93,8 @@ typedef struct
 } __attribute__ ((packed)) usb_input_s;
 
 // Exposed functions
+
+bool usb_is_connected();
 
 hoja_err_t core_usb_set_subcore(usb_subcore_t subcore);
 

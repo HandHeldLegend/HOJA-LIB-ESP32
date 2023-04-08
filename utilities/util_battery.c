@@ -7,6 +7,8 @@ util_battery_plugged_t _current_battery_plugged = BATCABLE_UNDEFINED;
 
 TaskHandle_t util_battery_monitor_taskhandle = NULL;
 
+uint8_t _battery_status_counter = 0x00;
+
 // Private functions
 hoja_err_t util_battery_get_status_byte(uint8_t *status_byte)
 {
@@ -129,11 +131,9 @@ void util_battery_monitor_task(void * params)
                 {
                     default:
                     case BATCABLE_UNPLUGGED:
-                    hoja_set_external_power(false);
                     hoja_event_cb(HOJA_EVT_CHARGER, HEVT_CHARGER_UNPLUGGED, 0x00);
                     break;
                     case BATCABLE_PLUGGED:
-                    hoja_set_external_power(true);
                     hoja_event_cb(HOJA_EVT_CHARGER, HEVT_CHARGER_PLUGGED, 0x00);
                     break;
                 }
@@ -159,6 +159,7 @@ void util_battery_monitor_task(void * params)
                 }
             }
 
+            _battery_status_counter+=1;
             // Refresh every 1 second
             vTaskDelay(1000/portTICK_PERIOD_MS);
         }
@@ -171,8 +172,18 @@ void util_battery_monitor_task(void * params)
  * @brief Returns a bool indicating whether external power is connected.
  * 
 */
-bool util_battery_external_power(void)
+bool util_battery_has_external_power(void)
 {
+    uint8_t tmp = _battery_status_counter;
+    uint8_t timeout = 0;
+
+    // Wait for a fresh update alternate timeout.
+    while ((_battery_status_counter == tmp) || (timeout < 25))
+    {
+        vTaskDelay(100/portTICK_PERIOD_MS);
+        timeout += 1;
+    }
+
     if (_current_battery_plugged == BATCABLE_PLUGGED)
     {
         return true;
@@ -180,7 +191,41 @@ bool util_battery_external_power(void)
     return false;
 }
 
+/**
+ * @brief Returns whether or not the battery is charging currently.
+ * Value of 1 means it is charging.
+ * Value of 2 means it is done charging.
+*/
+uint8_t util_battery_get_charging_status(void)
+{
+    uint8_t tmp = _battery_status_counter;
+    uint8_t timeout = 0;
 
+    // Wait for a fresh update alternate timeout.
+    while ((_battery_status_counter == tmp) || (timeout < 25))
+    {
+        vTaskDelay(100/portTICK_PERIOD_MS);
+        timeout += 1;
+    }
+
+    switch(_current_battery_status)
+    {
+        default:
+        case BATSTATUS_UNDEFINED:
+        case BATSTATUS_NOTCHARGING:
+            return 0;
+            break;
+
+        case BATSTATUS_TRICKLEFAST:
+        case BATSTATUS_CONSTANT:
+            return 1;
+            break;
+
+        case BATSTATUS_COMPLETED:
+            return 2;
+            break;
+    }
+}
 
 /**
  * @brief Set the type of battery so the API knows how to interface with
@@ -246,11 +291,9 @@ hoja_err_t util_battery_boot_status(void)
     {
         default:
         case BATCABLE_PLUGGED:
-            hoja_set_external_power(true);
             hoja_event_cb(HOJA_EVT_BOOT, HEVT_BOOT_PLUGGED, 0x00);
             break;
         case BATCABLE_UNPLUGGED:
-            hoja_set_external_power(false);
             if (hoja_get_force_wired())
             {
                 hoja_event_cb(HOJA_EVT_BOOT, HEVT_BOOT_PLUGGED, 0x00);
@@ -261,6 +304,8 @@ hoja_err_t util_battery_boot_status(void)
             }
             break;
     }
+    
+    _battery_status_counter+=1;
     return HOJA_OK;
 }
 
@@ -302,32 +347,6 @@ void util_battery_stop_monitor(void)
         ESP_LOGI(TAG, "battery monitor STOPPED.");
         vTaskDelete(util_battery_monitor_taskhandle);
         util_battery_monitor_taskhandle = NULL;
-    }
-}
-
-/**
- * @brief Returns whether or not the battery is charging currently.
- * Value of 1 means it is charging.
- * Value of 2 means it is done charging.
-*/
-uint8_t util_battery_is_charging(void)
-{
-    switch(_current_battery_status)
-    {
-        default:
-        case BATSTATUS_UNDEFINED:
-        case BATSTATUS_NOTCHARGING:
-            return 0;
-            break;
-
-        case BATSTATUS_TRICKLEFAST:
-        case BATSTATUS_CONSTANT:
-            return 1;
-            break;
-
-        case BATSTATUS_COMPLETED:
-            return 2;
-            break;
     }
 }
 

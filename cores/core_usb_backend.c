@@ -12,6 +12,8 @@ TaskHandle_t usb_TaskHandle = NULL;
 usb_status_t core_usb_status = USB_STATUS_IDLE;
 usb_subcore_t core_usb_subcore = USB_SUBCORE_IDLE;
 
+uint8_t _usb_status_counter = 0x00;
+
 ui2c_gamepad_status_t   _ui2c_gamepad_status    = GAMEPAD_STATUS_IDLE;
 ui2c_usb_status_t       _ui2c_usb_status        = USB_STATUS_NOBUS;
 
@@ -21,6 +23,28 @@ typedef struct
 {
     uint8_t usb_data[10];
 } usb_core_message_s;
+
+bool usb_is_connected()
+{
+    uint8_t tmp = _usb_status_counter;
+    uint8_t timeout = 0;
+
+    // Wait for a fresh update alternate timeout.
+    while ((_usb_status_counter == tmp) || (timeout < 25))
+    {
+        vTaskDelay(100/portTICK_PERIOD_MS);
+        timeout += 1;
+    }
+
+    if (core_usb_status == USB_STATUS_PLUGGED)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
 void usb_cmd_start()
 {
@@ -86,16 +110,22 @@ void usb_handle_cmd(uint8_t *data)
         if ((_ui2c_usb_status == USB_STATUS_BUSOK) && (_ui2c_gamepad_status == GAMEPAD_STATUS_INITIALIZED))
         {
             ESP_LOGI(TAG, "USB Plugged and running OK.");
+            core_usb_status = USB_STATUS_PLUGGED;
             hoja_event_cb(HOJA_EVT_USB, HEVT_USB_CONNECTED, 0x00);
         }
         else
         {
-            ESP_LOGI(TAG, "USB detached.");
-            hoja_event_cb(HOJA_EVT_USB, HEVT_USB_DISCONNECTED, 0x00);
-            //usb_cmd_stop();
+            if (core_usb_status == USB_STATUS_PLUGGED)
+            {
+                core_usb_status = USB_STATUS_UNPLUGGED;
+                ESP_LOGI(TAG, "USB detached.");
+                hoja_event_cb(HOJA_EVT_USB, HEVT_USB_DISCONNECTED, 0x00);
+            }
         }
     }
 
+    // Increment usb status counter to indicate to any listeners.
+    _usb_status_counter+=1;
 }
 
 // Perform send/receive over i2c
