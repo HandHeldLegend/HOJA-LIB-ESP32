@@ -8,6 +8,12 @@ extern hoja_analog_data_s   hoja_analog_data;
 extern hoja_button_data_s   hoja_processed_buttons;
 extern button_remap_s       hoja_remaps;
 
+void    hoja_set_battery_lvl(uint8_t level);
+uint8_t hoja_get_battery_lvl();
+
+void    hoja_set_external_power(bool plugged);
+bool    hoja_get_external_power();
+
 // Function to reset all buttons to neutral values
 void hoja_button_reset(void);
 
