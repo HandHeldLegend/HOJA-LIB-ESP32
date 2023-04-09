@@ -213,6 +213,9 @@ void xinput_bt_sendinput_task(void * param)
         xi_input.bumper_l           = hoja_processed_buttons.trigger_l;
         xi_input.bumper_r           = hoja_processed_buttons.trigger_r;
 
+        xi_input.button_back        = hoja_processed_buttons.button_select;
+        xi_input.button_menu        = hoja_processed_buttons.button_start;
+
         xi_input.button_a           = hoja_processed_buttons.button_down;
         xi_input.button_b           = hoja_processed_buttons.button_right;
         xi_input.button_x           = hoja_processed_buttons.button_left;
