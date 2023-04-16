@@ -74,8 +74,6 @@
 #include "freertos/portmacro.h"
 #include "freertos/xtensa_rtos.h"
 
-
-
 //#include "sdkconfig.h"
 
 // HOJA API includes
@@ -85,15 +83,13 @@
 #include "hoja_settings.h"
 
 #include "util_i2c.h"
-#include "util_joybus_rmt.h"
 #include "util_wired_detect.h"
 #include "util_battery.h"
-#include "util_rmt.h"
 #include "util_common.h"
 #include "util_gamepad.h"
 #include "util_bt_hid.h"
 
-#include "core_gamecube_backend.h"
+#include "core_joybus_backend.h"
 #include "core_usb_backend.h"
 #include "core_snes_backend.h"
 #include "core_switch_backend.h"

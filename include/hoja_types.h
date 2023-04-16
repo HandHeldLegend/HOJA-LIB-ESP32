@@ -154,6 +154,9 @@ typedef enum
     HEVT_WIRED_NO_DETECT     = 0,
     HEVT_WIRED_SNES_DETECT   = 1,
     HEVT_WIRED_JOYBUS_DETECT = 2,
+    HEVT_WIRED_GAMECUBE_DETECT = 3,
+    HEVT_WIRED_N64_DETECT = 4,
+    HEVT_WIRED_DISCONNECT = 5,
 } hoja_wired_event_t;
 
 typedef enum
@@ -201,8 +204,7 @@ typedef enum
     HOJA_CORE_NULL,
     HOJA_CORE_NS,
     HOJA_CORE_SNES,
-    HOJA_CORE_N64,
-    HOJA_CORE_GC,
+    HOJA_CORE_JOYBUS,
     HOJA_CORE_USB,
     HOJA_CORE_BT_DINPUT,
     HOJA_CORE_BT_XINPUT,

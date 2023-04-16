@@ -130,9 +130,9 @@ hoja_err_t hoja_start_core(void)
             ESP_LOGI(TAG, "Attempting SNES/NES Core start...");
             err = core_snes_start();
             break;
-        case HOJA_CORE_GC:
-            ESP_LOGI(TAG, "Attempting GameCube Core start...");
-            err = core_gamecube_start();
+        case HOJA_CORE_JOYBUS:
+            ESP_LOGI(TAG, "Attempting Joybus Core start...");
+            err = core_joybus_start();
             break;
         case HOJA_CORE_USB:
             ESP_LOGI(TAG, "Attempting USB Core start...");
@@ -183,9 +183,9 @@ void hoja_stop_core(void)
             ESP_LOGI(TAG, "Attempting SNES/NES Core stop...");
             core_snes_stop();
             break;
-        case HOJA_CORE_GC:
-            ESP_LOGI(TAG, "Attempting GameCube Core stop...");
-            core_gamecube_stop();
+        case HOJA_CORE_JOYBUS:
+            ESP_LOGI(TAG, "Attempting Joybus Core stop...");
+            core_joybus_stop();
             break;
 
         case HOJA_CORE_BT_DINPUT:
