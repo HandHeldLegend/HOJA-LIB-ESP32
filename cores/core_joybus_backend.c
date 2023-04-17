@@ -8,7 +8,7 @@ TaskHandle_t        _joybus_task_handle;
 volatile uint8_t    _status_attempts = 0;
 #define STATUS_FLIP 20
 bool _n64_enable = true;
-volatile uint8_t _joybus_watchdog_timer = 0;
+uint8_t _joybus_watchdog_timer = 0;
 
 rmt_item32_t n64_poll_buffer[N64_POLL_RESPONSE_SIZE] = {
         JB_RMT_0X0, JB_RMT_0X0,
@@ -225,7 +225,7 @@ void joybus_gamecube_init(void)
     GAMECUBE_POLL_TXENDINTENA    = 1;
 
     // Set up probe response
-    rmt_item32_t gc_status_rmt[JB_STATUS_LEN] = {
+    static rmt_item32_t gc_status_rmt[JB_STATUS_LEN] = {
         JB_RMT_0X0, JB_RMT_0X9,
         JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X0, JB_RMT_0X3,
@@ -233,7 +233,7 @@ void joybus_gamecube_init(void)
     };
 
     // Set up the canned response to origin
-    rmt_item32_t gc_origin_rmt[GC_ORIGIN_RESPONSE_SIZE] = {
+    static rmt_item32_t gc_origin_rmt[GC_ORIGIN_RESPONSE_SIZE] = {
         JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X8, JB_RMT_0X0,
         JB_RMT_0X8, JB_RMT_0X0, 
@@ -289,15 +289,16 @@ void joybus_n64_init(void)
 
 void flip_mode()
 {
-    _n64_enable = !_n64_enable;
-
-    if (_n64_enable)
+    joybus_all_deinit(false);
+    if (!_n64_enable)
     {
+        _n64_enable = true;
         joybus_general_init();
         joybus_n64_init();
     }
     else
     {
+        _n64_enable = false;
         joybus_general_init();
         joybus_gamecube_init();
     }
@@ -509,20 +510,30 @@ void joybus_general_init(void)
     }
 }
 
-void joybus_all_deinit(void)
+
+static portMUX_TYPE periph_spinlock = portMUX_INITIALIZER_UNLOCKED;
+
+void joybus_all_deinit(bool reset)
 {
-    // Disable RX
-    JB_RX_MEMOWNER  = 1;
-    // Reset write/read pointer for RX
-    JB_RX_WRRST = 1;
-    JB_RX_RDRST = 1;
     JB_RX_EN = 0;
-    // Clear RMT peripheral
-    periph_ll_enable_clk_clear_rst(PERIPH_RMT_MODULE);
+    JB_STATUS_TXSTART = 0;
+    N64_CHANNEL_TXSTART = 0;
+    GAMECUBE_POLL_TXSTART = 0;
+    GAMECUBE_ORIGIN_TXSTART = 0;
+    _joybus_mode = JOYBUS_MODE_IDLE;
+    
     if (_rmt_isr_handle != NULL)
     {
         rmt_isr_deregister(_rmt_isr_handle);
+        _rmt_isr_handle = NULL;
     }
+
+    if (reset)
+    {
+        portENTER_CRITICAL_SAFE(&periph_spinlock);
+        periph_ll_disable_clk_set_rst(PERIPH_RMT_MODULE);
+        portEXIT_CRITICAL_SAFE(&periph_spinlock);
+    }  
 }
 
 void joybus_watchdog(void * param)
@@ -550,16 +561,18 @@ void joybus_watchdog(void * param)
         {
             if (_joybus_watchdog_timer >= 35)
             {
+                
+
                 _joybus_watchdog_timer = 0;
                 flip_mode();
             }
         }
         else
         {
-            if (_joybus_watchdog_timer >= 100)
+            if (_joybus_watchdog_timer >= 35)
             {
-                _joybus_watchdog_timer = 0;
                 hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_DISCONNECT, 0);
+                vTaskDelete(_joybus_task_handle);
             }
         }
         
@@ -579,18 +592,26 @@ hoja_err_t core_joybus_start(void)
     joybus_general_init();
     joybus_n64_init();
 
-    //xTaskCreatePinnedToCore(joybus_watchdog, "Joybus Watchdog", 2048, NULL, 2, &_joybus_task_handle, HOJA_CORE_CPU);
+    xTaskCreatePinnedToCore(joybus_watchdog, "Joybus Watchdog", 2048, NULL, 4, &_joybus_task_handle, HOJA_INPUT_CPU);
 
     return HOJA_OK;
 }
 
 void core_joybus_stop(void)
 {
-    const char* TAG = "core_gamecube_stop";
-    vTaskDelete(_joybus_task_handle);
-    _joybus_task_handle = NULL;
-    periph_ll_enable_clk_clear_rst(PERIPH_RMT_MODULE);
+    const char* TAG = "core_joybus_stop";
+    joybus_all_deinit(true);
 
-    rmt_isr_deregister(_rmt_isr_handle);
+    if(_joybus_task_handle != NULL)
+    {
+        vTaskDelete(_joybus_task_handle);
+        _joybus_task_handle = NULL;
+    }
+
+    if (_rmt_isr_handle != NULL)
+    {
+        rmt_isr_deregister(_rmt_isr_handle);
+        _rmt_isr_handle = NULL;
+    }
 }
 

@@ -131,6 +131,8 @@ typedef enum
     JOYBUS_CMD_N64DETECT,
 } joybus_cmd_t;
 
+void joybus_all_deinit(bool reset);
+
 void joybus_general_init(void);
 
 hoja_err_t core_joybus_start(void);
