@@ -56,7 +56,7 @@ hoja_err_t hoja_init()
     }
     ESP_ERROR_CHECK( ret );
 
-if (hoja_settings_init() != HOJA_OK)
+    if (hoja_settings_init() != HOJA_OK)
     {
         ESP_LOGE(TAG, "Settings failed to load.");
         return HOJA_FAIL;
@@ -121,7 +121,6 @@ hoja_err_t hoja_start_core(void)
 
     switch(hoja_current_core)
     {
-        
         case HOJA_CORE_NS:
             ESP_LOGI(TAG, "Attempting Nintendo Switch Core start...");
             err = core_ns_start();
@@ -130,9 +129,13 @@ hoja_err_t hoja_start_core(void)
             ESP_LOGI(TAG, "Attempting SNES/NES Core start...");
             err = core_snes_start();
             break;
-        case HOJA_CORE_JOYBUS:
-            ESP_LOGI(TAG, "Attempting Joybus Core start...");
-            err = core_joybus_start();
+        case HOJA_CORE_N64:
+            ESP_LOGI(TAG, "Attempting N64 Core start...");
+            err = core_joybus_n64_coldboot();
+            break;
+        case HOJA_CORE_GAMECUBE:
+            ESP_LOGI(TAG, "Attempting GameCube Core start...");
+            err = core_joybus_gamecube_start();
             break;
         case HOJA_CORE_USB:
             ESP_LOGI(TAG, "Attempting USB Core start...");
@@ -183,7 +186,8 @@ void hoja_stop_core(void)
             ESP_LOGI(TAG, "Attempting SNES/NES Core stop...");
             core_snes_stop();
             break;
-        case HOJA_CORE_JOYBUS:
+        case HOJA_CORE_N64:
+        case HOJA_CORE_GAMECUBE:
             ESP_LOGI(TAG, "Attempting Joybus Core stop...");
             core_joybus_stop();
             break;

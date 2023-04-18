@@ -13,6 +13,8 @@ typedef struct {
     } chan[SOC_RMT_CHANNELS_PER_GROUP];
 } legacy_rmt_mem_t;
 
+#define JB_BIT_MASK 0x7FF80000
+
 // RMT REGISTER FOR RX STUFF
 
 // RMTMEM address is declared in <target>.peripherals.ld
@@ -108,7 +110,9 @@ typedef struct
 typedef enum
 {
     JOYBUS_STATUS_IDLE,
-    JOYBUS_STATUS_INITALIZED
+    JOYBUS_STATUS_INITALIZED,
+    JOYBUS_STATUS_RUNNING_N64,
+    JOYBUS_STATUS_RUNNING_GAMECUBE,
 } joybus_status_t;
 
 typedef enum
@@ -118,24 +122,13 @@ typedef enum
     JOYBUS_MODE_N64
 } joybus_mode_t;
 
-typedef enum
-{
-    JOYBUS_CMD_NONE,
-    JOYBUS_CMD_STATUS,
-    JOYBUS_CMD_ORIGIN,
-    JOYBUS_CMD_POLL,
-    JOYBUS_CMD_READ,
-    JOYBUS_CMD_WRITE,
-    JOYBUS_CMD_RESET,
-    JOYBUS_CMD_GCDETECT,
-    JOYBUS_CMD_N64DETECT,
-} joybus_cmd_t;
-
 void joybus_all_deinit(bool reset);
 
 void joybus_general_init(void);
 
-hoja_err_t core_joybus_start(void);
+hoja_err_t core_joybus_n64_coldboot(void);
+
+hoja_err_t core_joybus_gamecube_start(void);
 
 void core_joybus_stop(void);
 

@@ -1,6 +1,6 @@
 #include "core_joybus_backend.h"
 
-joybus_status_t     _joybus_status = JOYBUS_STATUS_IDLE;
+volatile joybus_status_t     _joybus_status = JOYBUS_STATUS_IDLE;
 volatile joybus_mode_t       _joybus_mode = JOYBUS_MODE_IDLE;
 
 rmt_isr_handle_t    _rmt_isr_handle = NULL;
@@ -20,75 +20,314 @@ rmt_item32_t n64_poll_buffer[N64_POLL_RESPONSE_SIZE] = {
 
 // Set up N64
 // Canned response to status
-rmt_item32_t n64_status_buffer[JB_STATUS_LEN] = {
+static const rmt_item32_t n64_status_buffer[JB_STATUS_LEN] = {
     JB_RMT_0X0, JB_RMT_0X2,
     JB_RMT_0X0, JB_RMT_0X0,
     JB_RMT_0X0, JB_RMT_0X0,
     JB_STOP, JB_ZERO
 };
 
-// CRC table provided from https://github.com/darthcloud/BlueRetro/blob/master/main/wired/nsi.c
-// licensed under the Apache License 2.0: https://github.com/darthcloud/BlueRetro/blob/master/LICENSE
-static const uint8_t nsi_crc_table[256] = {
-    0x8F, 0x85, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0xC2, 0x61, 0xF2, 0x79, 0xFE, 0x7F,
-    0xFD, 0xBC, 0x5E, 0x2F, 0xD5, 0xA8, 0x54, 0x2A, 0x15, 0xC8, 0x64, 0x32, 0x19, 0xCE, 0x67, 0xF1,
-    0xBA, 0x5D, 0xEC, 0x76, 0x3B, 0xDF, 0xAD, 0x94, 0x4A, 0x25, 0xD0, 0x68, 0x34, 0x1A, 0x0D, 0xC4,
-    0x62, 0x31, 0xDA, 0x6D, 0xF4, 0x7A, 0x3D, 0xDC, 0x6E, 0x37, 0xD9, 0xAE, 0x57, 0xE9, 0xB6, 0x5B,
-    0xEF, 0xB5, 0x98, 0x4C, 0x26, 0x13, 0xCB, 0xA7, 0x91, 0x8A, 0x45, 0xE0, 0x70, 0x38, 0x1C, 0x0E,
-    0x07, 0xC1, 0xA2, 0x51, 0xEA, 0x75, 0xF8, 0x7C, 0x3E, 0x1F, 0xCD, 0xA4, 0x52, 0x29, 0xD6, 0x6B,
-    0xF7, 0xB9, 0x9E, 0x4F, 0xE5, 0xB0, 0x58, 0x2C, 0x16, 0x0B, 0xC7, 0xA1, 0x92, 0x49, 0xE6, 0x73,
-    0xFB, 0xBF, 0x9D, 0x8C, 0x46, 0x23, 0xD3, 0xAB, 0x97, 0x89, 0x86, 0x43, 0xE3, 0xB3, 0x9B, 0x8F,
-    0x85, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0xC2, 0x61, 0xF2, 0x79, 0xFE, 0x7F, 0xFD,
-    0xBC, 0x5E, 0x2F, 0xD5, 0xA8, 0x54, 0x2A, 0x15, 0xC8, 0x64, 0x32, 0x19, 0xCE, 0x67, 0xF1, 0xBA,
-    0x5D, 0xEC, 0x76, 0x3B, 0xDF, 0xAD, 0x94, 0x4A, 0x25, 0xD0, 0x68, 0x34, 0x1A, 0x0D, 0xC4, 0x62,
-    0x31, 0xDA, 0x6D, 0xF4, 0x7A, 0x3D, 0xDC, 0x6E, 0x37, 0xD9, 0xAE, 0x57, 0xE9, 0xB6, 0x5B, 0xEF,
-    0xB5, 0x98, 0x4C, 0x26, 0x13, 0xCB, 0xA7, 0x91, 0x8A, 0x45, 0xE0, 0x70, 0x38, 0x1C, 0x0E, 0x07,
-    0xC1, 0xA2, 0x51, 0xEA, 0x75, 0xF8, 0x7C, 0x3E, 0x1F, 0xCD, 0xA4, 0x52, 0x29, 0xD6, 0x6B, 0xF7,
-    0xB9, 0x9E, 0x4F, 0xE5, 0xB0, 0x58, 0x2C, 0x16, 0x0B, 0xC7, 0xA1, 0x92, 0x49, 0xE6, 0x73, 0xFB,
-    0xBF, 0x9D, 0x8C, 0x46, 0x23, 0xD3, 0xAB, 0x97, 0x89, 0x86, 0x43, 0xE3, 0xB3, 0x9B, 0x8F, 0x85,
+/**
+ * This CRC table for repeating bytes is take from
+ * the cube64 project
+ *  http://cia.vc/stats/project/navi-misc/cube64
+ */
+uint8_t crc_repeating_table[256] = {
+    0xFF, // 0x00
+    0x14, // 0x01
+    0xAC, // 0x02
+    0x47, // 0x03
+    0x59, // 0x04
+    0xB2, // 0x05
+    0x0A, // 0x06
+    0xE1, // 0x07
+    0x36, // 0x08
+    0xDD, // 0x09
+    0x65, // 0x0A
+    0x8E, // 0x0B
+    0x90, // 0x0C
+    0x7B, // 0x0D
+    0xC3, // 0x0E
+    0x28, // 0x0F
+    0xE8, // 0x10
+    0x03, // 0x11
+    0xBB, // 0x12
+    0x50, // 0x13
+    0x4E, // 0x14
+    0xA5, // 0x15
+    0x1D, // 0x16
+    0xF6, // 0x17
+    0x21, // 0x18
+    0xCA, // 0x19
+    0x72, // 0x1A
+    0x99, // 0x1B
+    0x87, // 0x1C
+    0x6C, // 0x1D
+    0xD4, // 0x1E
+    0x3F, // 0x1F
+    0xD1, // 0x20
+    0x3A, // 0x21
+    0x82, // 0x22
+    0x69, // 0x23
+    0x77, // 0x24
+    0x9C, // 0x25
+    0x24, // 0x26
+    0xCF, // 0x27
+    0x18, // 0x28
+    0xF3, // 0x29
+    0x4B, // 0x2A
+    0xA0, // 0x2B
+    0xBE, // 0x2C
+    0x55, // 0x2D
+    0xED, // 0x2E
+    0x06, // 0x2F
+    0xC6, // 0x30
+    0x2D, // 0x31
+    0x95, // 0x32
+    0x7E, // 0x33
+    0x60, // 0x34
+    0x8B, // 0x35
+    0x33, // 0x36
+    0xD8, // 0x37
+    0x0F, // 0x38
+    0xE4, // 0x39
+    0x5C, // 0x3A
+    0xB7, // 0x3B
+    0xA9, // 0x3C
+    0x42, // 0x3D
+    0xFA, // 0x3E
+    0x11, // 0x3F
+    0xA3, // 0x40
+    0x48, // 0x41
+    0xF0, // 0x42
+    0x1B, // 0x43
+    0x05, // 0x44
+    0xEE, // 0x45
+    0x56, // 0x46
+    0xBD, // 0x47
+    0x6A, // 0x48
+    0x81, // 0x49
+    0x39, // 0x4A
+    0xD2, // 0x4B
+    0xCC, // 0x4C
+    0x27, // 0x4D
+    0x9F, // 0x4E
+    0x74, // 0x4F
+    0xB4, // 0x50
+    0x5F, // 0x51
+    0xE7, // 0x52
+    0x0C, // 0x53
+    0x12, // 0x54
+    0xF9, // 0x55
+    0x41, // 0x56
+    0xAA, // 0x57
+    0x7D, // 0x58
+    0x96, // 0x59
+    0x2E, // 0x5A
+    0xC5, // 0x5B
+    0xDB, // 0x5C
+    0x30, // 0x5D
+    0x88, // 0x5E
+    0x63, // 0x5F
+    0x8D, // 0x60
+    0x66, // 0x61
+    0xDE, // 0x62
+    0x35, // 0x63
+    0x2B, // 0x64
+    0xC0, // 0x65
+    0x78, // 0x66
+    0x93, // 0x67
+    0x44, // 0x68
+    0xAF, // 0x69
+    0x17, // 0x6A
+    0xFC, // 0x6B
+    0xE2, // 0x6C
+    0x09, // 0x6D
+    0xB1, // 0x6E
+    0x5A, // 0x6F
+    0x9A, // 0x70
+    0x71, // 0x71
+    0xC9, // 0x72
+    0x22, // 0x73
+    0x3C, // 0x74
+    0xD7, // 0x75
+    0x6F, // 0x76
+    0x84, // 0x77
+    0x53, // 0x78
+    0xB8, // 0x79
+    0x00, // 0x7A
+    0xEB, // 0x7B
+    0xF5, // 0x7C
+    0x1E, // 0x7D
+    0xA6, // 0x7E
+    0x4D, // 0x7F
+    0x47, // 0x80
+    0xAC, // 0x81
+    0x14, // 0x82
+    0xFF, // 0x83
+    0xE1, // 0x84
+    0x0A, // 0x85
+    0xB2, // 0x86
+    0x59, // 0x87
+    0x8E, // 0x88
+    0x65, // 0x89
+    0xDD, // 0x8A
+    0x36, // 0x8B
+    0x28, // 0x8C
+    0xC3, // 0x8D
+    0x7B, // 0x8E
+    0x90, // 0x8F
+    0x50, // 0x90
+    0xBB, // 0x91
+    0x03, // 0x92
+    0xE8, // 0x93
+    0xF6, // 0x94
+    0x1D, // 0x95
+    0xA5, // 0x96
+    0x4E, // 0x97
+    0x99, // 0x98
+    0x72, // 0x99
+    0xCA, // 0x9A
+    0x21, // 0x9B
+    0x3F, // 0x9C
+    0xD4, // 0x9D
+    0x6C, // 0x9E
+    0x87, // 0x9F
+    0x69, // 0xA0
+    0x82, // 0xA1
+    0x3A, // 0xA2
+    0xD1, // 0xA3
+    0xCF, // 0xA4
+    0x24, // 0xA5
+    0x9C, // 0xA6
+    0x77, // 0xA7
+    0xA0, // 0xA8
+    0x4B, // 0xA9
+    0xF3, // 0xAA
+    0x18, // 0xAB
+    0x06, // 0xAC
+    0xED, // 0xAD
+    0x55, // 0xAE
+    0xBE, // 0xAF
+    0x7E, // 0xB0
+    0x95, // 0xB1
+    0x2D, // 0xB2
+    0xC6, // 0xB3
+    0xD8, // 0xB4
+    0x33, // 0xB5
+    0x8B, // 0xB6
+    0x60, // 0xB7
+    0xB7, // 0xB8
+    0x5C, // 0xB9
+    0xE4, // 0xBA
+    0x0F, // 0xBB
+    0x11, // 0xBC
+    0xFA, // 0xBD
+    0x42, // 0xBE
+    0xA9, // 0xBF
+    0x1B, // 0xC0
+    0xF0, // 0xC1
+    0x48, // 0xC2
+    0xA3, // 0xC3
+    0xBD, // 0xC4
+    0x56, // 0xC5
+    0xEE, // 0xC6
+    0x05, // 0xC7
+    0xD2, // 0xC8
+    0x39, // 0xC9
+    0x81, // 0xCA
+    0x6A, // 0xCB
+    0x74, // 0xCC
+    0x9F, // 0xCD
+    0x27, // 0xCE
+    0xCC, // 0xCF
+    0x0C, // 0xD0
+    0xE7, // 0xD1
+    0x5F, // 0xD2
+    0xB4, // 0xD3
+    0xAA, // 0xD4
+    0x41, // 0xD5
+    0xF9, // 0xD6
+    0x12, // 0xD7
+    0xC5, // 0xD8
+    0x2E, // 0xD9
+    0x96, // 0xDA
+    0x7D, // 0xDB
+    0x63, // 0xDC
+    0x88, // 0xDD
+    0x30, // 0xDE
+    0xDB, // 0xDF
+    0x35, // 0xE0
+    0xDE, // 0xE1
+    0x66, // 0xE2
+    0x8D, // 0xE3
+    0x93, // 0xE4
+    0x78, // 0xE5
+    0xC0, // 0xE6
+    0x2B, // 0xE7
+    0xFC, // 0xE8
+    0x17, // 0xE9
+    0xAF, // 0xEA
+    0x44, // 0xEB
+    0x5A, // 0xEC
+    0xB1, // 0xED
+    0x09, // 0xEE
+    0xE2, // 0xEF
+    0x22, // 0xF0
+    0xC9, // 0xF1
+    0x71, // 0xF2
+    0x9A, // 0xF3
+    0x84, // 0xF4
+    0x6F, // 0xF5
+    0xD7, // 0xF6
+    0x3C, // 0xF7
+    0xEB, // 0xF8
+    0x00, // 0xF9
+    0xB8, // 0xFA
+    0x53, // 0xFB
+    0x4D, // 0xFC
+    0xA6, // 0xFD
+    0x1E, // 0xFE
+    0xF5  // 0xFF
 };
 
 // Output this directly to the RMT address of our choosing
-void n64_buffer_crc(uint32_t *input, uint32_t *output)
+void n64_buffer_crc()
 {
-    uint8_t bit_len = 32*8;
-    uint8_t crc = 0xFF;
-    // Make a pointer to our CRC table
-    const uint8_t *crc_table = nsi_crc_table;
-    // Set pointer at address
-    volatile uint32_t *item_ptr = input;
+    uint8_t crc = 0;
+    uint8_t byte_data = 0;
 
-    // Loop, incrementing the bit we are processing
-    for (uint8_t i = 0; i < bit_len; ++i) {
+    /*
+    // Process the first data byte
+    byte_data = ((N64_CHANNEL_MEM[24].val & JB_BIT_MASK) ? 0x80 : 0x00) |
+                ((N64_CHANNEL_MEM[25].val & JB_BIT_MASK) ? 0x40 : 0x00) |
+                ((N64_CHANNEL_MEM[26].val & JB_BIT_MASK) ? 0x20 : 0x00) |
+                ((N64_CHANNEL_MEM[27].val & JB_BIT_MASK) ? 0x10 : 0x00) |
+                ((N64_CHANNEL_MEM[28].val & JB_BIT_MASK) ? 0x8 : 0x00) |
+                ((N64_CHANNEL_MEM[29].val & JB_BIT_MASK) ? 0x4 : 0x00) |
+                ((N64_CHANNEL_MEM[30].val & JB_BIT_MASK) ? 0x2 : 0x00) |
+                ((N64_CHANNEL_MEM[31].val & JB_BIT_MASK) ? 0x1 : 0x00);
+    */
 
-        for (uint8_t l = 0; l<8; l++)
-        {
-            rmt_item32_t item = {
-                .val = *item_ptr,
-            };
-            if (item.duration0 < item.duration1) {
-                // If the bit is ONE
-                // we XOR EQUALS the crc with the iteration
-                // in the CRC table
-                crc ^= *crc_table;
-            }
-            
-            // Increment the pointers
-            ++crc_table;
-            ++item_ptr;
+    for (size_t i = 0; i < 8; i++) {
+        byte_data <<= 1;
+        if (N64_CHANNEL_MEM[24 + i].val & JB_BIT_MASK) {
+            byte_data |= 1;
         }
     }
 
-    // Set our item pointer address to the output
-    item_ptr = output + 7;
-    // At this point our CRC is calculated
-    // Write it to the correct memory address
-    for(int i = 7; i >= 0; i--)
-    {
-        *item_ptr = (crc & 1) ? JB_HIGH.val : JB_LOW.val;
-        crc >>= 1;
-        item_ptr--;
-    }
+    crc = crc_repeating_table[byte_data] ^ 0xFF;
+
+    N64_CHANNEL_MEM[0].val = (crc & 0x80) ? JB_HIGH.val : JB_LOW.val;
+    N64_CHANNEL_MEM[1].val = (crc & 0x40) ? JB_HIGH.val : JB_LOW.val;
+    N64_CHANNEL_MEM[2].val = (crc & 0x20) ? JB_HIGH.val : JB_LOW.val;
+    N64_CHANNEL_MEM[3].val = (crc & 0x10) ? JB_HIGH.val : JB_LOW.val;
+    N64_CHANNEL_MEM[4].val = (crc & 0x8) ? JB_HIGH.val : JB_LOW.val;
+    N64_CHANNEL_MEM[5].val = (crc & 0x4) ? JB_HIGH.val : JB_LOW.val;
+    N64_CHANNEL_MEM[6].val = (crc & 0x2) ? JB_HIGH.val : JB_LOW.val;
+    N64_CHANNEL_MEM[7].val = (crc & 0x1) ? JB_HIGH.val : JB_LOW.val;
+    N64_CHANNEL_MEM[8].val = JB_STOP.val;
+    N64_CHANNEL_MEM[9].val = 0x00;
 }
 
 // Loads N64 PAK response into channel 0 buffer
@@ -262,6 +501,8 @@ void joybus_gamecube_init(void)
 
 void joybus_n64_init(void)
 {
+    JB_RX_IDLETHRESH    = 16; // 3.5us idle
+
     // N64 has to share a lot of
     // memory, so we use the same channel for RX/TX
     N64_CHANNEL_DIVCT          = 20;
@@ -277,6 +518,7 @@ void joybus_n64_init(void)
     N64_CHANNEL_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
     N64_CHANNEL_TXENDINTENA    = 1;
 
+    gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_CHANNEL, 0, 0);
     // Start RX on ch0
     gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
     JB_RX_MEMOWNER  = RMT_MEM_OWNER_RX;
@@ -309,16 +551,16 @@ static void joybus_isr(void* arg)
 {
     // At the end of a received transaction
     // on channel 0
-    if (RMT.int_st.ch0_rx_end)
+    if (RMT.int_st.ch0_rx_end && _n64_enable)
     {
-        // Set up command byte placeholder
-        joybus_rx_buffer_s cmd_buffer = {0};
-
-        for (uint8_t i = 0; i < 8; i++)
-        {   
-            // If duration 0 is less than duration 1, it's a HIGH bit. Otherwise low bit.
-            // Shift the bit so it's always in the leftmost bit position.
-            cmd_buffer.val |= ( (JB_RX_MEM[i].duration0 < JB_RX_MEM[i].duration1) ? 1 : 0) << (7-i);
+        uint8_t cmd_buffer = 0;
+        
+        // Process the first data byte
+        for (size_t i = 0; i < 8; i++) {
+            cmd_buffer <<= 1;
+            if (JB_RX_MEM[0 + i].val & JB_BIT_MASK) {
+                cmd_buffer |= 1;
+            }
         }
 
         // Disable RX
@@ -329,29 +571,67 @@ static void joybus_isr(void* arg)
         JB_RX_CLEARISR = 1;
         JB_RX_RDRST = 0;
 
+        if (cmd_buffer == 0x03)
+        {
+            N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
+            n64_buffer_crc();
+            N64_CHANNEL_TXSTART = 1;
+        }
+        else if (cmd_buffer == 0x01)
+        {
+            _joybus_watchdog_timer = 0;
+            N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
+            memcpy(N64_CHANNEL_MEM, n64_poll_buffer, sizeof(rmt_item32_t) * N64_POLL_RESPONSE_SIZE);
+            N64_CHANNEL_TXSTART = 1;
+            _joybus_status = JOYBUS_STATUS_RUNNING_N64;
+            n64_translate_input();
+        }
+        else if (cmd_buffer == 0x02)
+        {
+            N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
+            N64_CHANNEL_TXSTART = 1;
+        }
+        else
+        {
+            N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
+            // Copy into RMT memory
+            memcpy(&N64_CHANNEL_MEM[0].val, n64_status_buffer, sizeof(rmt_item32_t) * JB_STATUS_LEN);
+            N64_CHANNEL_TXSTART = 1;
+        }
+    }
+    
+    else if (RMT.int_st.ch0_rx_end)
+    {
+
+        // Process the first data byte
+        uint8_t cmd_buffer = ((JB_RX_MEM[0].duration0 < JB_RX_MEM[0].duration1) << 7) |
+            ((JB_RX_MEM[1].duration0 < JB_RX_MEM[1].duration1) << 6) |
+            ((JB_RX_MEM[2].duration0 < JB_RX_MEM[2].duration1) << 5) |
+            ((JB_RX_MEM[3].duration0 < JB_RX_MEM[3].duration1) << 4) |
+            ((JB_RX_MEM[4].duration0 < JB_RX_MEM[4].duration1) << 3) |
+            ((JB_RX_MEM[5].duration0 < JB_RX_MEM[5].duration1) << 2) |
+            ((JB_RX_MEM[6].duration0 < JB_RX_MEM[6].duration1) << 1) |
+            ((JB_RX_MEM[7].duration0 < JB_RX_MEM[7].duration1) << 0);
+
+        // Disable RX
+        JB_RX_EN = 0;
+        // Reset write pointer for RX
+        JB_RX_RDRST = 1;
+        // Clear RX bit for ch0
+        JB_RX_CLEARISR = 1;
+        JB_RX_RDRST = 0;
+
         // Check the command byte and respond accordingly
-        switch(cmd_buffer.byte0)
+        switch(cmd_buffer)
         {
             // Probe command (N64 and GameCube use the same thing...)
             default:
             case 0xFF:
             case 0x00:
-                if (_n64_enable)
-                {
-                    N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
-                    // Copy into RMT memory
-                    memcpy(N64_CHANNEL_MEM, n64_status_buffer, sizeof(rmt_item32_t) * JB_STATUS_LEN);
-                    gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_CHANNEL, 0, 0);
-                    N64_CHANNEL_TXSTART = 1;
-                }
-                else 
-                {
-                    gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + JB_STATUS_CHANNEL, 0, 0);
-                    JB_STATUS_MEMOWNER  = 0;
-                    JB_STATUS_TXSTART   = 1;
-                }
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + JB_STATUS_CHANNEL, 0, 0);
+                JB_STATUS_MEMOWNER  = 0;
+                JB_STATUS_TXSTART   = 1;
                 break;
-
             case 0x41:
             case 0x42:
                 gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + GAMECUBE_CHANNEL_ORIGIN, 0, 0);
@@ -360,7 +640,6 @@ static void joybus_isr(void* arg)
                 GAMECUBE_ORIGIN_TXSTART     = 1;
                 gamecube_translate_input();
                 break;
-
             case 0x40:
                 _joybus_watchdog_timer = 0;
                 gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + GAMECUBE_CHANNEL_POLL, 0, 0);
@@ -368,30 +647,8 @@ static void joybus_isr(void* arg)
                 GAMECUBE_POLL_TXSTART   = 1;
                 gamecube_translate_input();
                 break;
-
-            case 0x01:
-                _joybus_watchdog_timer = 0;
-                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_CHANNEL, 0, 0);
-                N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
-                memcpy(N64_CHANNEL_MEM, n64_poll_buffer, sizeof(rmt_item32_t) * N64_POLL_RESPONSE_SIZE);
-                N64_CHANNEL_TXSTART = 1;
-                _joybus_mode = JOYBUS_MODE_N64;
-                n64_translate_input();
-                break;
-            case 0x02:
-                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_CHANNEL, 0, 0);
-                N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
-                N64_CHANNEL_TXSTART = 1;
-                break;
-            case 0x03:
-                N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
-                n64_buffer_crc(&N64_CHANNEL_MEM[2].val, &N64_CHANNEL_MEM[0].val);
-                N64_CHANNEL_MEM[8].val = JB_STOP.val;
-                N64_CHANNEL_MEM[9].val = JB_ZERO.val;
-                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_CHANNEL, 0, 0);
-                N64_CHANNEL_TXSTART = 1;
-                break;
         }
+
     }
     else if (N64_CHANNEL_TXENDSTAT)
     {
@@ -407,7 +664,7 @@ static void joybus_isr(void* arg)
         // Reset write/read pointer for RX
         JB_RX_WRRST = 1;
         JB_RX_RDRST = 1;
-        JB_RX_EN        = 1;
+        JB_RX_EN    = 1;
     }
     // Probe response transaction end
     else if (JB_STATUS_TXENDSTAT)
@@ -510,7 +767,6 @@ void joybus_general_init(void)
     }
 }
 
-
 static portMUX_TYPE periph_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 void joybus_all_deinit(bool reset)
@@ -543,40 +799,35 @@ void joybus_watchdog(void * param)
     {
         _joybus_watchdog_timer += 1;
         vTaskDelay(30/portTICK_PERIOD_MS);
-        if (_joybus_mode != current_mode)
-        {
-            _joybus_watchdog_timer = 0;
-            if (_joybus_mode == JOYBUS_MODE_GAMECUBE)
-            {
-                hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_GAMECUBE_DETECT, 0);
-            }
-            else if (_joybus_mode == JOYBUS_MODE_N64)
-            {
-                hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_N64_DETECT, 0);
-            }
-            current_mode = _joybus_mode;
-        }
 
-        if (current_mode == JOYBUS_MODE_IDLE)
+        if (_joybus_watchdog_timer >= 35)
         {
-            if (_joybus_watchdog_timer >= 35)
-            {
-                
-
-                _joybus_watchdog_timer = 0;
-                flip_mode();
-            }
+            hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_DISCONNECT, 0);
+            vTaskDelete(_joybus_task_handle);
         }
-        else
-        {
-            if (_joybus_watchdog_timer >= 35)
-            {
-                hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_DISCONNECT, 0);
-                vTaskDelete(_joybus_task_handle);
-            }
-        }
-        
     }
+}
+
+void joybus_n64_coldboot_task(void * param)
+{
+    const char* TAG = "joybus_n64_coldboot_task";
+    vTaskDelay(1500/portTICK_PERIOD_MS);
+    if (_joybus_status == JOYBUS_STATUS_RUNNING_N64)
+    {
+        ESP_LOGI(TAG, "N64 was detected.");
+        hoja_current_core = HOJA_CORE_N64;
+        hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_N64_DETECT, 0);
+    }
+    else
+    {
+        ESP_LOGI(TAG, "N64 was not detected.");
+        hoja_current_core = HOJA_CORE_NULL;
+        hoja_current_status = HOJA_STATUS_INITIALIZED;
+        hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_N64_DECONFIRMED, 0);
+    }
+
+    vTaskDelete(_joybus_task_handle);
+    _joybus_task_handle = NULL;
 }
 
 //-----------------//
@@ -584,13 +835,37 @@ void joybus_watchdog(void * param)
 
 // PUBLIC FUNCTIONS
 
+// This function returns whether or not N64 console
+// is detected. This is because the N64 needs the controller
+// to be available on the console power. We start
+// right away to ensure N64 core is running on boot. We can shut down if
+// nothing is detected as N64.
+hoja_err_t core_joybus_n64_coldboot(void)
+{
+    _joybus_mode = JOYBUS_MODE_N64;
+    
+    joybus_general_init();
+    joybus_n64_init();
+
+    if (_joybus_task_handle == NULL)
+    {
+        xTaskCreatePinnedToCore(joybus_n64_coldboot_task, "Joybus N64 Boot", 2048, NULL, 4, &_joybus_task_handle, HOJA_INPUT_CPU);
+    }
+    else
+    {
+        return HOJA_FAIL;
+    }
+    return HOJA_OK;
+}
+
 // Initializes Joybus Utility
-hoja_err_t core_joybus_start(void)
+hoja_err_t core_joybus_gamecube_start(void)
 {
     const char* TAG = "util_joybus_init";
 
+    joybus_all_deinit(false);
     joybus_general_init();
-    joybus_n64_init();
+    joybus_gamecube_init();
 
     xTaskCreatePinnedToCore(joybus_watchdog, "Joybus Watchdog", 2048, NULL, 4, &_joybus_task_handle, HOJA_INPUT_CPU);
 

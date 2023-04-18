@@ -145,7 +145,7 @@ void util_wired_detect_task(void * params)
             case DETECT_NONE:
                 break;
             case DETECT_JOYBUS:
-                hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_JOYBUS_DETECT, NULL);
+                hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_GAMECUBE_DETECT, NULL);
                 vTaskDelete(util_wired_loop_task);
                 util_wired_loop_task = NULL;
                 break;
@@ -180,7 +180,7 @@ void util_wired_detect(void)
             hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_NO_DETECT, 0x00);
             break;
         case DETECT_JOYBUS:
-            hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_JOYBUS_DETECT, 0x00);
+            hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_GAMECUBE_DETECT, 0x00);
             break;
         case DETECT_SNES:
             hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_SNES_DETECT, 0x00);
