@@ -13,15 +13,15 @@ uint8_t _joybus_watchdog_timer = 0;
 rmt_item32_t n64_poll_buffer[N64_POLL_RESPONSE_SIZE] = {
         JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X0, JB_RMT_0X0,
-        JB_RMT_0X8, JB_RMT_0X0, 
-        JB_RMT_0X8, JB_RMT_0X0,
+        JB_RMT_0X0, JB_RMT_0X0, 
+        JB_RMT_0X0, JB_RMT_0X0,
         JB_STOP, JB_ZERO
     };
 
 // Set up N64
 // Canned response to status
-static const rmt_item32_t n64_status_buffer[JB_STATUS_LEN] = {
-    JB_RMT_0X0, JB_RMT_0X2,
+rmt_item32_t n64_status_buffer[JB_STATUS_LEN] = {
+    JB_RMT_0X0, JB_RMT_0X5,
     JB_RMT_0X0, JB_RMT_0X0,
     JB_RMT_0X0, JB_RMT_0X0,
     JB_STOP, JB_ZERO
@@ -349,38 +349,47 @@ void n64_buffer_pak(void)
 
 void n64_translate_input(void)
 {
-
-    hoja_button_remap_process();
     hoja_analog_cb();
 
-    n64_poll_buffer[N64_BUTTON_START]  = hoja_processed_buttons.button_start  ? JB_HIGH : JB_LOW;
-    n64_poll_buffer[N64_BUTTON_CDOWN]  = hoja_processed_buttons.button_left   ? JB_HIGH : JB_LOW;
-    n64_poll_buffer[N64_BUTTON_CUP]    = hoja_processed_buttons.button_up     ? JB_HIGH : JB_LOW;
-    n64_poll_buffer[N64_BUTTON_B]      = hoja_processed_buttons.button_down   ? JB_HIGH : JB_LOW;
-    n64_poll_buffer[N64_BUTTON_A]      = hoja_processed_buttons.button_right  ? JB_HIGH : JB_LOW;
+    const rmt_item32_t button_state_table[] = {
+        JB_LOW,  // false
+        JB_HIGH, // true
+    };
 
-    n64_poll_buffer[N64_BUTTON_Z]     = hoja_processed_buttons.trigger_zl     ? JB_HIGH : JB_LOW;
-    n64_poll_buffer[N64_BUTTON_R]     = hoja_processed_buttons.trigger_zr     ? JB_HIGH : JB_LOW;
-    n64_poll_buffer[N64_BUTTON_CLEFT] = hoja_processed_buttons.trigger_l      ? JB_HIGH : JB_LOW;
-    n64_poll_buffer[N64_BUTTON_CRIGHT]= hoja_processed_buttons.trigger_r      ? JB_HIGH : JB_LOW;
-    n64_poll_buffer[N64_BUTTON_DUP]    = hoja_processed_buttons.dpad_up     ? JB_HIGH : JB_LOW;
-    n64_poll_buffer[N64_BUTTON_DDOWN]  = hoja_processed_buttons.dpad_down   ? JB_HIGH : JB_LOW;
-    n64_poll_buffer[N64_BUTTON_DLEFT]  = hoja_processed_buttons.dpad_left   ? JB_HIGH : JB_LOW;
-    n64_poll_buffer[N64_BUTTON_DRIGHT] = hoja_processed_buttons.dpad_right  ? JB_HIGH : JB_LOW;
+    n64_poll_buffer[N64_BUTTON_START].val   = button_state_table[hoja_button_data.button_start].val;
+    n64_poll_buffer[N64_BUTTON_CDOWN].val   = button_state_table[hoja_button_data.button_left].val;
+    n64_poll_buffer[N64_BUTTON_CUP].val     = button_state_table[hoja_button_data.button_up].val;
+    n64_poll_buffer[N64_BUTTON_B].val       = button_state_table[hoja_button_data.button_down].val;
+    n64_poll_buffer[N64_BUTTON_A].val       = button_state_table[hoja_button_data.button_right].val;
+    n64_poll_buffer[N64_BUTTON_Z].val       = button_state_table[hoja_button_data.trigger_zl].val;     
+    n64_poll_buffer[N64_BUTTON_R].val       = button_state_table[hoja_button_data.trigger_zr].val;     
+    n64_poll_buffer[N64_BUTTON_CLEFT].val   = button_state_table[hoja_button_data.trigger_l].val;     
+    n64_poll_buffer[N64_BUTTON_CRIGHT].val  = button_state_table[hoja_button_data.trigger_r].val;     
+    n64_poll_buffer[N64_BUTTON_DUP].val     = button_state_table[hoja_button_data.dpad_up].val;  
+    n64_poll_buffer[N64_BUTTON_DDOWN].val   = button_state_table[hoja_button_data.dpad_down].val;  
+    n64_poll_buffer[N64_BUTTON_DLEFT].val   = button_state_table[hoja_button_data.dpad_left].val;  
+    n64_poll_buffer[N64_BUTTON_DRIGHT].val  = button_state_table[hoja_button_data.dpad_right].val;
     hoja_analog_data.ls_x >>= 4;
     hoja_analog_data.ls_y >>= 4;
-    hoja_analog_data.rs_x >>= 4;
-    hoja_analog_data.rs_y >>= 4;
 
+    hoja_analog_data.ls_x -= hoja_button_data.dpad_left * 64;
+    hoja_analog_data.ls_y -= hoja_button_data.dpad_down * 64;
+    hoja_analog_data.ls_x += hoja_button_data.dpad_right * 64;
+    hoja_analog_data.ls_y += hoja_button_data.dpad_up * 64;
+
+    int sx = (int8_t) hoja_analog_data.ls_x - 128;
+    int sy = (int8_t) hoja_analog_data.ls_y - 128;
+    int8_t sx_8 = sx;
+    int8_t sy_8 = sy;
     // Copy analog data
     // Nice clean code to do it :)
     for(int i = 7; i >= 0; i--)
     {
-        n64_poll_buffer[N64_ADC_STICKX + i] = (hoja_analog_data.ls_x & 1) ? JB_HIGH : JB_LOW;
-        hoja_analog_data.ls_x >>= 1;
+        n64_poll_buffer[N64_ADC_STICKX + i] = ((unsigned) sx_8 & 1) ? JB_HIGH : JB_LOW;
+        sx_8 >>= 1;
 
-        n64_poll_buffer[N64_ADC_STICKY + i] = (hoja_analog_data.ls_y & 1) ? JB_HIGH : JB_LOW;
-        hoja_analog_data.ls_y >>= 1;
+        n64_poll_buffer[N64_ADC_STICKY + i] = ((unsigned) sy_8 & 1) ? JB_HIGH : JB_LOW;
+        sy_8 >>= 1;
     }
 }
 
@@ -506,7 +515,7 @@ void joybus_n64_init(void)
     // N64 has to share a lot of
     // memory, so we use the same channel for RX/TX
     N64_CHANNEL_DIVCT          = 20;
-    N64_CHANNEL_MEMSIZE        = 8;
+    N64_CHANNEL_MEMSIZE        = 7;
     N64_CHANNEL_CONTMODE       = 0;
     N64_CHANNEL_CARRIEREN      = 0;
 
@@ -518,9 +527,32 @@ void joybus_n64_init(void)
     N64_CHANNEL_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
     N64_CHANNEL_TXENDINTENA    = 1;
 
+    // Set up N64 Status channel
+    N64_STATUS_CHANNEL_DIVCT          = 20;
+    N64_STATUS_CHANNEL_MEMSIZE        = 1;
+    N64_STATUS_CHANNEL_CONTMODE       = 0;
+    N64_STATUS_CHANNEL_CARRIEREN      = 0;
+    N64_STATUS_CHANNEL_MEMOWNER       = RMT_MEM_OWNER_TX;
+    N64_STATUS_CHANNEL_REFALWAYSON    = 1;
+    N64_STATUS_CHANNEL_IDLEOUTEN      = 1;
+    N64_STATUS_CHANNEL_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
+    N64_STATUS_CHANNEL_TXENDINTENA    = 1;
+
+    // Set up N64 Poll channel
+    N64_POLL_CHANNEL_DIVCT          = 20;
+    N64_POLL_CHANNEL_MEMSIZE        = 1;
+    N64_POLL_CHANNEL_CONTMODE       = 0;
+    N64_POLL_CHANNEL_CARRIEREN      = 0;
+    N64_POLL_CHANNEL_MEMOWNER       = RMT_MEM_OWNER_TX;
+    N64_POLL_CHANNEL_REFALWAYSON    = 1;
+    N64_POLL_CHANNEL_IDLEOUTEN      = 1;
+    N64_POLL_CHANNEL_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
+    N64_POLL_CHANNEL_TXENDINTENA    = 1;
+
     gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_CHANNEL, 0, 0);
     // Start RX on ch0
     gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
+    memcpy(&N64_STATUS_CHANNEL_MEM[0].val, n64_status_buffer, sizeof(rmt_item32_t) * JB_STATUS_LEN);
     JB_RX_MEMOWNER  = RMT_MEM_OWNER_RX;
     // Reset write/read pointer for RX
     JB_RX_WRRST = 1;
@@ -567,37 +599,40 @@ static void joybus_isr(void* arg)
         JB_RX_EN = 0;
         // Reset write pointer for RX
         JB_RX_RDRST = 1;
-        // Clear RX bit for ch0
-        JB_RX_CLEARISR = 1;
         JB_RX_RDRST = 0;
 
-        if (cmd_buffer == 0x03)
+        switch(cmd_buffer)
         {
-            N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
-            n64_buffer_crc();
-            N64_CHANNEL_TXSTART = 1;
+            default:
+            case 0x02:
+            case 0xFF:
+            case 0x00:
+                N64_STATUS_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_STATUS_CHANNEL, 0, 0);
+                memcpy(&N64_STATUS_CHANNEL_MEM[0].val, n64_status_buffer, sizeof(rmt_item32_t) * JB_STATUS_LEN);
+                N64_STATUS_CHANNEL_TXSTART = 1;
+                break;
+
+            case 0x03:
+                N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_CHANNEL_MEM, 0, 0);
+                n64_buffer_crc();
+                N64_CHANNEL_TXSTART = 1;
+                break;
+
+            case 0x01:
+                _joybus_watchdog_timer = 0;
+                N64_POLL_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_POLL_CHANNEL, 0, 0);
+                n64_translate_input();
+                memcpy(&N64_POLL_CHANNEL_MEM[0].val, n64_poll_buffer, sizeof(rmt_item32_t) * N64_POLL_RESPONSE_SIZE);
+                N64_POLL_CHANNEL_TXSTART = 1;
+                _joybus_status = JOYBUS_STATUS_RUNNING_N64;
+                break;
         }
-        else if (cmd_buffer == 0x01)
-        {
-            _joybus_watchdog_timer = 0;
-            N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
-            memcpy(N64_CHANNEL_MEM, n64_poll_buffer, sizeof(rmt_item32_t) * N64_POLL_RESPONSE_SIZE);
-            N64_CHANNEL_TXSTART = 1;
-            _joybus_status = JOYBUS_STATUS_RUNNING_N64;
-            n64_translate_input();
-        }
-        else if (cmd_buffer == 0x02)
-        {
-            N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
-            N64_CHANNEL_TXSTART = 1;
-        }
-        else
-        {
-            N64_CHANNEL_MEMOWNER = RMT_MEM_OWNER_TX;
-            // Copy into RMT memory
-            memcpy(&N64_CHANNEL_MEM[0].val, n64_status_buffer, sizeof(rmt_item32_t) * JB_STATUS_LEN);
-            N64_CHANNEL_TXSTART = 1;
-        }
+
+        // Clear RX bit for ch0
+        JB_RX_CLEARISR = 1;
     }
     
     else if (RMT.int_st.ch0_rx_end)
@@ -658,6 +693,36 @@ static void joybus_isr(void* arg)
         // Clear TX end interrupt bit
         N64_CHANNEL_CLEARTXINT  = 1;
 
+        // Start RX on ch0
+        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
+        JB_RX_MEMOWNER  = RMT_MEM_OWNER_RX;
+        // Reset write/read pointer for RX
+        JB_RX_WRRST = 1;
+        JB_RX_RDRST = 1;
+        JB_RX_EN    = 1;
+    }
+    else if (N64_POLL_CHANNEL_TXENDSTAT)
+    {
+        // Reset TX read pointer bit
+        N64_POLL_CHANNEL_MEMRST     = 1;
+        N64_POLL_CHANNEL_MEMRST     = 0;
+        // Clear TX end interrupt bit
+        N64_POLL_CHANNEL_CLEARTXINT  = 1;
+        // Start RX on ch0
+        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
+        JB_RX_MEMOWNER  = RMT_MEM_OWNER_RX;
+        // Reset write/read pointer for RX
+        JB_RX_WRRST = 1;
+        JB_RX_RDRST = 1;
+        JB_RX_EN    = 1;
+    }
+    else if (N64_STATUS_CHANNEL_TXENDSTAT)
+    {
+        // Reset TX read pointer bit
+        N64_STATUS_CHANNEL_MEMRST     = 1;
+        N64_STATUS_CHANNEL_MEMRST     = 0;
+        // Clear TX end interrupt bit
+        N64_STATUS_CHANNEL_CLEARTXINT  = 1;
         // Start RX on ch0
         gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
         JB_RX_MEMOWNER  = RMT_MEM_OWNER_RX;
@@ -815,6 +880,7 @@ void joybus_n64_coldboot_task(void * param)
     if (_joybus_status == JOYBUS_STATUS_RUNNING_N64)
     {
         ESP_LOGI(TAG, "N64 was detected.");
+        hoja_current_status = HOJA_STATUS_RUNNING;
         hoja_current_core = HOJA_CORE_N64;
         hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_N64_DETECT, 0);
     }
@@ -849,7 +915,7 @@ hoja_err_t core_joybus_n64_coldboot(void)
 
     if (_joybus_task_handle == NULL)
     {
-        xTaskCreatePinnedToCore(joybus_n64_coldboot_task, "Joybus N64 Boot", 2048, NULL, 4, &_joybus_task_handle, HOJA_INPUT_CPU);
+        xTaskCreatePinnedToCore(joybus_n64_coldboot_task, "Joybus N64 Boot", 2048, NULL, 0, &_joybus_task_handle, HOJA_CORE_CPU);
     }
     else
     {

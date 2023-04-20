@@ -7,11 +7,15 @@
 
 // RX and TX Channel Define
 #define N64_CHANNEL         RMT_CHANNEL_0
+#define N64_POLL_CHANNEL    RMT_CHANNEL_6
+#define N64_STATUS_CHANNEL  RMT_CHANNEL_7
 
 // Channel Memory
-#define N64_CHANNEL_MEM    RMTMEM.chan[N64_CHANNEL].data32
+#define N64_CHANNEL_MEM         RMTMEM.chan[N64_CHANNEL].data32
+#define N64_POLL_CHANNEL_MEM    RMTMEM.chan[N64_POLL_CHANNEL].data32
+#define N64_STATUS_CHANNEL_MEM  RMTMEM.chan[N64_STATUS_CHANNEL].data32
 
-// Poll pointer defines
+// N64 pointer defines
 #define N64_CHANNEL_TXSTART        RMT.conf_ch[N64_CHANNEL].conf1.tx_start
 #define N64_CHANNEL_MEMRST         RMT.conf_ch[N64_CHANNEL].conf1.mem_rd_rst
 #define N64_CHANNEL_DIVCT          RMT.conf_ch[N64_CHANNEL].conf0.div_cnt
@@ -25,6 +29,36 @@
 #define N64_CHANNEL_TXENDSTAT      RMT.int_st.ch0_tx_end
 #define N64_CHANNEL_TXENDINTENA    RMT.int_ena.ch0_tx_end
 #define N64_CHANNEL_CLEARTXINT     RMT.int_clr.ch0_tx_end
+
+// Poll pointer defines
+#define N64_POLL_CHANNEL_TXSTART        RMT.conf_ch[N64_POLL_CHANNEL].conf1.tx_start
+#define N64_POLL_CHANNEL_MEMRST         RMT.conf_ch[N64_POLL_CHANNEL].conf1.mem_rd_rst
+#define N64_POLL_CHANNEL_DIVCT          RMT.conf_ch[N64_POLL_CHANNEL].conf0.div_cnt
+#define N64_POLL_CHANNEL_MEMSIZE        RMT.conf_ch[N64_POLL_CHANNEL].conf0.mem_size
+#define N64_POLL_CHANNEL_CONTMODE       RMT.conf_ch[N64_POLL_CHANNEL].conf1.tx_conti_mode
+#define N64_POLL_CHANNEL_CARRIEREN      RMT.conf_ch[N64_POLL_CHANNEL].conf0.carrier_en
+#define N64_POLL_CHANNEL_MEMOWNER       RMT.conf_ch[N64_POLL_CHANNEL].conf1.mem_owner
+#define N64_POLL_CHANNEL_REFALWAYSON    RMT.conf_ch[N64_POLL_CHANNEL].conf1.ref_always_on
+#define N64_POLL_CHANNEL_IDLEOUTEN      RMT.conf_ch[N64_POLL_CHANNEL].conf1.idle_out_en
+#define N64_POLL_CHANNEL_IDLEOUTLVL     RMT.conf_ch[N64_POLL_CHANNEL].conf1.idle_out_lv
+#define N64_POLL_CHANNEL_TXENDSTAT      RMT.int_st.ch6_tx_end
+#define N64_POLL_CHANNEL_TXENDINTENA    RMT.int_ena.ch6_tx_end
+#define N64_POLL_CHANNEL_CLEARTXINT     RMT.int_clr.ch6_tx_end
+
+// Status pointer defines
+#define N64_STATUS_CHANNEL_TXSTART        RMT.conf_ch[N64_STATUS_CHANNEL].conf1.tx_start
+#define N64_STATUS_CHANNEL_MEMRST         RMT.conf_ch[N64_STATUS_CHANNEL].conf1.mem_rd_rst
+#define N64_STATUS_CHANNEL_DIVCT          RMT.conf_ch[N64_STATUS_CHANNEL].conf0.div_cnt
+#define N64_STATUS_CHANNEL_MEMSIZE        RMT.conf_ch[N64_STATUS_CHANNEL].conf0.mem_size
+#define N64_STATUS_CHANNEL_CONTMODE       RMT.conf_ch[N64_STATUS_CHANNEL].conf1.tx_conti_mode
+#define N64_STATUS_CHANNEL_CARRIEREN      RMT.conf_ch[N64_STATUS_CHANNEL].conf0.carrier_en
+#define N64_STATUS_CHANNEL_MEMOWNER       RMT.conf_ch[N64_STATUS_CHANNEL].conf1.mem_owner
+#define N64_STATUS_CHANNEL_REFALWAYSON    RMT.conf_ch[N64_STATUS_CHANNEL].conf1.ref_always_on
+#define N64_STATUS_CHANNEL_IDLEOUTEN      RMT.conf_ch[N64_STATUS_CHANNEL].conf1.idle_out_en
+#define N64_STATUS_CHANNEL_IDLEOUTLVL     RMT.conf_ch[N64_STATUS_CHANNEL].conf1.idle_out_lv
+#define N64_STATUS_CHANNEL_TXENDSTAT      RMT.int_st.ch7_tx_end
+#define N64_STATUS_CHANNEL_TXENDINTENA    RMT.int_ena.ch7_tx_end
+#define N64_STATUS_CHANNEL_CLEARTXINT     RMT.int_clr.ch7_tx_end
 
 #define N64_POLL_RESPONSE_SIZE  34
 #define N64_PAK_RESPONSE_SIZE   266
