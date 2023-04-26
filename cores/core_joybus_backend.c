@@ -347,35 +347,32 @@ void n64_buffer_pak(void)
     memcpy(N64_CHANNEL_MEM, n64_pak_rmt, sizeof(rmt_item32_t) * N64_PAK_RESPONSE_SIZE);
 }
 
-void n64_translate_input(void)
-{
-    hoja_analog_cb();
-
-    const rmt_item32_t button_state_table[] = {
+const rmt_item32_t button_state_table[] = {
         JB_LOW,  // false
         JB_HIGH, // true
     };
 
-    n64_poll_buffer[N64_BUTTON_START].val   = button_state_table[hoja_button_data.button_start].val;
-    n64_poll_buffer[N64_BUTTON_CDOWN].val   = button_state_table[hoja_button_data.button_left].val;
-    n64_poll_buffer[N64_BUTTON_CUP].val     = button_state_table[hoja_button_data.button_up].val;
-    n64_poll_buffer[N64_BUTTON_B].val       = button_state_table[hoja_button_data.button_down].val;
-    n64_poll_buffer[N64_BUTTON_A].val       = button_state_table[hoja_button_data.button_right].val;
-    n64_poll_buffer[N64_BUTTON_Z].val       = button_state_table[hoja_button_data.trigger_zl].val;     
-    n64_poll_buffer[N64_BUTTON_R].val       = button_state_table[hoja_button_data.trigger_zr].val;     
-    n64_poll_buffer[N64_BUTTON_CLEFT].val   = button_state_table[hoja_button_data.trigger_l].val;     
-    n64_poll_buffer[N64_BUTTON_CRIGHT].val  = button_state_table[hoja_button_data.trigger_r].val;     
-    n64_poll_buffer[N64_BUTTON_DUP].val     = button_state_table[hoja_button_data.dpad_up].val;  
-    n64_poll_buffer[N64_BUTTON_DDOWN].val   = button_state_table[hoja_button_data.dpad_down].val;  
-    n64_poll_buffer[N64_BUTTON_DLEFT].val   = button_state_table[hoja_button_data.dpad_left].val;  
-    n64_poll_buffer[N64_BUTTON_DRIGHT].val  = button_state_table[hoja_button_data.dpad_right].val;
+void n64_translate_input(void)
+{
+    hoja_button_remap_process();
+    hoja_analog_cb();
+    hoja_process_dpad();
+    
+    n64_poll_buffer[N64_BUTTON_START].val   = button_state_table[hoja_processed_buttons.button_start].val;
+    n64_poll_buffer[N64_BUTTON_CDOWN].val   = button_state_table[hoja_processed_buttons.button_left].val;
+    n64_poll_buffer[N64_BUTTON_CUP].val     = button_state_table[hoja_processed_buttons.button_up].val;
+    n64_poll_buffer[N64_BUTTON_B].val       = button_state_table[hoja_processed_buttons.button_down].val;
+    n64_poll_buffer[N64_BUTTON_A].val       = button_state_table[hoja_processed_buttons.button_right].val;
+    n64_poll_buffer[N64_BUTTON_Z].val       = button_state_table[hoja_processed_buttons.trigger_zl].val;     
+    n64_poll_buffer[N64_BUTTON_R].val       = button_state_table[hoja_processed_buttons.trigger_zr].val;     
+    n64_poll_buffer[N64_BUTTON_CLEFT].val   = button_state_table[hoja_processed_buttons.trigger_l].val;     
+    n64_poll_buffer[N64_BUTTON_CRIGHT].val  = button_state_table[hoja_processed_buttons.trigger_r].val;     
+    n64_poll_buffer[N64_BUTTON_DUP].val     = button_state_table[hoja_processed_buttons.dpad_up].val;  
+    n64_poll_buffer[N64_BUTTON_DDOWN].val   = button_state_table[hoja_processed_buttons.dpad_down].val;  
+    n64_poll_buffer[N64_BUTTON_DLEFT].val   = button_state_table[hoja_processed_buttons.dpad_left].val;  
+    n64_poll_buffer[N64_BUTTON_DRIGHT].val  = button_state_table[hoja_processed_buttons.dpad_right].val;
     hoja_analog_data.ls_x >>= 4;
     hoja_analog_data.ls_y >>= 4;
-
-    hoja_analog_data.ls_x -= hoja_button_data.dpad_left * 64;
-    hoja_analog_data.ls_y -= hoja_button_data.dpad_down * 64;
-    hoja_analog_data.ls_x += hoja_button_data.dpad_right * 64;
-    hoja_analog_data.ls_y += hoja_button_data.dpad_up * 64;
 
     int sx = (int8_t) hoja_analog_data.ls_x - 128;
     int sy = (int8_t) hoja_analog_data.ls_y - 128;
@@ -408,8 +405,8 @@ void gamecube_translate_input(void)
     };
 
     hoja_button_remap_process();
-    hoja_process_dpad();
     hoja_analog_cb();
+    hoja_process_dpad();
 
     gcmd_poll_rmt[GC_BUTTON_START]  = hoja_processed_buttons.button_start  ? JB_HIGH : JB_LOW;
     gcmd_poll_rmt[GC_BUTTON_Y]      = hoja_processed_buttons.button_left   ? JB_HIGH : JB_LOW;
