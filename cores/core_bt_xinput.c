@@ -200,8 +200,8 @@ void xinput_bt_sendinput_task(void * param)
 
     for(;;)
     {
-        hoja_analog_cb();
         hoja_button_remap_process();
+        hoja_analog_cb();
         hoja_process_dpad();
         xi_input.stick_left_x       = hoja_analog_data.ls_x << 4;
         xi_input.stick_left_y       = hoja_analog_data.ls_y << 4;
