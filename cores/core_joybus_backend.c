@@ -395,7 +395,7 @@ void n64_translate_input(void)
 
 void gamecube_translate_input(void)
 {
-    rmt_item32_t gc_poll_tmp[GC_POLL_RESPONSE_SIZE] = {
+     rmt_item32_t gcmd_poll_rmt[GC_POLL_RESPONSE_SIZE] = {
         JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X8, JB_RMT_0X0,
         JB_RMT_0X8, JB_RMT_0X0, 
@@ -411,20 +411,19 @@ void gamecube_translate_input(void)
     hoja_process_dpad();
     hoja_analog_cb();
 
-    gc_poll_tmp[GC_BUTTON_START]  = hoja_processed_buttons.button_start  ? JB_HIGH : JB_LOW;
-    gc_poll_tmp[GC_BUTTON_Y]      = hoja_processed_buttons.button_left   ? JB_HIGH : JB_LOW;
-    gc_poll_tmp[GC_BUTTON_X]      = hoja_processed_buttons.button_up     ? JB_HIGH : JB_LOW;
-    gc_poll_tmp[GC_BUTTON_B]      = hoja_processed_buttons.button_down   ? JB_HIGH : JB_LOW;
-    gc_poll_tmp[GC_BUTTON_A]      = hoja_processed_buttons.button_right  ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_START]  = hoja_processed_buttons.button_start  ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_Y]      = hoja_processed_buttons.button_left   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_X]      = hoja_processed_buttons.button_up     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_B]      = hoja_processed_buttons.button_down   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_A]      = hoja_processed_buttons.button_right  ? JB_HIGH : JB_LOW;
 
-    gc_poll_tmp[GC_BUTTON_LB]     = hoja_processed_buttons.trigger_zl     ? JB_HIGH : JB_LOW;
-    gc_poll_tmp[GC_BUTTON_RB]     = hoja_processed_buttons.trigger_zr     ? JB_HIGH : JB_LOW;
-    gc_poll_tmp[GC_BUTTON_Z]      = (hoja_processed_buttons.trigger_l | hoja_processed_buttons.trigger_r)    ? JB_HIGH : JB_LOW;
-    gc_poll_tmp[GC_BUTTON_DUP]    = hoja_processed_buttons.dpad_up     ? JB_HIGH : JB_LOW;
-    gc_poll_tmp[GC_BUTTON_DDOWN]  = hoja_processed_buttons.dpad_down   ? JB_HIGH : JB_LOW;
-    gc_poll_tmp[GC_BUTTON_DLEFT]  = hoja_processed_buttons.dpad_left   ? JB_HIGH : JB_LOW;
-    gc_poll_tmp[GC_BUTTON_DRIGHT] = hoja_processed_buttons.dpad_right  ? JB_HIGH : JB_LOW;
-
+    gcmd_poll_rmt[GC_BUTTON_LB]     = hoja_processed_buttons.trigger_zl     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_RB]     = hoja_processed_buttons.trigger_zr     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_Z]      = (hoja_processed_buttons.trigger_l | hoja_processed_buttons.trigger_r)    ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DUP]    = hoja_processed_buttons.dpad_up     ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DDOWN]  = hoja_processed_buttons.dpad_down   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DLEFT]  = hoja_processed_buttons.dpad_left   ? JB_HIGH : JB_LOW;
+    gcmd_poll_rmt[GC_BUTTON_DRIGHT] = hoja_processed_buttons.dpad_right  ? JB_HIGH : JB_LOW;
     hoja_analog_data.ls_x >>= 4;
     hoja_analog_data.ls_y >>= 4;
     hoja_analog_data.rs_x >>= 4;
@@ -436,30 +435,63 @@ void gamecube_translate_input(void)
     // Nice clean code to do it :)
     for(int i = 7; i >= 0; i--)
     {
-        gc_poll_tmp[GC_ADC_LEFTX + i] = (hoja_analog_data.ls_x & 1) ? JB_HIGH : JB_LOW;
+        gcmd_poll_rmt[GC_ADC_LEFTX + i] = (hoja_analog_data.ls_x & 1) ? JB_HIGH : JB_LOW;
         hoja_analog_data.ls_x >>= 1;
 
-        gc_poll_tmp[GC_ADC_LEFTY + i] = (hoja_analog_data.ls_y & 1) ? JB_HIGH : JB_LOW;
+        gcmd_poll_rmt[GC_ADC_LEFTY + i] = (hoja_analog_data.ls_y & 1) ? JB_HIGH : JB_LOW;
         hoja_analog_data.ls_y >>= 1;
 
-        gc_poll_tmp[GC_ADC_RIGHTX + i] = (-+hoja_analog_data.rs_x & 1) ? JB_HIGH : JB_LOW;
+        gcmd_poll_rmt[GC_ADC_RIGHTX + i] = (hoja_analog_data.rs_x & 1) ? JB_HIGH : JB_LOW;
         hoja_analog_data.rs_x >>= 1;
 
-        gc_poll_tmp[GC_ADC_RIGHTY + i] = (hoja_analog_data.rs_y & 1) ? JB_HIGH : JB_LOW;
+        gcmd_poll_rmt[GC_ADC_RIGHTY + i] = (hoja_analog_data.rs_y & 1) ? JB_HIGH : JB_LOW;
         hoja_analog_data.rs_y >>= 1;
 
-        gc_poll_tmp[GC_ADC_LT + i] = (hoja_analog_data.lt_a & 1) ? JB_HIGH : JB_LOW;
+        gcmd_poll_rmt[GC_ADC_LT + i] = (hoja_analog_data.lt_a & 1) ? JB_HIGH : JB_LOW;
         hoja_analog_data.lt_a >>= 1;
 
-        gc_poll_tmp[GC_ADC_RT + i] = (hoja_analog_data.rt_a & 1) ? JB_HIGH : JB_LOW;
+        gcmd_poll_rmt[GC_ADC_RT + i] = (hoja_analog_data.rt_a & 1) ? JB_HIGH : JB_LOW;
         hoja_analog_data.rt_a >>= 1;
     }
 
-    memcpy(GAMECUBE_POLL_MEM, gc_poll_tmp, sizeof(rmt_item32_t) * GC_POLL_RESPONSE_SIZE);
+    memcpy(GAMECUBE_POLL_MEM, gcmd_poll_rmt, sizeof(rmt_item32_t) * GC_POLL_RESPONSE_SIZE);
 }
 
 void joybus_gamecube_init(void)
 {
+    if (_rmt_isr_handle != NULL)
+    {
+        rmt_isr_deregister(_rmt_isr_handle);
+        _rmt_isr_handle = NULL;
+    }
+
+    periph_ll_enable_clk_clear_rst(PERIPH_RMT_MODULE);
+
+    JB_RMT_FIFO = RMT_DATA_MODE_MEM;
+
+    // set up RMT peripherial register stuff
+    // for receive channel
+    JB_RX_CLKDIV        = 10; // 0.125us increments.
+    JB_RX_IDLETHRESH    = 35; // 4us idle
+    JB_RX_REFALWAYSON   = 1;
+    JB_RX_MEMSIZE       = 1;
+    JB_RX_FILTEREN      = 0;
+    JB_RX_FILTERTHRESH  = 0;
+    JB_RX_MEMOWNER      = 1;
+    JB_RX_RDRST         = 1;
+    JB_RX_COMPLETEISR   = 1;
+
+    // Status Channel
+    JB_STATUS_DIVCT          = 20;
+    JB_STATUS_MEMSIZE        = 1;
+    JB_STATUS_CONTMODE       = 0;
+    JB_STATUS_CARRIEREN      = 0;
+    JB_STATUS_MEMOWNER       = RMT_MEM_OWNER_TX;
+    JB_STATUS_REFALWAYSON    = 1;
+    JB_STATUS_IDLEOUTEN      = 1;
+    JB_STATUS_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
+    JB_STATUS_TXENDINTENA    = 1;
+
     // Origin Channel
     GAMECUBE_ORIGIN_DIVCT          = 20;
     GAMECUBE_ORIGIN_MEMSIZE        = 2;
@@ -483,7 +515,7 @@ void joybus_gamecube_init(void)
     GAMECUBE_POLL_TXENDINTENA    = 1;
 
     // Set up probe response
-    static rmt_item32_t gc_status_rmt[JB_STATUS_LEN] = {
+    rmt_item32_t gcmd_probe_rmt[JB_STATUS_LEN] = {
         JB_RMT_0X0, JB_RMT_0X9,
         JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X0, JB_RMT_0X3,
@@ -491,7 +523,7 @@ void joybus_gamecube_init(void)
     };
 
     // Set up the canned response to origin
-    static rmt_item32_t gc_origin_rmt[GC_ORIGIN_RESPONSE_SIZE] = {
+    rmt_item32_t gcmd_origin_rmt[GC_ORIGIN_RESPONSE_SIZE] = {
         JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X8, JB_RMT_0X0,
         JB_RMT_0X8, JB_RMT_0X0, 
@@ -505,34 +537,46 @@ void joybus_gamecube_init(void)
         JB_STOP, JB_ZERO
     };
 
-    // Copy canned responses into RMT memory
-    memcpy(JB_STATUS_MEM, gc_status_rmt, sizeof(rmt_item32_t) * JB_STATUS_LEN);
-    memcpy(GAMECUBE_ORIGIN_MEM, gc_origin_rmt, sizeof(rmt_item32_t) * GC_ORIGIN_RESPONSE_SIZE);
+    memcpy(JB_STATUS_MEM, gcmd_probe_rmt, sizeof(rmt_item32_t) * JB_STATUS_LEN);
+    memcpy(GAMECUBE_ORIGIN_MEM, gcmd_origin_rmt, sizeof(rmt_item32_t) * GC_ORIGIN_RESPONSE_SIZE);
 
-    // Start RX on ch0
+    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[CONFIG_HOJA_GPIO_NS_SERIAL], PIN_FUNC_GPIO);
+    gpio_set_direction(CONFIG_HOJA_GPIO_NS_SERIAL, GPIO_MODE_INPUT_OUTPUT_OD);
+    gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + RMT_CHANNEL_1, 0, 0);
     gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
-    JB_RX_MEMOWNER  = 1;
-    // Reset write/read pointer for RX
-    JB_RX_WRRST = 1;
-    JB_RX_RDRST = 1;
-    vTaskDelay(350/portTICK_PERIOD_MS);
+
+    rmt_isr_register(gamecube_rmt_isr, NULL, 3, &_rmt_isr_handle);
+    vTaskDelay(200/portTICK_PERIOD_MS);
     JB_RX_EN = 1;
 }
 
 void joybus_n64_init(void)
 {
-    JB_RX_IDLETHRESH    = 16; // 3.5us idle
+    if (_rmt_isr_handle != NULL)
+    {
+        rmt_isr_deregister(_rmt_isr_handle);
+        _rmt_isr_handle = NULL;
+    }
 
-    // N64 has to share a lot of
-    // memory, so we use the same channel for RX/TX
-    N64_CHANNEL_DIVCT          = 20;
-    N64_CHANNEL_MEMSIZE        = 7;
+    periph_ll_enable_clk_clear_rst(PERIPH_RMT_MODULE);
+
+    JB_RMT_FIFO = RMT_DATA_MODE_MEM;
+
+    // set up RMT peripherial register stuff
+    // for receive channel
+    JB_RX_CLKDIV        = 20; // 0.125us increments.
+    JB_RX_IDLETHRESH    = 16; // 4us idle
+    JB_RX_REFALWAYSON   = 1;
+    JB_RX_MEMSIZE       = 6; // Larger for N64 to do CRC stuff.
+    JB_RX_FILTEREN      = 0;
+    JB_RX_FILTERTHRESH  = 0;
+    JB_RX_MEMOWNER      = 1;
+    JB_RX_RDRST         = 1;
+    JB_RX_COMPLETEISR   = 1;
+
+    // N64 channel specific items for ch 0
     N64_CHANNEL_CONTMODE       = 0;
     N64_CHANNEL_CARRIEREN      = 0;
-
-    // Do not enable memory owner for TX until we're ready to send.
-    //N64_CHANNEL_MEMOWNER       = RMT_MEM_OWNER_TX;
-
     N64_CHANNEL_REFALWAYSON    = 1;
     N64_CHANNEL_IDLEOUTEN      = 1;
     N64_CHANNEL_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
@@ -560,40 +604,154 @@ void joybus_n64_init(void)
     N64_POLL_CHANNEL_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
     N64_POLL_CHANNEL_TXENDINTENA    = 1;
 
-    gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_CHANNEL, 0, 0);
-    // Start RX on ch0
-    gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
     memcpy(&N64_STATUS_CHANNEL_MEM[0].val, n64_status_buffer, sizeof(rmt_item32_t) * JB_STATUS_LEN);
-    JB_RX_MEMOWNER  = RMT_MEM_OWNER_RX;
-    // Reset write/read pointer for RX
-    JB_RX_WRRST = 1;
-    JB_RX_RDRST = 1;
+    
+    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[CONFIG_HOJA_GPIO_NS_SERIAL], PIN_FUNC_GPIO);
+    gpio_set_direction(CONFIG_HOJA_GPIO_NS_SERIAL, GPIO_MODE_INPUT_OUTPUT_OD);
+    gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_CHANNEL, 0, 0);
+    gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
+
+    rmt_isr_register(n64_rmt_isr, NULL, 3, &_rmt_isr_handle);
     JB_RX_EN = 1;
 }
 
-
-// Interrupt function for joybus core
-static void joybus_isr(void* arg)
+volatile uint32_t tmp = 0x00;
+volatile uint8_t cmd_buffer = 0x00;
+static void gamecube_rmt_isr(void* arg) 
 {
     // At the end of a received transaction
     // on channel 0
-    if (RMT.int_st.ch0_rx_end && _n64_enable)
+    if (RMT.int_st.ch0_rx_end)
     {
-        uint8_t cmd_buffer = 0;
-        
-        // Process the first data byte
-        for (size_t i = 0; i < 8; i++) {
-            cmd_buffer <<= 1;
-            if (JB_RX_MEM[0 + i].val & JB_BIT_MASK) {
-                cmd_buffer |= 1;
-            }
-        }
-
         // Disable RX
         JB_RX_EN = 0;
-        // Reset write pointer for RX
+        JB_RX_MEMOWNER = RMT_MEM_OWNER_TX;
+        JB_RX_WRRST = 1;
+
+        cmd_buffer = 0x00;
+
+        cmd_buffer |= (JB_RX_MEM[0].val & JB_BIT_MASK_GC) ? 0x80 : 0;
+        cmd_buffer |= (JB_RX_MEM[1].val & JB_BIT_MASK_GC) ? 0x40 : 0;
+        cmd_buffer |= (JB_RX_MEM[2].val & JB_BIT_MASK_GC) ? 0x20 : 0;
+        cmd_buffer |= (JB_RX_MEM[3].val & JB_BIT_MASK_GC) ? 0x10 : 0;
+        cmd_buffer |= (JB_RX_MEM[4].val & JB_BIT_MASK_GC) ? 0x8  : 0;
+        cmd_buffer |= (JB_RX_MEM[5].val & JB_BIT_MASK_GC) ? 0x4  : 0;
+        cmd_buffer |= (JB_RX_MEM[6].val & JB_BIT_MASK_GC) ? 0x2  : 0;
+        cmd_buffer |= (JB_RX_MEM[7].val & JB_BIT_MASK_GC) ? 0x1  : 0; 
+        
+        // Clear RX bit for ch0
+        JB_RX_CLEARISR = 1;
+
+        // Check the command byte and respond accordingly
+        switch(cmd_buffer)
+        {
+            // Probe Command
+            case 0x00:
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + JB_STATUS_CHANNEL, 0, 0);
+                JB_STATUS_MEMOWNER = RMT_MEM_OWNER_TX;
+                JB_STATUS_TXSTART = 1;
+                break;
+
+            // Origin Command
+            case 0x41:
+            case 0x42:
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + GAMECUBE_CHANNEL_ORIGIN, 0, 0);
+                GAMECUBE_ORIGIN_MEMOWNER = 0;
+                GAMECUBE_ORIGIN_TXSTART = 1;
+                gamecube_translate_input();
+                break;
+
+            // Poll Command
+            case 0x40:
+                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + GAMECUBE_CHANNEL_POLL, 0, 0);
+                GAMECUBE_POLL_MEMOWNER = 0;
+                gamecube_translate_input();
+                GAMECUBE_POLL_TXSTART = 1;
+                break;
+
+            default:
+                break;
+        }
+    }
+    // Probe response transaction end
+    else if (JB_STATUS_TXENDSTAT)
+    {
+        // Reset TX read pointer bit
+        JB_STATUS_MEMRST     = 1;
+        JB_STATUS_MEMRST     = 0;
+        // Clear TX end interrupt bit
+        JB_STATUS_CLEARTXINT  = 1;
+
+        // Start RX on ch0
+        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
+        JB_RX_MEMOWNER  = 1;
+        // Reset write/read pointer for RX
+        JB_RX_WRRST = 1;
         JB_RX_RDRST = 1;
-        JB_RX_RDRST = 0;
+        JB_RX_EN        = 1;
+    }
+    // Origin response transaction end
+    else if (GAMECUBE_ORIGIN_TXENDSTAT)
+    {
+        // Reset TX read pointer bit
+        GAMECUBE_ORIGIN_MEMRST     = 1;
+        GAMECUBE_ORIGIN_MEMRST     = 0;
+        // Clear TX end interrupt bit
+        GAMECUBE_ORIGIN_CLEARTXINT  = 1;
+
+        // Start RX on ch0
+        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
+        JB_RX_MEMOWNER  = 1;
+        // Reset write/read pointer for RX
+        JB_RX_WRRST = 1;
+        JB_RX_RDRST = 1;
+        JB_RX_EN        = 1;
+    }
+    // Poll response transaction end
+    else if (GAMECUBE_POLL_TXENDSTAT)
+    {
+        // Reset TX read pointer bit
+        GAMECUBE_POLL_MEMRST     = 1;
+        GAMECUBE_POLL_MEMRST     = 0;
+        // Clear TX end interrupt bit
+        GAMECUBE_POLL_CLEARTXINT  = 1;
+
+        // Start RX on ch0
+        gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
+        JB_RX_MEMOWNER  = 1;
+        // Reset write/read pointer for RX
+        JB_RX_WRRST = 1;
+        JB_RX_RDRST = 1;
+        JB_RX_EN        = 1;
+    }
+    
+}
+
+// Interrupt function for joybus core
+static void n64_rmt_isr(void* arg)
+{
+    // At the end of a received transaction
+    // on channel 0
+    if (RMT.int_st.ch0_rx_end)
+    {
+        // Disable RX
+        JB_RX_EN = 0;
+        JB_RX_MEMOWNER = RMT_MEM_OWNER_TX;
+        JB_RX_WRRST = 1;
+
+        cmd_buffer = 0x00;
+
+        cmd_buffer |= (JB_RX_MEM[0].val & JB_BIT_MASK) ? 0x80 : 0;
+        cmd_buffer |= (JB_RX_MEM[1].val & JB_BIT_MASK) ? 0x40 : 0;
+        cmd_buffer |= (JB_RX_MEM[2].val & JB_BIT_MASK) ? 0x20 : 0;
+        cmd_buffer |= (JB_RX_MEM[3].val & JB_BIT_MASK) ? 0x10 : 0;
+        cmd_buffer |= (JB_RX_MEM[4].val & JB_BIT_MASK) ? 0x8  : 0;
+        cmd_buffer |= (JB_RX_MEM[5].val & JB_BIT_MASK) ? 0x4  : 0;
+        cmd_buffer |= (JB_RX_MEM[6].val & JB_BIT_MASK) ? 0x2  : 0;
+        cmd_buffer |= (JB_RX_MEM[7].val & JB_BIT_MASK) ? 0x1  : 0; 
+        
+        // Clear RX bit for ch0
+        JB_RX_CLEARISR = 1;
 
         switch(cmd_buffer)
         {
@@ -627,57 +785,6 @@ static void joybus_isr(void* arg)
 
         // Clear RX bit for ch0
         JB_RX_CLEARISR = 1;
-    }
-    
-    else if (RMT.int_st.ch0_rx_end)
-    {
-
-        // Process the first data byte
-        uint8_t cmd_buffer = ((JB_RX_MEM[0].duration0 < JB_RX_MEM[0].duration1) << 7) |
-            ((JB_RX_MEM[1].duration0 < JB_RX_MEM[1].duration1) << 6) |
-            ((JB_RX_MEM[2].duration0 < JB_RX_MEM[2].duration1) << 5) |
-            ((JB_RX_MEM[3].duration0 < JB_RX_MEM[3].duration1) << 4) |
-            ((JB_RX_MEM[4].duration0 < JB_RX_MEM[4].duration1) << 3) |
-            ((JB_RX_MEM[5].duration0 < JB_RX_MEM[5].duration1) << 2) |
-            ((JB_RX_MEM[6].duration0 < JB_RX_MEM[6].duration1) << 1) |
-            ((JB_RX_MEM[7].duration0 < JB_RX_MEM[7].duration1) << 0);
-
-        // Disable RX
-        JB_RX_EN = 0;
-        // Reset write pointer for RX
-        JB_RX_RDRST = 1;
-        // Clear RX bit for ch0
-        JB_RX_CLEARISR = 1;
-        JB_RX_RDRST = 0;
-
-        // Check the command byte and respond accordingly
-        switch(cmd_buffer)
-        {
-            // Probe command (N64 and GameCube use the same thing...)
-            default:
-            case 0xFF:
-            case 0x00:
-                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + JB_STATUS_CHANNEL, 0, 0);
-                JB_STATUS_MEMOWNER  = 0;
-                JB_STATUS_TXSTART   = 1;
-                break;
-            case 0x41:
-            case 0x42:
-                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + GAMECUBE_CHANNEL_ORIGIN, 0, 0);
-                GAMECUBE_ORIGIN_MEMOWNER    = 0;
-                GAMECUBE_POLL_MEMOWNER      = 0;
-                GAMECUBE_ORIGIN_TXSTART     = 1;
-                gamecube_translate_input();
-                break;
-            case 0x40:
-                _joybus_watchdog_timer = 0;
-                gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + GAMECUBE_CHANNEL_POLL, 0, 0);
-                GAMECUBE_POLL_MEMOWNER  = 0;
-                GAMECUBE_POLL_TXSTART   = 1;
-                gamecube_translate_input();
-                break;
-        }
-
     }
     else if (N64_CHANNEL_TXENDSTAT)
     {
@@ -777,85 +884,13 @@ static void joybus_isr(void* arg)
     }
 }
 
-void joybus_general_init(void)
-{
-    // Set up RMT peripheral first
-    periph_ll_enable_clk_clear_rst(PERIPH_RMT_MODULE);
-
-    JB_RMT_FIFO = RMT_DATA_MODE_MEM;
-
-    // set up RMT peripherial register stuff
-    // for receive channel
-    JB_RX_CLKDIV        = 10; // 0.125us increments.
-    JB_RX_IDLETHRESH    = 35; // 4us idle
-    JB_RX_MEMSIZE       = 1;
-    JB_RX_FILTEREN      = 1;
-    JB_RX_FILTERTHRESH  = 1;
-    JB_RX_MEMOWNER      = 1;
-    JB_RX_RDRST         = 1;
-    JB_RX_COMPLETEISR   = 1;
-
-    // For ESP32 S3
-    #if CONFIG_IDF_TARGET_ESP32S3
-    #elif CONFIG_IDF_TARGET_ESP32
-    RMT.conf_ch[JB_RX_CHANNEL].conf1.ref_always_on = 1;
-    #endif
-    
-    // Status Channel
-    JB_STATUS_DIVCT          = 20;
-    JB_STATUS_MEMSIZE        = 1;
-    JB_STATUS_CONTMODE       = 0;
-    JB_STATUS_CARRIEREN      = 0;
-    JB_STATUS_MEMOWNER       = RMT_MEM_OWNER_TX;
-    JB_STATUS_REFALWAYSON    = 1;
-    JB_STATUS_IDLEOUTEN      = 1;
-    JB_STATUS_IDLEOUTLVL     = RMT_IDLE_LEVEL_HIGH;
-    JB_STATUS_TXENDINTENA    = 1;
-
-    // Select pin function for I/O joybus line
-    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[CONFIG_HOJA_GPIO_NS_SERIAL], PIN_FUNC_GPIO);
-    // Set input direction to input AND output simultaneously (open drain)
-    gpio_set_direction(CONFIG_HOJA_GPIO_NS_SERIAL, GPIO_MODE_INPUT_OUTPUT_OD);
-    gpio_matrix_in(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_IN0_IDX + JB_RX_CHANNEL, 0);
-    // Set output/input GPIO to peripheral
-    gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + JB_STATUS_CHANNEL, 0, 0);
-
-    if (_rmt_isr_handle == NULL)
-    {
-        rmt_isr_register(joybus_isr, NULL, 3, &_rmt_isr_handle);
-    }
-}
-
-static portMUX_TYPE periph_spinlock = portMUX_INITIALIZER_UNLOCKED;
-
-void joybus_all_deinit(bool reset)
-{
-    JB_RX_EN = 0;
-    JB_STATUS_TXSTART = 0;
-    N64_CHANNEL_TXSTART = 0;
-    GAMECUBE_POLL_TXSTART = 0;
-    GAMECUBE_ORIGIN_TXSTART = 0;
-    _joybus_mode = JOYBUS_MODE_IDLE;
-    
-    if (_rmt_isr_handle != NULL)
-    {
-        rmt_isr_deregister(_rmt_isr_handle);
-        _rmt_isr_handle = NULL;
-    }
-
-    if (reset)
-    {
-        portENTER_CRITICAL_SAFE(&periph_spinlock);
-        periph_ll_disable_clk_set_rst(PERIPH_RMT_MODULE);
-        portEXIT_CRITICAL_SAFE(&periph_spinlock);
-    }  
-}
-
 void joybus_watchdog(void * param)
 {
     joybus_mode_t current_mode = JOYBUS_MODE_IDLE;
     for(;;)
     {
+        vTaskDelay(500/portTICK_PERIOD_MS);
+        /*
         _joybus_watchdog_timer += 1;
         vTaskDelay(30/portTICK_PERIOD_MS);
 
@@ -863,7 +898,7 @@ void joybus_watchdog(void * param)
         {
             hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_DISCONNECT, 0);
             vTaskDelete(_joybus_task_handle);
-        }
+        }*/
     }
 }
 
@@ -881,11 +916,12 @@ void joybus_n64_coldboot_task(void * param)
     else
     {
         ESP_LOGI(TAG, "N64 was not detected.");
-        joybus_all_deinit(false);
+        JB_RX_EN = 0;
         _n64_enable = false;
         hoja_current_core = HOJA_CORE_NULL;
         hoja_current_status = HOJA_STATUS_INITIALIZED;
         hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_N64_DECONFIRMED, 0);
+        core_joybus_stop();
     }
 
     vTaskDelete(_joybus_task_handle);
@@ -906,7 +942,6 @@ hoja_err_t core_joybus_n64_coldboot(void)
 {
     _joybus_mode = JOYBUS_MODE_N64;
     
-    joybus_general_init();
     joybus_n64_init();
 
     if (_joybus_task_handle == NULL)
@@ -925,11 +960,9 @@ hoja_err_t core_joybus_gamecube_start(void)
 {
     const char* TAG = "util_joybus_init";
 
-    joybus_all_deinit(false);
-    joybus_general_init();
     joybus_gamecube_init();
 
-    //xTaskCreatePinnedToCore(joybus_watchdog, "Joybus Watchdog", 2048, NULL, 4, &_joybus_task_handle, HOJA_INPUT_CPU);
+    xTaskCreatePinnedToCore(joybus_watchdog, "Joybus Watchdog", 2048, NULL, 4, &_joybus_task_handle, HOJA_INPUT_CPU);
 
     return HOJA_OK;
 }
@@ -937,7 +970,7 @@ hoja_err_t core_joybus_gamecube_start(void)
 void core_joybus_stop(void)
 {
     const char* TAG = "core_joybus_stop";
-    joybus_all_deinit(true);
+    periph_ll_enable_clk_clear_rst(PERIPH_RMT_MODULE);
 
     if(_joybus_task_handle != NULL)
     {

@@ -45,8 +45,8 @@ hoja_err_t util_battery_get_status_byte(uint8_t *status_byte)
         // CHECK IF BATTERY CHARGE STATUS READ WENT OK
         if (err != ESP_OK)
         {
-            ESP_LOGE(TAG, "Battery Status Read: Transmit Fail.");
-            ESP_LOGE(esp_err_to_name(err), "");
+            //ESP_LOGE(TAG, "Battery Status Read: Transmit Fail.");
+            //ESP_LOGE(esp_err_to_name(err), "");
             return HOJA_I2C_FAIL;
         }
         *status_byte = response[0];
@@ -92,8 +92,8 @@ hoja_err_t util_battery_write(uint8_t offset, uint8_t byte)
 
         if (err != ESP_OK)
         {
-            ESP_LOGE(TAG, "Failed to send I2C command to battery:");
-            ESP_LOGE(esp_err_to_name(err), "");
+            //ESP_LOGE(TAG, "Failed to send I2C command to battery:");
+            //ESP_LOGE(esp_err_to_name(err), "");
             return HOJA_I2C_FAIL;
         }
     }

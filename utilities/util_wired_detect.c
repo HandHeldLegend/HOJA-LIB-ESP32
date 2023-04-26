@@ -137,6 +137,16 @@ void util_wired_detect_task(void * params)
     ESP_LOGI("util_wired_detect_task", "Starting task to find wired connection...");
     for(;;)
     {
+         // IO configuration we can reuse
+        gpio_config_t io_conf = {};
+
+        // Set up IO pins for scanning button matrix
+        io_conf.intr_type = GPIO_INTR_DISABLE;
+        io_conf.pin_bit_mask = (1ULL << CONFIG_HOJA_GPIO_NS_SERIAL);
+        io_conf.mode = GPIO_MODE_INPUT;
+        io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+        gpio_config(&io_conf);
+
         util_wire_det_t type = util_wired_get();
         // Send appropriate event to have action taken
         switch(type)
