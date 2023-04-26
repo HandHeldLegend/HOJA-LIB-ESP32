@@ -408,6 +408,7 @@ void gamecube_translate_input(void)
     };
 
     hoja_button_remap_process();
+    hoja_process_dpad();
     hoja_analog_cb();
 
     gc_poll_tmp[GC_BUTTON_START]  = hoja_processed_buttons.button_start  ? JB_HIGH : JB_LOW;
@@ -423,10 +424,13 @@ void gamecube_translate_input(void)
     gc_poll_tmp[GC_BUTTON_DDOWN]  = hoja_processed_buttons.dpad_down   ? JB_HIGH : JB_LOW;
     gc_poll_tmp[GC_BUTTON_DLEFT]  = hoja_processed_buttons.dpad_left   ? JB_HIGH : JB_LOW;
     gc_poll_tmp[GC_BUTTON_DRIGHT] = hoja_processed_buttons.dpad_right  ? JB_HIGH : JB_LOW;
+
     hoja_analog_data.ls_x >>= 4;
     hoja_analog_data.ls_y >>= 4;
     hoja_analog_data.rs_x >>= 4;
     hoja_analog_data.rs_y >>= 4;
+    hoja_analog_data.rt_a >>= 4;
+    hoja_analog_data.lt_a >>= 4;
 
     // Copy analog data
     // Nice clean code to do it :)
@@ -438,11 +442,17 @@ void gamecube_translate_input(void)
         gc_poll_tmp[GC_ADC_LEFTY + i] = (hoja_analog_data.ls_y & 1) ? JB_HIGH : JB_LOW;
         hoja_analog_data.ls_y >>= 1;
 
-        gc_poll_tmp[GC_ADC_RIGHTX + i] = (hoja_analog_data.rs_x & 1) ? JB_HIGH : JB_LOW;
+        gc_poll_tmp[GC_ADC_RIGHTX + i] = (-+hoja_analog_data.rs_x & 1) ? JB_HIGH : JB_LOW;
         hoja_analog_data.rs_x >>= 1;
 
         gc_poll_tmp[GC_ADC_RIGHTY + i] = (hoja_analog_data.rs_y & 1) ? JB_HIGH : JB_LOW;
         hoja_analog_data.rs_y >>= 1;
+
+        gc_poll_tmp[GC_ADC_LT + i] = (hoja_analog_data.lt_a & 1) ? JB_HIGH : JB_LOW;
+        hoja_analog_data.lt_a >>= 1;
+
+        gc_poll_tmp[GC_ADC_RT + i] = (hoja_analog_data.rt_a & 1) ? JB_HIGH : JB_LOW;
+        hoja_analog_data.rt_a >>= 1;
     }
 
     memcpy(GAMECUBE_POLL_MEM, gc_poll_tmp, sizeof(rmt_item32_t) * GC_POLL_RESPONSE_SIZE);
@@ -505,6 +515,7 @@ void joybus_gamecube_init(void)
     // Reset write/read pointer for RX
     JB_RX_WRRST = 1;
     JB_RX_RDRST = 1;
+    vTaskDelay(350/portTICK_PERIOD_MS);
     JB_RX_EN = 1;
 }
 
@@ -560,23 +571,6 @@ void joybus_n64_init(void)
     JB_RX_EN = 1;
 }
 
-
-void flip_mode()
-{
-    joybus_all_deinit(false);
-    if (!_n64_enable)
-    {
-        _n64_enable = true;
-        joybus_general_init();
-        joybus_n64_init();
-    }
-    else
-    {
-        _n64_enable = false;
-        joybus_general_init();
-        joybus_gamecube_init();
-    }
-}
 
 // Interrupt function for joybus core
 static void joybus_isr(void* arg)
@@ -887,6 +881,8 @@ void joybus_n64_coldboot_task(void * param)
     else
     {
         ESP_LOGI(TAG, "N64 was not detected.");
+        joybus_all_deinit(false);
+        _n64_enable = false;
         hoja_current_core = HOJA_CORE_NULL;
         hoja_current_status = HOJA_STATUS_INITIALIZED;
         hoja_event_cb(HOJA_EVT_WIRED, HEVT_WIRED_N64_DECONFIRMED, 0);
@@ -933,7 +929,7 @@ hoja_err_t core_joybus_gamecube_start(void)
     joybus_general_init();
     joybus_gamecube_init();
 
-    xTaskCreatePinnedToCore(joybus_watchdog, "Joybus Watchdog", 2048, NULL, 4, &_joybus_task_handle, HOJA_INPUT_CPU);
+    //xTaskCreatePinnedToCore(joybus_watchdog, "Joybus Watchdog", 2048, NULL, 4, &_joybus_task_handle, HOJA_INPUT_CPU);
 
     return HOJA_OK;
 }
@@ -955,4 +951,3 @@ void core_joybus_stop(void)
         _rmt_isr_handle = NULL;
     }
 }
-

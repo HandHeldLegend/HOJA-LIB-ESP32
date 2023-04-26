@@ -42,7 +42,7 @@ hoja_err_t hoja_settings_init(void)
         else
         {
             ESP_LOGI(TAG, "Settings loaded with magic byte 0x%08X", (unsigned int) loaded_settings.magic_bytes);
-            hoja_remaps.val = loaded_settings.button_remaps;
+            hoja_load_remap(loaded_settings.button_remaps);
             nvs_close(my_handle);
         }
         
@@ -135,30 +135,8 @@ hoja_err_t hoja_settings_default(void)
     loaded_settings.cy_center = 0x740;
     loaded_settings.cy_max = 0xF47;
 
-    button_remap_s default_hoja_remaps = {
-        .dpad_up    = MAPCODE_DUP,
-        .dpad_down  = MAPCODE_DDOWN,
-        .dpad_left  = MAPCODE_DLEFT,
-        .dpad_right = MAPCODE_DRIGHT,
-
-        .button_up      = MAPCODE_B_UP,
-        .button_down    = MAPCODE_B_DOWN,
-        .button_left    = MAPCODE_B_LEFT,
-        .button_right   = MAPCODE_B_RIGHT,
-
-        .trigger_l      = MAPCODE_T_L,
-        .trigger_zl     = MAPCODE_T_ZL,
-        .trigger_r      = MAPCODE_T_R,
-        .trigger_zr     = MAPCODE_T_ZR,
-
-        .button_start       = MAPCODE_B_START,
-        .button_select      = MAPCODE_B_SELECT,
-        .button_stick_left  = MAPCODE_B_STICKL,
-        .button_stick_right = MAPCODE_B_STICKR,
-    };
-
-    loaded_settings.button_remaps = default_hoja_remaps.val;
-    hoja_remaps.val = default_hoja_remaps.val;
+    loaded_settings.button_remaps = hoja_get_remap_default();
+    hoja_load_remap(0x00); 
 
     // Set blob
     nvs_set_blob(my_handle, "hoja_settings", &loaded_settings, sizeof(hoja_settings_s));

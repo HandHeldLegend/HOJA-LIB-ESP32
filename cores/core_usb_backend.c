@@ -203,6 +203,7 @@ void usb_loop_task(void * parameters)
         // Scan the analogs using the callback defined by user.
         hoja_analog_cb();
         hoja_button_remap_process();
+        hoja_process_dpad();
 
         usb_input.buttons_all    = hoja_processed_buttons.buttons_all;
         usb_input.buttons_system = hoja_processed_buttons.buttons_system;

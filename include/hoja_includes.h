@@ -4,6 +4,11 @@
 #define HOJA_INPUT_CPU 1
 #define HOJA_CORE_CPU 0
 
+#define DPAD_ANALOG_POS 3680
+#define DPAD_ANALOG_CENTER 2048
+#define DPAD_ANALOG_NEG 416
+#define DPAD_DISTANCE 1632
+
 #include <string.h>
 #include <stdbool.h>
 #include <inttypes.h>

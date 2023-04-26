@@ -201,6 +201,7 @@ void dinput_bt_sendinput_task(void * param)
     {
         hoja_analog_cb();
         hoja_button_remap_process();
+        hoja_process_dpad();
 
         di_input.stick_left_x       = hoja_analog_data.ls_x >> 4;
         di_input.stick_left_y       = hoja_analog_data.ls_y >> 4;

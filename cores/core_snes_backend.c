@@ -242,6 +242,7 @@ void snes_task(void * parameters)
 
             // Process conversion of button data
             hoja_button_remap_process();
+            hoja_process_dpad();
 
             // Go through each bit and set accordingly.
             snes_button_buffer |= (hoja_processed_buttons.button_down << 7U);

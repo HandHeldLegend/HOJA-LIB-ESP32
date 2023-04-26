@@ -14,6 +14,7 @@ typedef struct {
 } legacy_rmt_mem_t;
 
 #define JB_BIT_MASK 0x7FF80000
+#define JB_BIT_MASK_GC 0x7FF00000
 
 // RMT REGISTER FOR RX STUFF
 
@@ -73,7 +74,7 @@ extern legacy_rmt_mem_t RMTMEM;
 // Memory access
 #define JB_RX_MEM           RMTMEM.chan[JB_RX_CHANNEL].data32
 
-// TX Channel for status (universal between GC and N64)
+// TX Channel for status
 #define JB_STATUS_CHANNEL   RMT_CHANNEL_1
 #define JB_STATUS_MEM       RMTMEM.chan[JB_STATUS_CHANNEL].data32
 // Status pointer defines

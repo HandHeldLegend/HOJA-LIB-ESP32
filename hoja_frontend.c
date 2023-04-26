@@ -66,6 +66,9 @@ hoja_err_t hoja_init()
     {
         vTaskDelete(hoja_button_taskhandle);
     }
+
+    // Load default remaps
+    hoja_load_remap(0x00);
     
     // We need to start the button scan task.
     xTaskCreatePinnedToCore(hoja_button_task, "HOJA Button Task", 2048, NULL, 0, &hoja_button_taskhandle, HOJA_INPUT_CPU);
