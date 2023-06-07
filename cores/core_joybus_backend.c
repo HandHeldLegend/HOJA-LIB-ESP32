@@ -13,7 +13,7 @@ uint8_t _joybus_watchdog_timer = 0;
 rmt_item32_t n64_poll_buffer[N64_POLL_RESPONSE_SIZE] = {
         JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X0, JB_RMT_0X0,
-        JB_RMT_0X0, JB_RMT_0X0, 
+        JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X0, JB_RMT_0X0,
         JB_STOP, JB_ZERO
     };
@@ -357,19 +357,19 @@ void n64_translate_input(void)
     hoja_button_remap_process();
     hoja_analog_cb();
     hoja_process_dpad();
-    
+
     n64_poll_buffer[N64_BUTTON_START].val   = button_state_table[hoja_processed_buttons.button_start].val;
     n64_poll_buffer[N64_BUTTON_CDOWN].val   = button_state_table[hoja_processed_buttons.button_left].val;
     n64_poll_buffer[N64_BUTTON_CUP].val     = button_state_table[hoja_processed_buttons.button_up].val;
     n64_poll_buffer[N64_BUTTON_B].val       = button_state_table[hoja_processed_buttons.button_down].val;
     n64_poll_buffer[N64_BUTTON_A].val       = button_state_table[hoja_processed_buttons.button_right].val;
-    n64_poll_buffer[N64_BUTTON_Z].val       = button_state_table[hoja_processed_buttons.trigger_zl].val;     
-    n64_poll_buffer[N64_BUTTON_R].val       = button_state_table[hoja_processed_buttons.trigger_zr].val;     
-    n64_poll_buffer[N64_BUTTON_CLEFT].val   = button_state_table[hoja_processed_buttons.trigger_l].val;     
-    n64_poll_buffer[N64_BUTTON_CRIGHT].val  = button_state_table[hoja_processed_buttons.trigger_r].val;     
-    n64_poll_buffer[N64_BUTTON_DUP].val     = button_state_table[hoja_processed_buttons.dpad_up].val;  
-    n64_poll_buffer[N64_BUTTON_DDOWN].val   = button_state_table[hoja_processed_buttons.dpad_down].val;  
-    n64_poll_buffer[N64_BUTTON_DLEFT].val   = button_state_table[hoja_processed_buttons.dpad_left].val;  
+    n64_poll_buffer[N64_BUTTON_Z].val       = button_state_table[hoja_processed_buttons.trigger_zl].val;
+    n64_poll_buffer[N64_BUTTON_R].val       = button_state_table[hoja_processed_buttons.trigger_zr].val;
+    n64_poll_buffer[N64_BUTTON_CLEFT].val   = button_state_table[hoja_processed_buttons.trigger_l].val;
+    n64_poll_buffer[N64_BUTTON_CRIGHT].val  = button_state_table[hoja_processed_buttons.trigger_r].val;
+    n64_poll_buffer[N64_BUTTON_DUP].val     = button_state_table[hoja_processed_buttons.dpad_up].val;
+    n64_poll_buffer[N64_BUTTON_DDOWN].val   = button_state_table[hoja_processed_buttons.dpad_down].val;
+    n64_poll_buffer[N64_BUTTON_DLEFT].val   = button_state_table[hoja_processed_buttons.dpad_left].val;
     n64_poll_buffer[N64_BUTTON_DRIGHT].val  = button_state_table[hoja_processed_buttons.dpad_right].val;
     hoja_analog_data.ls_x >>= 4;
     hoja_analog_data.ls_y >>= 4;
@@ -395,9 +395,9 @@ void gamecube_translate_input(void)
      rmt_item32_t gcmd_poll_rmt[GC_POLL_RESPONSE_SIZE] = {
         JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X8, JB_RMT_0X0,
-        JB_RMT_0X8, JB_RMT_0X0, 
         JB_RMT_0X8, JB_RMT_0X0,
-        JB_RMT_0X8, JB_RMT_0X0, 
+        JB_RMT_0X8, JB_RMT_0X0,
+        JB_RMT_0X8, JB_RMT_0X0,
         JB_RMT_0X8, JB_RMT_0X0,
         JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X0, JB_RMT_0X0,
@@ -523,9 +523,9 @@ void joybus_gamecube_init(void)
     rmt_item32_t gcmd_origin_rmt[GC_ORIGIN_RESPONSE_SIZE] = {
         JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X8, JB_RMT_0X0,
-        JB_RMT_0X8, JB_RMT_0X0, 
         JB_RMT_0X8, JB_RMT_0X0,
-        JB_RMT_0X8, JB_RMT_0X0, 
+        JB_RMT_0X8, JB_RMT_0X0,
+        JB_RMT_0X8, JB_RMT_0X0,
         JB_RMT_0X8, JB_RMT_0X0,
         JB_RMT_0X0, JB_RMT_0X0,
         JB_RMT_0X0, JB_RMT_0X0,
@@ -602,7 +602,7 @@ void joybus_n64_init(void)
     N64_POLL_CHANNEL_TXENDINTENA    = 1;
 
     memcpy(&N64_STATUS_CHANNEL_MEM[0].val, n64_status_buffer, sizeof(rmt_item32_t) * JB_STATUS_LEN);
-    
+
     PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[CONFIG_HOJA_GPIO_NS_SERIAL], PIN_FUNC_GPIO);
     gpio_set_direction(CONFIG_HOJA_GPIO_NS_SERIAL, GPIO_MODE_INPUT_OUTPUT_OD);
     gpio_matrix_out(CONFIG_HOJA_GPIO_NS_SERIAL, RMT_SIG_OUT0_IDX + N64_CHANNEL, 0, 0);
@@ -614,7 +614,7 @@ void joybus_n64_init(void)
 
 volatile uint32_t tmp = 0x00;
 volatile uint8_t cmd_buffer = 0x00;
-static void gamecube_rmt_isr(void* arg) 
+static void gamecube_rmt_isr(void* arg)
 {
     // At the end of a received transaction
     // on channel 0
@@ -634,8 +634,8 @@ static void gamecube_rmt_isr(void* arg)
         cmd_buffer |= (JB_RX_MEM[4].val & JB_BIT_MASK_GC) ? 0x8  : 0;
         cmd_buffer |= (JB_RX_MEM[5].val & JB_BIT_MASK_GC) ? 0x4  : 0;
         cmd_buffer |= (JB_RX_MEM[6].val & JB_BIT_MASK_GC) ? 0x2  : 0;
-        cmd_buffer |= (JB_RX_MEM[7].val & JB_BIT_MASK_GC) ? 0x1  : 0; 
-        
+        cmd_buffer |= (JB_RX_MEM[7].val & JB_BIT_MASK_GC) ? 0x1  : 0;
+
         // Clear RX bit for ch0
         JB_RX_CLEARISR = 1;
 
@@ -721,7 +721,7 @@ static void gamecube_rmt_isr(void* arg)
         JB_RX_RDRST = 1;
         JB_RX_EN        = 1;
     }
-    
+
 }
 
 // Interrupt function for joybus core
@@ -745,8 +745,8 @@ static void n64_rmt_isr(void* arg)
         cmd_buffer |= (JB_RX_MEM[4].val & JB_BIT_MASK) ? 0x8  : 0;
         cmd_buffer |= (JB_RX_MEM[5].val & JB_BIT_MASK) ? 0x4  : 0;
         cmd_buffer |= (JB_RX_MEM[6].val & JB_BIT_MASK) ? 0x2  : 0;
-        cmd_buffer |= (JB_RX_MEM[7].val & JB_BIT_MASK) ? 0x1  : 0; 
-        
+        cmd_buffer |= (JB_RX_MEM[7].val & JB_BIT_MASK) ? 0x1  : 0;
+
         // Clear RX bit for ch0
         JB_RX_CLEARISR = 1;
 
@@ -938,7 +938,7 @@ void joybus_n64_coldboot_task(void * param)
 hoja_err_t core_joybus_n64_coldboot(void)
 {
     _joybus_mode = JOYBUS_MODE_N64;
-    
+
     joybus_n64_init();
 
     if (_joybus_task_handle == NULL)
@@ -952,10 +952,19 @@ hoja_err_t core_joybus_n64_coldboot(void)
     return HOJA_OK;
 }
 
+hoja_err_t core_joybus_n64_start(void)
+{
+    const char* TAG = "core_joybus_n64_start";
+
+    joybus_n64_init();
+
+    return HOJA_OK;
+}
+
 // Initializes Joybus Utility
 hoja_err_t core_joybus_gamecube_start(void)
 {
-    const char* TAG = "util_joybus_init";
+    const char* TAG = "core_joybus_gamecube_start";
 
     joybus_gamecube_init();
 

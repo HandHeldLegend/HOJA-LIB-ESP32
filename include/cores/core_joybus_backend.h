@@ -175,7 +175,7 @@ typedef struct
         };
         uint32_t val;
     };
-    
+
 } __attribute__ ((packed)) joybus_rx_buffer_s;
 
 typedef enum
@@ -202,9 +202,10 @@ void joybus_general_init(void);
 
 hoja_err_t core_joybus_n64_coldboot(void);
 
+hoja_err_t core_joybus_n64_start(void);
+
 hoja_err_t core_joybus_gamecube_start(void);
 
 void core_joybus_stop(void);
 
 #endif
-

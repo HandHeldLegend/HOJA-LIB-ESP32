@@ -69,10 +69,10 @@ hoja_err_t hoja_init()
 
     // Load default remaps
     hoja_load_remap(0x00);
-    
+
     // We need to start the button scan task.
     xTaskCreatePinnedToCore(hoja_button_task, "HOJA Button Task", 2048, NULL, 0, &hoja_button_taskhandle, HOJA_INPUT_CPU);
-    
+
     hoja_current_status = HOJA_STATUS_INITIALIZED;
 
     ESP_LOGI(TAG, "HOJA initialized.");
@@ -134,7 +134,7 @@ hoja_err_t hoja_start_core(void)
             break;
         case HOJA_CORE_N64:
             ESP_LOGI(TAG, "Attempting N64 Core start...");
-            err = core_joybus_n64_coldboot();
+            err = core_joybus_n64_start();
             break;
         case HOJA_CORE_GAMECUBE:
             ESP_LOGI(TAG, "Attempting GameCube Core start...");
@@ -221,7 +221,7 @@ void hoja_stop_core(void)
 
 /**
  * @brief Is called when button task is initiated by the API.
- * 
+ *
  * @param *button_data Pointer to global button_data variable. Gets passed to callback function
  * for modification of button inputs. Recommended to perform OR EQUALS on button_data members. Type of hoja_button_data_s
 */
@@ -229,7 +229,7 @@ hoja_button_callback_t hoja_button_cb = NULL;
 
 /**
  * @brief Is called when analog reading is initiated by the API.
- * 
+ *
  * @param *analog_data Pointer to global analog_data variable. Gets passed to callback function
  * for modification of analog inputs. Recommended to perform EQUALS on analog_data members. Type of hoja_analog_data_s
 */
@@ -237,7 +237,7 @@ hoja_analog_callback_t hoja_analog_cb = NULL;
 
 /**
  * @brief Is called when HOJA event is triggered by the API.
- * 
+ *
  * @param type Type of hoja_event_type_t
  * @param evt Event that occurred. See hoja_types.h for details on types for each category.
  * @param param uint8_t type of data related to the event that occurred.

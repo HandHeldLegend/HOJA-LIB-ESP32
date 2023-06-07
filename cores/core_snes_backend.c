@@ -15,9 +15,9 @@ static QueueHandle_t snes_evt_queue = NULL;
 // This interrupt triggers when the latch line goes high or low.
 static void IRAM_ATTR snes_isr_handler(void* arg)
 {
-    
+
     //uint32_t gpio_num = (uint32_t) arg;
-    
+
     // Toggle done so we can reset our SPI transaction for next
     if (!done)
     {
@@ -25,7 +25,7 @@ static void IRAM_ATTR snes_isr_handler(void* arg)
         done = true;
         // Set CS virtual low
     }
-    
+
 }
 
 hoja_err_t core_snes_start()
@@ -38,7 +38,7 @@ hoja_err_t core_snes_start()
     // Start SNES task.
     xTaskCreatePinnedToCore(snes_task, "SNES/NES Task Loop", 2024,
                             NULL, 0, &snes_TaskHandle, HOJA_CORE_CPU);
-    
+
     ESP_LOGI(TAG, "SNES Core started OK.");
 
     return HOJA_OK;
@@ -55,7 +55,7 @@ void core_snes_stop()
         vTaskDelete(snes_TaskHandle);
     }
     snes_TaskHandle = NULL;
-    
+
     // Deinitialize SPI slave interface
     esp_err_t err;
     err = spi_slave_free(VSPI_HOST);
@@ -68,7 +68,7 @@ void core_snes_stop()
 
 #define SPI_LL_RST_MASK (SPI_OUT_RST | SPI_IN_RST | SPI_AHBM_RST | SPI_AHBM_FIFO_RST)
 #define SPI_LL_UNUSED_INT_MASK  (SPI_INT_EN | SPI_SLV_WR_STA_DONE | SPI_SLV_RD_STA_DONE | SPI_SLV_WR_BUF_DONE | SPI_SLV_RD_BUF_DONE)
-#define SNES_DELAY_US 250
+#define SNES_DELAY_US 300
 
 void snes_task(void * parameters)
 {
@@ -78,7 +78,7 @@ void snes_task(void * parameters)
     gpio_config_t io_conf = {};
 
     // Interrupt on rising edge since we can use that to our advantage
-    // Start 
+    // Start
     io_conf.intr_type = GPIO_INTR_POSEDGE;
 
     io_conf.mode = GPIO_MODE_INPUT;
@@ -209,7 +209,7 @@ void snes_task(void * parameters)
             done = false;
             ets_delay_us(SNES_DELAY_US);
             // At this point, the transction should be over. Load our next transaction.
-            
+
             // Set data GPIO to low
             GPIO.out_w1tc = DATA_MASK;
             GPIO.func_out_sel_cfg[CONFIG_HOJA_GPIO_NS_SERIAL].func_sel = 256;
@@ -269,11 +269,12 @@ void snes_task(void * parameters)
             //                    |
             //              4-7<--|
 
-            // Set last bit as low to hold the line low on idle
-            //snes_button_buffer |= (1 << 8U);
-
+            // SNES OLD
             SPI2.data_buf[0] = (0x0000FFFF) & ~(snes_button_buffer);
-            //SPI2.data_buf[0] = 0x0000FFFF;
+
+            // NES NEW
+            //SPI2.data_buf[0] = (0x000000FF) & ~(snes_button_buffer);
+
             snes_button_buffer = 0;
 
             SPI2.cmd.usr = 1;
