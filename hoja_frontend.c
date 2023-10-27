@@ -42,6 +42,10 @@ hoja_err_t hoja_init()
         fail = true;
         ESP_LOGE(TAG, "hoja_event_cb is not registered!");
     }
+    if (hoja_rumble_cb == NULL)
+    {
+        ESP_LOGW(TAG, "hoja_rumble_cb is not registered! Any incoming rumble data will be ignored!");
+    }
     if (fail)
     {
         return HOJA_FAIL;
@@ -238,6 +242,14 @@ hoja_analog_callback_t hoja_analog_cb = NULL;
 hoja_event_callback_t hoja_event_cb = NULL;
 
 /**
+ * @brief Is called when a rumble data is obteined from the device.
+ * 
+ * @param *rumble_data Pointer to global hoja_rumble_data variable. Gets passed to callback function
+ * for reading rumble outputs. Type of hoja_rumble_data_s
+*/
+hoja_rumble_callback_t hoja_rumble_cb = NULL;
+
+/**
  * @brief This will force the HOJA api to override the boot event for unplugged.
  * This allows you to boot into wired modes even when you are in a wireless mode.
 */
@@ -286,6 +298,18 @@ hoja_err_t hoja_register_event_callback(hoja_event_callback_t func)
     if (func == NULL) return HOJA_FAIL;
 
     hoja_event_cb = func;
+
+    return HOJA_OK;
+}
+
+/**
+ * @brief Register HOJA callback function for rumble output.
+*/
+hoja_err_t hoja_register_rumble_callback(hoja_rumble_callback_t func)
+{
+    if (func == NULL) return HOJA_FAIL;
+
+    hoja_rumble_cb = func;
 
     return HOJA_OK;
 }

@@ -95,6 +95,14 @@ typedef struct
 
 } __attribute__ ((packed)) hoja_button_data_s;
 
+/** @brief This is a struct for containing all of the 
+ * rumble incoming data.
+**/
+typedef struct 
+{
+    uint8_t left_rumble;
+    uint8_t right_rumble;
+} __attribute__ ((packed)) hoja_rumble_data_s;
 
 /**
  *  @brief Type to determine what event is being sent

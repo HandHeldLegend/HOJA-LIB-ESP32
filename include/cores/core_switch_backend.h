@@ -24,7 +24,7 @@
 // Library for handling SPI read command emulation
 #include "switch/core_switch_spi.h"
 
-// Library for vibration emulation (todo)
+// Library for vibration emulation (semi-todo)
 #include "switch/core_switch_vibration.h"
 
 // Library for motion controls
