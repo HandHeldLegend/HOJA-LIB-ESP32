@@ -5,6 +5,7 @@
 hoja_button_data_s hoja_button_data = {};
 hoja_button_data_s hoja_processed_buttons = {};
 hoja_analog_data_s hoja_analog_data = {};
+hoja_rumble_data_s hoja_rumble_data = {};
 uint8_t _hoja_battery_level = 128;
 
 button_remap_s hoja_remaps = {};

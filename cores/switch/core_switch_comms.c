@@ -44,8 +44,11 @@ void ns_comms_handle_command(uint8_t report_id, uint16_t len, uint8_t* p_data)
 
         // Just Rumble data
         case COMM_RUMBLE_ONLY:
-            // Not implemented
+            // Extract rumble data
+            switch_vibration_parse(p_data);
 
+            // Handle rumble data
+            switch_vibration_handle();
             break;
 
         // UNIMPLEMENTED, RETURN STANDARD FULL REPORT

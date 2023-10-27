@@ -7,7 +7,7 @@
  * @brief Struct for holding vibration data
  * Makes for easier reading in other functions.
  */
-struct vibration_data_s
+typedef struct
 {
     uint8_t l_high_band_freq;
     union
@@ -52,10 +52,10 @@ struct vibration_data_s
         uint8_t r_low_band_freq_combined;
     };
     uint8_t r_low_band_amp;
-};
+} vibration_data_s;
 
-struct vibration_data_s switch_vibration_parse(uint8_t* p_data);
+void switch_vibration_parse(uint8_t* p_data);
 
-void switch_vibration_handle(struct vibration_data_s vibration_data);
+void switch_vibration_handle(void);
 
 #endif

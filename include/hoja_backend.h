@@ -6,6 +6,7 @@
 extern hoja_button_data_s   hoja_button_data;
 extern hoja_analog_data_s   hoja_analog_data;
 extern hoja_button_data_s   hoja_processed_buttons;
+extern hoja_rumble_data_s hoja_rumble_data;
 extern button_remap_s       hoja_remaps;
 
 void    hoja_set_battery_lvl(uint8_t level);
